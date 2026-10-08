@@ -1,0 +1,56 @@
+<section class="chapter" id="tokens" data-title="Tokens">
+  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 2</span><span class="label">Tokenize</span></div>
+  <h2>How does text become numbers?</h2>
+  <div class="answer"><span class="label">Short answer</span><p>A tokenizer chops your text into common chunks called tokens and swaps each one for an ID number. The model then looks up a long list of numbers for each ID, which captures something like the token's meaning.</p></div>
+
+  <div class="inst" id="bp">
+    <div class="inst-head"><h4>Watch a tokenizer learn its vocabulary</h4><span class="label">Real algorithm · byte-pair encoding</span></div>
+    <div class="inst-body">
+      <p class="howto">The tokenizer starts knowing only single letters. Each <b>Learn one merge</b> finds the most common neighbouring pair in the training text and glues it into a new token. Watch the text shrink into fewer, bigger pieces.</p>
+      <div class="btn-row"><button class="btn" type="button" id="bp-step">Learn one merge</button><button class="btn ghost" type="button" id="bp-10">Learn 10</button><button class="btn ghost" type="button" id="bp-reset">Start over</button></div>
+      <div class="readouts" id="bp-read"></div>
+      <div class="stage" style="padding:0.8rem"><div class="label" id="bp-last">Training text, as tokens</div><div class="tokens" id="bp-tok" style="margin-top:0.4rem"></div></div>
+      <canvas class="cv" id="bp-cv" aria-label="Number of tokens as merges are learned"></canvas>
+      <div class="ctl"><label for="bp-test">Try your own sentence with what it has learned so far</label><input type="text" id="bp-test" value="the transformer reads trillions of new tokens"></div>
+      <div class="tokens" id="bp-tok2"></div>
+      <details class="tool"><summary>Change the training text <span class="label">Experiment</span></summary><div class="inst-body"><textarea id="bp-train" rows="5">the model reads the tokens. the tokens become numbers. the numbers flow through the transformer. the transformer predicts the next token. training repeats this for trillions of tokens. tokenizers learn the most frequent pairs first, so the common words become single tokens while rare words stay split into pieces.</textarea><p class="note">Changing the text restarts learning. Spaces are attached to the start of the following word and shown as ·, the convention GPT-2 introduced.</p></div></details>
+    </div>
+  </div>
+
+  <div class="inst" id="em">
+    <div class="inst-head"><h4>Meaning as a place on a map</h4><span class="label">Illustration · 2 of thousands of dimensions</span></div>
+    <div class="inst-body">
+      <p class="howto">Each token gets a list of numbers, its <b>embedding</b>. Think of it as coordinates. Click two words to draw the arrow between them, then click a third to apply the same arrow.</p>
+      <div class="inst-cols wide-first">
+        <canvas class="cv" id="em-cv" aria-label="Word map with clickable words" style="cursor:pointer"></canvas>
+        <div style="display:grid;gap:0.6rem">
+          <div class="readouts" id="em-read"></div>
+          <button class="btn ghost" type="button" id="em-reset">Clear</button>
+          <p class="note">Positions are hand-placed to illustrate the idea. Real models learn embeddings with thousands of dimensions, and relations like these appeared in word2vec embeddings<sup class="ref"><a href="#ref-56">56</a></sup>; in large transformers they are messier, but the principle that direction can carry meaning still holds.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="concepts">
+    <article class="concept">
+      <div class="concept-head"><h3>What is a token?</h3></div>
+      <div class="level" data-l="1"><p>Computers only understand numbers. So we break writing into small pieces, like LEGO bricks, and give every kind of brick a number. "playing" might be two bricks: "play" and "ing".</p></div>
+      <div class="level" data-l="2"><p>A token is usually a common word or a piece of a word. Common words get one token; rare words are spelled out from smaller pieces. In English a token averages roughly four characters, so 1,000 words is around 1,300 tokens, though this depends on the tokenizer and the text.</p></div>
+      <div class="level" data-l="3"><p>Most tokenizers use byte-pair encoding (BPE)<sup class="ref"><a href="#ref-4">4</a></sup>, working on bytes so any input can be encoded. Vocabulary size is a trade-off: more tokens compress text better, but every token adds a row to the embedding and output matrices. Around 50k suits English-only models; multilingual models often use 100k+, and Llama 3 uses about 128k<sup class="ref"><a href="#ref-1">1</a></sup>. Pricing, rate limits and context windows are all counted in tokens, so a language your tokenizer splits finely costs more to use.</p></div>
+      <div class="level" data-l="4"><p>BPE training is greedy: from a base alphabet Σ, repeatedly pick the pair (a, b) maximising its count in the corpus and add the merged symbol, until |V| reaches the target. Encoding applies the merges in learned order. The objective it approximates is compression; tokenizer quality is often measured by <i>fertility</i>, the average tokens per word, which varies widely across languages<sup class="ref"><a href="#ref-3">3</a></sup>.</p></div>
+    </article>
+    <article class="concept">
+      <div class="concept-head"><h3>What is an embedding?</h3></div>
+      <div class="level" data-l="1"><p>Each word gets a home on a giant map. Words that mean similar things live near each other, like "cat" next to "dog".</p></div>
+      <div class="level" data-l="2"><p>The map has thousands of directions, not just two, and the model learns where to put each token during training. Directions can mean things: moving one way might mean "plural", another way "past tense".</p></div>
+      <div class="level" data-l="3"><p>The embedding table has shape vocabulary × d_model, for example 128,256 × 4,096 in Llama 3 8B, about 525 million numbers. Looking up a token is just reading one row. Many small models reuse the same table for the output layer ("tied embeddings") to save parameters<sup class="ref"><a href="#ref-1">1</a></sup>.</p></div>
+      <div class="level" data-l="4"><p>Lookup is a one-hot product: for token id i, x = e_iᵀE with E ∈ ℝ^{|V|×d}. Similarity is usually measured by cosine, cos(u, v) = u·v / (‖u‖‖v‖). The output layer computes logits z = hW_out with W_out ∈ ℝ^{d×|V|}; with tying, W_out = Eᵀ.</p></div>
+    </article>
+  </div>
+
+  <div class="quiz"><div class="label">Check yourself</div>
+    <div class="q" data-answer="0"><p>A tokenizer trained mostly on English text meets a Thai sentence. What usually happens?</p><div class="opts"><button>It splits it into many small pieces, so it costs more tokens</button><button>It refuses to encode it</button><button>It translates it into English first</button></div><div class="why">Byte-level BPE can encode anything, but text unlike its training data falls back to small pieces, so the same meaning takes more tokens.</div></div>
+    <div class="q" data-answer="1"><p>What does an embedding table do?</p><div class="opts"><button>Stores the user's conversation</button><button>Turns each token ID into a learned list of numbers</button><button>Decides which token comes next</button></div><div class="why">It's a lookup table: one row of learned numbers per token in the vocabulary.</div></div>
+  </div>
+</section>

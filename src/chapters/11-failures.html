@@ -1,0 +1,50 @@
+<section class="chapter" id="failures" data-title="Failures">
+  <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 11</span><span class="label">Rewind · reliability</span></div>
+  <h2>What happens when chips break?</h2>
+  <div class="answer"><span class="label">Short answer</span><p>Constantly. With tens of thousands of chips in one tightly coupled job, something fails every few hours and the whole job stops. Teams save progress regularly, restart automatically, and design everything assuming failure is normal.</p></div>
+
+  <div class="inst" id="fg">
+    <div class="inst-head"><h4>Keep a 16,384-GPU training run alive</h4><span class="label">Simulation · failure rate and causes from Meta's Llama 3 run</span></div>
+    <div class="inst-body">
+      <p class="howto">Press <b>Start</b> to run three days of training in about 40 seconds. When a tile turns red, a GPU has failed and the job stops: everything since the last save is lost. Tune how often you save, how long saves and restarts take, or press <b>Save now</b>. Can you keep useful work above 90%, like Meta did?</p>
+      <div class="inst-cols">
+        <div class="ctrls">
+          <div class="btn-row"><button class="btn" type="button" id="fg-run">Start</button><button class="btn ghost" type="button" id="fg-save">Save now</button><button class="btn ghost" type="button" id="fg-reset">Reset</button></div>
+          <div class="ctl"><div class="row"><span>Save a checkpoint every</span><output for="fg-t"></output></div><input type="range" id="fg-t" min="5" max="480" step="5" value="180"></div>
+          <div class="ctl"><div class="row"><span>Time to save</span><output for="fg-d"></output></div><input type="range" id="fg-d" min="0.5" max="30" step="0.5" value="5"></div>
+          <div class="ctl"><div class="row"><span>Time to detect, restart and reload</span><output for="fg-r"></output></div><input type="range" id="fg-r" min="2" max="90" step="1" value="30"><small>Automation shrinks this. Meta reduced job start-up and checkpoint times and built diagnosis tools<sup class="ref"><a href="#ref-9">9</a></sup>.</small></div>
+          <div class="ctl"><div class="row"><span>GPUs in the job</span><output for="fg-g"></output></div><input type="range" id="fg-g" min="3" max="5.3" step="any" value="4.214443"></div>
+        </div>
+        <div style="display:grid;gap:0.7rem;min-width:0">
+          <canvas class="cv" id="fg-grid" aria-label="Cluster map: each tile is 64 GPUs"></canvas>
+          <canvas class="cv" id="fg-tl" aria-label="Timeline of useful work, saves, lost work and restarts"></canvas>
+          <div class="readouts" id="fg-read"></div>
+        </div>
+      </div>
+      <div id="fg-log" class="note" style="max-height:7.5rem;overflow-y:auto;font-family:var(--f-mono);font-size:0.78rem" aria-live="polite"></div>
+      <p class="note">Failure rate: 419 unexpected interruptions in a 54-day snapshot on 16,384 H100s, about 0.47 per 1,000 GPU-days<sup class="ref"><a href="#ref-9">9</a></sup>. Causes are drawn in proportion to the reported counts: faulty GPUs 148, GPU HBM3 memory 72, network switches and cables 35, GPU SRAM 19, GPU system processor 17, CPUs 2, and the remaining 126 from software bugs, host maintenance, NICs and other components<sup class="ref"><a href="#ref-9">9</a></sup><sup class="ref"><a href="#ref-59">59</a></sup>. Timings for saves and restarts are your inputs.</p>
+    </div>
+  </div>
+
+  <div class="concepts">
+    <article class="concept">
+      <div class="concept-head"><h3>Why failures are normal at scale</h3></div>
+      <div class="level" data-l="1"><p>One light bulb rarely breaks. A building with 16,000 bulbs has one going out all the time. And in this building, when one bulb goes out, every light switches off until it's fixed.</p></div>
+      <div class="level" data-l="2"><p>Each GPU is quite reliable on its own, but tens of thousands together fail often. Training is synchronised: every chip waits for every other chip each step, so a single failure stops the entire job.</p></div>
+      <div class="level" data-l="3"><p>Meta's Llama 3 405B run logged 466 interruptions in 54 days: 47 planned (firmware and kernel upgrades, config changes) and 419 unexpected. About 78% of the unexpected ones were confirmed or suspected hardware, and GPU issues alone were 58.7%. Only three needed significant manual work; the rest were handled by automation, and effective training time stayed above 90%. They also saw 1–2% throughput swings with the time of day (heat), and power swings of tens of megawatts when the whole job paused or resumed together<sup class="ref"><a href="#ref-9">9</a></sup>. Harder still are <b>silent data corruption</b> (a chip computes wrong numbers without crashing) and <b>stragglers</b> (one slow node holding everyone back).</p></div>
+      <div class="level" data-l="4"><p>If each of n components fails independently at rate λ, the job's failures arrive at rate nλ, so mean time between failures M = 1/(nλ) falls inversely with scale. At λ ≈ 0.47 per 1,000 GPU-days, n = 16,384 gives M ≈ 3.1 hours; n = 100,000 gives about 31 minutes.</p></div>
+    </article>
+    <article class="concept">
+      <div class="concept-head"><h3>Checkpointing</h3></div>
+      <div class="level" data-l="1"><p>Like saving a video game. If you save often, a crash doesn't lose much, but saving takes a moment each time.</p></div>
+      <div class="level" data-l="2"><p>A checkpoint writes the entire training state (weights, optimiser state, data position) to storage. Save too often and you waste time saving; too rarely and each failure throws away hours. There's a sweet spot, and it gets shorter as the cluster gets bigger.</p></div>
+      <div class="level" data-l="3"><p>For large models a checkpoint is terabytes, written in parallel from every GPU to a fast distributed file system or object store. Techniques include asynchronous checkpointing (copy to CPU memory, write in the background), keeping spare nodes ready, and fast health checks to find the bad machine before restarting<sup class="ref"><a href="#ref-15">15</a></sup>.</p></div>
+      <div class="level" data-l="4"><p>With save cost δ, interval τ, restart cost R and MTBF M, expected waste per unit time ≈ δ/τ + (τ/2 + R)/M. Minimising over τ gives Young's approximation τ* ≈ √(2δM); Daly refined it for cases where δ is not small relative to M<sup class="ref"><a href="#ref-43">43</a></sup>.</p></div>
+    </article>
+  </div>
+
+  <div class="quiz"><div class="label">Check yourself</div>
+    <div class="q" data-answer="1"><p>You double the number of GPUs, with the same per-GPU failure rate. What happens to the time between job failures?</p><div class="opts"><button>It doubles</button><button>It halves</button><button>It stays the same</button></div><div class="why">Failures add up across components, so twice the GPUs means twice the failure rate and half the time between failures.</div></div>
+    <div class="q" data-answer="0"><p>Your job fails every 3 hours and saving takes 5 minutes. Roughly how often should you save?</p><div class="opts"><button>About every 45 minutes: √(2 × 5 × 180) ≈ 42</button><button>Every 5 minutes</button><button>Once a day</button></div><div class="why">Young's rule τ* ≈ √(2δM) balances time spent saving against work lost to failures.</div></div>
+  </div>
+</section>

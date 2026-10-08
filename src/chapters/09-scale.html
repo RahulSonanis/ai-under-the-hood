@@ -1,0 +1,62 @@
+<section class="chapter" id="scale" data-title="Scale">
+  <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 9</span><span class="label">Rewind · compute budget</span></div>
+  <h2>How big, how long, how much?</h2>
+  <div class="answer"><span class="label">Short answer</span><p>Training cost is roughly 6 × parameters × training tokens operations. Teams split a fixed budget between a bigger model and more data, guided by "scaling laws" fitted on small runs, and then pay for months of thousands of chips plus all the experiments around them.</p></div>
+
+  <div class="inst" id="bg">
+    <div class="inst-head"><h4>Spend a compute budget</h4><span class="label">Simulation · Chinchilla scaling-law fit</span></div>
+    <div class="inst-body">
+      <p class="howto">You have a fixed pile of compute. Drag the split: left makes a <b>smaller model that reads more</b>, right makes a <b>bigger model that reads less</b>. Find the split with the lowest predicted loss, then raise the budget.</p>
+      <div class="ctrls row">
+        <div class="ctl"><div class="row"><span>Compute budget</span><output for="bg-c"></output></div><input type="range" id="bg-c" min="19" max="26" step="0.1" value="23"></div>
+        <div class="ctl"><div class="row"><span>Split: model size ↔ data</span><output for="bg-n"></output></div><input type="range" id="bg-n" min="0" max="1" step="0.005" value="0.3"></div>
+        <button class="btn ghost" type="button" id="bg-opt">Jump to the optimum</button>
+      </div>
+      <canvas class="cv" id="bg-cv" aria-label="Model size and data size boxes with predicted loss"></canvas>
+      <div class="readouts" id="bg-read"></div>
+      <canvas class="cv" id="bg-plot" aria-label="Predicted loss across all splits at this budget"></canvas>
+      <p class="note">Predicted loss L(N, D) = 1.69 + 406.4/N<sup>0.34</sup> + 410.7/D<sup>0.28</sup>, the parametric fit in DeepMind's Chinchilla paper<sup class="ref"><a href="#ref-8">8</a></sup>, with tokens D = C ÷ 6N<sup class="ref"><a href="#ref-7">7</a></sup>. The paper's headline rule is about 20 tokens per parameter; this particular fit drifts higher at large budgets, and a 2024 replication found problems with it<sup class="ref"><a href="#ref-50">50</a></sup>. Use it for the shape of the trade-off, not exact numbers.</p>
+    </div>
+  </div>
+
+  <div class="inst" id="tc">
+    <div class="inst-head"><h4>What did real training runs cost?</h4><span class="label">Calculator · compared with reported runs</span></div>
+    <div class="inst-body">
+      <p class="howto">Pick a real model to load its published size, data and hardware. The calculator estimates GPU-hours from first principles and compares with what the team reported. Then change anything.</p>
+      <div class="inst-cols">
+        <div class="ctrls">
+          <div class="ctl"><label for="tc-preset">Model</label><select id="tc-preset"><option value="smol">SmolLM3 3B · Hugging Face</option><option value="ds" selected>DeepSeek-V3 · 37B active (MoE)</option><option value="llama">Llama 3.1 405B · Meta</option><option value="custom">Custom</option></select></div>
+          <div class="ctl"><div class="row"><span>Active parameters</span><output for="tc-n"></output></div><input type="range" id="tc-n" min="0.1" max="1000" step="0.01" value="37"></div>
+          <div class="ctl"><div class="row"><span>Training tokens</span><output for="tc-d"></output></div><input type="range" id="tc-d" min="0.1" max="40" step="0.1" value="14.8"></div>
+          <div class="ctl"><label for="tc-chip">Accelerator</label><select id="tc-chip"><option value="h100">NVIDIA H100 · 989 TFLOPS BF16</option><option value="h800">NVIDIA H800 · 989 TFLOPS BF16</option><option value="b200">NVIDIA B200 · ~2,250 TFLOPS BF16</option><option value="tpu7">Google TPU7x · ~2,307 TFLOPS BF16</option></select></div>
+          <div class="ctl"><div class="row"><span>Utilisation (MFU)</span><output for="tc-mfu"></output></div><input type="range" id="tc-mfu" min="0.1" max="0.7" step="0.01" value="0.38"><small>Share of peak spent on useful maths. Meta reports 38–43% for Llama 3 405B<sup class="ref"><a href="#ref-9">9</a></sup>.</small></div>
+          <div class="ctl"><div class="row"><span>Accelerators</span><output for="tc-g"></output></div><input type="range" id="tc-g" min="8" max="100000" step="8" value="2048"></div>
+          <div class="ctl"><div class="row"><span>Price per accelerator-hour</span><output for="tc-p"></output></div><input type="range" id="tc-p" min="0.5" max="10" step="0.1" value="2"></div>
+        </div>
+        <div style="display:grid;gap:0.8rem;align-content:start;min-width:0"><div class="readouts" id="tc-read"></div><canvas class="cv" id="tc-cv" aria-label="Estimated versus reported GPU-hours"></canvas>
+          <p class="note">FLOPs = 6·N·D; GPU-hours = FLOPs ÷ (peak × MFU) ÷ 3,600. The estimate leaves out failures, restarts and experiments, so reported figures run higher. DeepSeek's report prices H800 time at $2/hour<sup class="ref"><a href="#ref-10">10</a></sup>.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="concepts">
+    <article class="concept">
+      <div class="concept-head"><h3>Scaling laws</h3></div>
+      <div class="level" data-l="1"><p>Bigger brains that read more books get smarter, in a surprisingly predictable way. That lets builders guess how good a giant model will be by testing small ones first.</p></div>
+      <div class="level" data-l="2"><p>Researchers noticed that loss falls smoothly as you add parameters, data and compute, following simple curves. With a fixed budget, there's a best balance: a model too big for its data is under-trained; a model too small can't absorb all that data.</p></div>
+      <div class="level" data-l="3"><p>OpenAI's 2020 study fitted power laws to loss<sup class="ref"><a href="#ref-7">7</a></sup>; DeepMind's Chinchilla (2022) showed that parameters and tokens should grow roughly in proportion, around 20 tokens per parameter<sup class="ref"><a href="#ref-8">8</a></sup>. In practice teams <b>overtrain</b> small models far past that point because serving cost depends on model size: Llama 3 8B saw about 15T tokens (close to 1,900 per parameter) and SmolLM3 saw 11T at 3B<sup class="ref"><a href="#ref-9">9</a></sup><sup class="ref"><a href="#ref-1">1</a></sup>. Mixture-of-experts models change the balance again, since compute follows active parameters.</p></div>
+      <div class="level" data-l="4"><div class="eq">L(N, D) = E + A/N^α + B/D^β ,   C ≈ 6ND</div><p>Minimising L subject to C = 6ND gives N_opt ∝ C^{β/(α+β)} and D_opt ∝ C^{α/(α+β)}. With α ≈ β the two grow as √C each, which is the "scale both together" result.</p></div>
+    </article>
+    <article class="concept">
+      <div class="concept-head"><h3>The hidden bill</h3></div>
+      <div class="level" data-l="1"><p>Before baking the big cake, bakers make lots of tiny test cakes. Those cost flour too.</p></div>
+      <div class="level" data-l="2"><p>The final training run is only part of the cost. Teams run many smaller experiments to choose the architecture and data, and they lose time to hardware failures and bugs.</p></div>
+      <div class="level" data-l="3"><p>Hugging Face's SmolLM3 accounting is unusually open: about 276k H100-hours for the main run, plus 161k more for ablations and recovering from a problem mid-run, over half as much again<sup class="ref"><a href="#ref-1">1</a></sup>. DeepSeek's widely quoted $5.6M for V3 covers the final run's GPU-hours only, and the report says it excludes prior research and ablations<sup class="ref"><a href="#ref-10">10</a></sup>. Add staff, data, evaluation and the cluster itself, and the full cost of a frontier model is far higher.</p></div>
+    </article>
+  </div>
+
+  <div class="quiz"><div class="label">Check yourself</div>
+    <div class="q" data-answer="0"><p>Why do teams train small models on far more tokens than "compute-optimal"?</p><div class="opts"><button>A smaller model is cheaper to serve to millions of users, so extra training pays for itself</button><button>Because data is free and compute is not</button><button>Because scaling laws stop working for small models</button></div><div class="why">Chinchilla minimises training cost alone. Including inference cost favours smaller, longer-trained models.</div></div>
+    <div class="q" data-answer="1"><p>A dense 70B model trains on 15T tokens. Roughly how many FLOPs is that?</p><div class="opts"><button>About 10²¹</button><button>About 6 × 10²⁴</button><button>About 10³⁰</button></div><div class="why">6 × 70×10⁹ × 15×10¹² ≈ 6.3 × 10²⁴.</div></div>
+  </div>
+</section>

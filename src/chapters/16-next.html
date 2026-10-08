@@ -1,0 +1,92 @@
+<section class="chapter" id="next" data-title="Build it yourself">
+  <div class="ch-kicker"><span class="num">KEEP GOING · CHAPTER 16</span><span class="label">Practice</span></div>
+  <h2>Build it yourself</h2>
+  <div class="answer"><span class="label">Short answer</span><p>The fastest way to make this stick is to build a small version of each stage and compare your numbers with the ones in this course.</p></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Next episode</th><th>Hands-on project</th><th>Start with</th></tr></thead>
+      <tbody>
+        <tr><td><b>Train a tiny GPT</b></td><td>Train a character-level transformer on a small corpus on a laptop or one cloud GPU; watch the loss fall and samples improve.</td><td>nanoGPT<sup class="ref"><a href="#ref-46">46</a></sup></td></tr>
+        <tr><td><b>Data and tokenizers</b></td><td>Deduplicate a slice of web text with MinHash, then train a BPE tokenizer and measure characters per token across languages.</td><td>FineWeb write-up<sup class="ref"><a href="#ref-3">3</a></sup></td></tr>
+        <tr><td><b>Scaling on a budget</b></td><td>Train three model sizes at fixed compute and plot your own small iso-FLOP curve.</td><td>Chinchilla<sup class="ref"><a href="#ref-8">8</a></sup>, Smol Training Playbook<sup class="ref"><a href="#ref-1">1</a></sup></td></tr>
+        <tr><td><b>Multi-GPU training</b></td><td>Rent two GPUs for an hour; run the same job with data parallel, then FSDP; record memory and step time.</td><td>Ultra-Scale Playbook<sup class="ref"><a href="#ref-2">2</a></sup></td></tr>
+        <tr><td><b>Post-training</b></td><td>Fine-tune a small open model with SFT, then DPO on a preference dataset; compare answers before and after.</td><td>Hugging Face TRL<sup class="ref"><a href="#ref-49">49</a></sup>, DPO paper<sup class="ref"><a href="#ref-18">18</a></sup></td></tr>
+        <tr><td><b>Serving</b></td><td>Serve a small model with vLLM; measure time to first token and throughput as you raise concurrency, and compare with chapter 6's numbers.</td><td>vLLM<sup class="ref"><a href="#ref-54">54</a></sup></td></tr>
+        <tr><td><b>Build a harness</b></td><td>Write a 200-line agent loop with two tools (read file, run tests) against a model API; add compaction and a budget limit.</td><td>Building effective agents<sup class="ref"><a href="#ref-40">40</a></sup>, MCP<sup class="ref"><a href="#ref-42">42</a></sup></td></tr>
+        <tr><td><b>Infrastructure watch</b></td><td>Track one new cluster announcement per month: chips, power, network, cooling. Plug it into chapter 14's power calculator.</td><td>Epoch AI data<sup class="ref"><a href="#ref-48">48</a></sup></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 class="section-title">How to keep learning</h3>
+  <div class="prose"><p>Keep a short journal per chapter: the one formula that matters, one number you computed yourself, and one question you couldn't answer. Revisit the datacenter chapter every few months, since that's the part of this field changing fastest. Whenever a lab publishes a technical report or postmortem, read it against these chapters; most of it will map onto something you've already played with.</p></div>
+  <div class="callout"><div class="label">Corrections welcome</div><p>Spotted an error or a better source? Open an issue or pull request on the course's GitHub repository with a link to the source.</p></div>
+</section>
+
+<section class="chapter refs" id="refs" data-title="References">
+  <div class="ch-kicker"><span class="num">§</span><span class="label">Sources</span></div>
+  <h2>References</h2>
+  <p class="lede" style="margin-top:0.6rem">Primary sources first: papers, company engineering blogs and vendor documentation. Facts are paraphrased and linked so you can check them.</p>
+  <ol>
+    <li id="ref-1"><a href="https://huggingface.co/spaces/HuggingFaceTB/smol-training-playbook">The Smol Training Playbook: The Secrets to Building World-Class LLMs</a>. Hugging Face, 2025.<span class="tag">Guide</span></li>
+    <li id="ref-2"><a href="https://huggingface.co/spaces/nanotron/ultrascale-playbook">The Ultra-Scale Playbook: Training LLMs on GPU Clusters</a>. Hugging Face, 2025.<span class="tag">Guide</span></li>
+    <li id="ref-3"><a href="https://arxiv.org/abs/2406.17557">Penedo et al., The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale</a>. 2024.<span class="tag">Paper</span></li>
+    <li id="ref-4"><a href="https://arxiv.org/abs/1508.07909">Sennrich, Haddow, Birch, Neural Machine Translation of Rare Words with Subword Units</a>. 2016.<span class="tag">Paper</span></li>
+    <li id="ref-5"><a href="https://arxiv.org/abs/1706.03762">Vaswani et al., Attention Is All You Need</a>. 2017.<span class="tag">Paper</span></li>
+    <li id="ref-6"><a href="https://arxiv.org/abs/2305.13245">Ainslie et al., GQA: Training Generalized Multi-Query Transformer Models</a>. 2023.<span class="tag">Paper</span></li>
+    <li id="ref-7"><a href="https://arxiv.org/abs/2001.08361">Kaplan et al., Scaling Laws for Neural Language Models</a>. OpenAI, 2020.<span class="tag">Paper</span></li>
+    <li id="ref-8"><a href="https://arxiv.org/abs/2203.15556">Hoffmann et al., Training Compute-Optimal Large Language Models (Chinchilla)</a>. DeepMind, 2022.<span class="tag">Paper</span></li>
+    <li id="ref-9"><a href="https://arxiv.org/abs/2407.21783">Llama Team, The Llama 3 Herd of Models</a>. Meta, 2024.<span class="tag">Paper</span></li>
+    <li id="ref-10"><a href="https://arxiv.org/abs/2412.19437">DeepSeek-AI, DeepSeek-V3 Technical Report</a>. 2024.<span class="tag">Paper</span></li>
+    <li id="ref-11"><a href="https://arxiv.org/abs/1910.02054">Rajbhandari et al., ZeRO: Memory Optimizations Toward Training Trillion Parameter Models</a>. Microsoft, 2019.<span class="tag">Paper</span></li>
+    <li id="ref-12"><a href="https://arxiv.org/abs/1909.08053">Shoeybi et al., Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism</a>. NVIDIA, 2019.<span class="tag">Paper</span></li>
+    <li id="ref-13"><a href="https://arxiv.org/abs/2104.04473">Narayanan et al., Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM</a>. 2021.<span class="tag">Paper</span></li>
+    <li id="ref-14"><a href="https://engineering.fb.com/2024/03/12/data-center-engineering/building-metas-genai-infrastructure/">Building Meta's GenAI Infrastructure</a>. Engineering at Meta, March 2024.<span class="tag">Engineering blog</span></li>
+    <li id="ref-15"><a href="https://engineering.fb.com/2024/06/12/data-infrastructure/training-large-language-models-at-scale-meta/">How Meta trains large language models at scale</a>. Engineering at Meta, June 2024.<span class="tag">Engineering blog</span></li>
+    <li id="ref-16"><a href="https://arxiv.org/abs/2203.02155">Ouyang et al., Training language models to follow instructions with human feedback (InstructGPT)</a>. OpenAI, 2022.<span class="tag">Paper</span></li>
+    <li id="ref-17"><a href="https://arxiv.org/abs/2212.08073">Bai et al., Constitutional AI: Harmlessness from AI Feedback</a>. Anthropic, 2022.<span class="tag">Paper</span></li>
+    <li id="ref-18"><a href="https://arxiv.org/abs/2305.18290">Rafailov et al., Direct Preference Optimization</a>. 2023.<span class="tag">Paper</span></li>
+    <li id="ref-19"><a href="https://arxiv.org/abs/2501.12948">DeepSeek-AI, DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning</a>. 2025.<span class="tag">Paper</span></li>
+    <li id="ref-20"><a href="https://github.com/huggingface/evaluation-guidebook">The LLM Evaluation Guidebook</a>. Hugging Face.<span class="tag">Guide</span></li>
+    <li id="ref-21"><a href="https://www.anthropic.com/responsible-scaling-policy">Responsible Scaling Policy</a>. Anthropic.<span class="tag">Policy</span></li>
+    <li id="ref-22"><a href="https://www.nvidia.com/en-us/data-center/gb200-nvl72/">NVIDIA GB200 NVL72</a>. NVIDIA product page.<span class="tag">Vendor docs</span></li>
+    <li id="ref-23"><a href="https://www.nvidia.com/en-us/data-center/h100/">NVIDIA H100 Tensor Core GPU</a>. NVIDIA product page and datasheet.<span class="tag">Vendor docs</span></li>
+    <li id="ref-24"><a href="https://docs.cloud.google.com/tpu/docs/tpu7x">TPU7x (Ironwood)</a>. Google Cloud documentation.<span class="tag">Vendor docs</span></li>
+    <li id="ref-25"><a href="https://aws.amazon.com/blogs/aws/amazon-ec2-trn2-instances-and-trn2-ultraservers-for-aiml-training-and-inference-is-now-available">Amazon EC2 Trn2 instances and Trn2 UltraServers are now available</a>. AWS News Blog, December 2024.<span class="tag">Vendor docs</span></li>
+    <li id="ref-26"><a href="https://www.aboutamazon.com/news/aws/aws-project-rainier-ai-trainium-chips-compute-cluster">AWS Project Rainier</a>. About Amazon, October 2025.<span class="tag">Company news</span></li>
+    <li id="ref-27"><a href="https://www.anthropic.com/news/expanding-our-use-of-google-cloud-tpus-and-services">Expanding our use of Google Cloud TPUs and Services</a>. Anthropic, October 2025.<span class="tag">Company news</span></li>
+    <li id="ref-28"><a href="https://www.anthropic.com/news/google-broadcom-partnership-compute">Anthropic expands partnership with Google and Broadcom for multiple gigawatts of next-generation compute</a>. Anthropic, April 2026.<span class="tag">Company news</span></li>
+    <li id="ref-29"><a href="https://www.anthropic.com/news/anthropic-invests-50-billion-in-american-ai-infrastructure">Anthropic invests $50 billion in American AI infrastructure</a>. Anthropic, November 2025.<span class="tag">Company news</span></li>
+    <li id="ref-30"><a href="https://www.anthropic.com/engineering/a-postmortem-of-three-recent-issues">A postmortem of three recent issues</a>. Engineering at Anthropic, September 2025.<span class="tag">Engineering blog</span></li>
+    <li id="ref-31"><a href="https://blogs.microsoft.com/blog/2025/09/18/inside-the-worlds-most-powerful-ai-datacenter/">Inside the world's most powerful AI datacenter</a>. Microsoft, September 2025.<span class="tag">Company news</span></li>
+    <li id="ref-32"><a href="https://www.datacenterdynamics.com/en/news/openai-and-oracle-to-deploy-450000-gb200-gpus-at-stargate-abilene-data-center/">OpenAI and Oracle to deploy 450,000 GB200 GPUs at Stargate Abilene data center</a>. DatacenterDynamics, October 2025.<span class="tag">Trade press</span></li>
+    <li id="ref-33"><a href="https://openai.com/index/announcing-the-stargate-project/">Announcing The Stargate Project</a>. OpenAI, January 2025.<span class="tag">Company news</span></li>
+    <li id="ref-34"><a href="https://arxiv.org/abs/2309.06180">Kwon et al., Efficient Memory Management for Large Language Model Serving with PagedAttention</a>. SOSP 2023.<span class="tag">Paper</span></li>
+    <li id="ref-35"><a href="https://www.usenix.org/conference/osdi22/presentation/yu">Yu et al., Orca: A Distributed Serving System for Transformer-Based Generative Models</a>. OSDI 2022.<span class="tag">Paper</span></li>
+    <li id="ref-36"><a href="https://docs.nvidia.com/dynamo/knowledge-base/concepts/system-architecture/disaggregated-serving">NVIDIA Dynamo: Disaggregated Serving</a>. NVIDIA documentation.<span class="tag">Vendor docs</span></li>
+    <li id="ref-37"><a href="https://arxiv.org/abs/2401.09670">Zhong et al., DistServe: Disaggregating Prefill and Decoding for Goodput-optimized LLM Serving</a>. OSDI 2024.<span class="tag">Paper</span></li>
+    <li id="ref-38"><a href="https://arxiv.org/abs/2211.17192">Leviathan, Kalman, Matias, Fast Inference from Transformers via Speculative Decoding</a>. 2023.<span class="tag">Paper</span></li>
+    <li id="ref-39"><a href="https://arxiv.org/abs/1904.09751">Holtzman et al., The Curious Case of Neural Text Degeneration (nucleus sampling)</a>. 2020.<span class="tag">Paper</span></li>
+    <li id="ref-40"><a href="https://www.anthropic.com/engineering/building-effective-agents">Building effective agents</a>. Engineering at Anthropic, December 2024.<span class="tag">Engineering blog</span></li>
+    <li id="ref-41"><a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">Effective context engineering for AI agents</a>. Engineering at Anthropic.<span class="tag">Engineering blog</span></li>
+    <li id="ref-42"><a href="https://modelcontextprotocol.io">Model Context Protocol</a>. Specification and documentation.<span class="tag">Spec</span></li>
+    <li id="ref-43"><a href="https://doi.org/10.1016/j.future.2004.11.016">Daly, A higher order estimate of the optimum checkpoint interval for restart dumps</a>. Future Generation Computer Systems, 2006; building on Young (1974).<span class="tag">Paper</span></li>
+    <li id="ref-44"><a href="https://arxiv.org/abs/2205.14135">Dao et al., FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness</a>. 2022.<span class="tag">Paper</span></li>
+    <li id="ref-45"><a href="https://www.google.com/about/datacenters/efficiency/">Google data center efficiency</a>. Google.<span class="tag">Company data</span></li>
+    <li id="ref-46"><a href="https://github.com/karpathy/nanoGPT">Karpathy, nanoGPT</a>. GitHub.<span class="tag">Code</span></li>
+    <li id="ref-47"><a href="https://jalammar.github.io/illustrated-transformer/">Alammar, The Illustrated Transformer</a>.<span class="tag">Tutorial</span></li>
+    <li id="ref-48"><a href="https://epoch.ai/data/ai-models">Epoch AI, Data on AI models</a>.<span class="tag">Dataset</span></li>
+    <li id="ref-49"><a href="https://github.com/huggingface/trl">Hugging Face TRL: Transformer Reinforcement Learning</a>. GitHub.<span class="tag">Code</span></li>
+    <li id="ref-50"><a href="https://arxiv.org/abs/2404.10102">Besiroglu et al., Chinchilla Scaling: A replication attempt</a>. Epoch AI, 2024.<span class="tag">Paper</span></li>
+    <li id="ref-51"><a href="https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/MODEL_CARD.md">Llama 3.1 model card</a>. Meta.<span class="tag">Model card</span></li>
+    <li id="ref-52"><a href="https://arxiv.org/abs/2205.05198">Korthikanti et al., Reducing Activation Recomputation in Large Transformer Models</a>. NVIDIA, 2022.<span class="tag">Paper</span></li>
+    <li id="ref-53"><a href="https://www.nextplatform.com/?p=145609">With "Ironwood" TPU, Google Pushes the AI Accelerator to the Floor</a>. The Next Platform, 2025.<span class="tag">Trade press</span></li>
+    <li id="ref-54"><a href="https://github.com/vllm-project/vllm">vLLM</a>. GitHub.<span class="tag">Code</span></li>
+    <li id="ref-55"><a href="https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events">Server-sent events</a>. MDN Web Docs.<span class="tag">Docs</span></li>
+    <li id="ref-56"><a href="https://arxiv.org/abs/1301.3781">Mikolov et al., Efficient Estimation of Word Representations in Vector Space (word2vec)</a>. 2013.<span class="tag">Paper</span></li>
+    <li id="ref-57"><a href="https://research.google/blog/transformer-a-novel-neural-network-architecture-for-language-understanding/">Transformer: A Novel Neural Network Architecture for Language Understanding</a>. Google Research blog, 2017.<span class="tag">Engineering blog</span></li>
+    <li id="ref-58"><a href="https://arxiv.org/abs/1412.6980">Kingma &amp; Ba, Adam: A Method for Stochastic Optimization</a>. 2014.<span class="tag">Paper</span></li>
+    <li id="ref-59"><a href="https://www.datacenterdynamics.com/en/news/meta-report-details-hundreds-of-gpu-and-hbm3-related-interruptions-to-llama-3-training-run">Meta report details hundreds of GPU and HBM3-related interruptions to Llama 3 training run</a>. DatacenterDynamics, July 2024.<span class="tag">Trade press</span></li>
+    <li id="ref-60"><a href="https://www.cudocompute.com/products/nvidia-gb200-nvl72">NVIDIA GB200 NVL72 rack specifications</a>. Cudo Compute product page.<span class="tag">Vendor spec</span></li>
+  </ol>
+  <div class="callout"><div class="label">About this course</div><p>Built with Claude for personal learning. The text is original and paraphrases its sources; figures, names and trademarks belong to their owners and are cited for educational use. Simulations are simplified models for intuition; panels that use illustrative inputs say so. Code is MIT-licensed and text is CC BY 4.0.</p></div>
+</section>

@@ -1,0 +1,80 @@
+<section class="chapter" id="inside" data-title="Inside the model">
+  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 4</span><span class="label">Prefill</span></div>
+  <h2>What happens inside the model?</h2>
+  <div class="answer"><span class="label">Short answer</span><p>Each token's numbers pass through a stack of identical layers. In every layer, <b>attention</b> lets each word look back at earlier words that matter to it, and an <b>MLP</b> then works on what it gathered. At the end, the last position's numbers become next-token probabilities.</p></div>
+
+  <div class="inst" id="ax">
+    <div class="inst-head"><h4>Who is "it"? Explore attention</h4><span class="label">Illustration · patterns like those found in real models</span></div>
+    <div class="inst-body">
+      <p class="howto">Click any word to see which earlier words it pays attention to. Pick a <b>head</b>, then swap the last word between <b>tired</b> and <b>wide</b> and watch what "it" points to.</p>
+      <div class="ctrls row">
+        <div class="ctl"><span>Attention head</span><div class="seg" id="ax-head"><button type="button" data-v="coref" aria-pressed="true">Who is "it"?</button><button type="button" data-v="prev" aria-pressed="false">Previous word</button><button type="button" data-v="sink" aria-pressed="false">Sentence start</button></div></div>
+        <div class="ctl"><span>Last word</span><div class="seg" id="ax-adj"><button type="button" data-v="tired" aria-pressed="true">tired</button><button type="button" data-v="wide" aria-pressed="false">wide</button></div></div>
+      </div>
+      <div style="overflow-x:auto"><canvas class="cv" id="ax-cv" style="min-width:560px;cursor:pointer" aria-label="Attention arcs between words"></canvas></div>
+      <p class="note" id="ax-note"></p>
+      <p class="note">Weights here are hand-set to show three behaviours researchers have observed in trained transformers: heads that track the previous token, heads that link a pronoun to what it refers to (this sentence pair is the example from Google's Transformer announcement<sup class="ref"><a href="#ref-57">57</a></sup>), and heads that dump spare attention on the first token, an "attention sink"<sup class="ref"><a href="#ref-1">1</a></sup>. A real model has dozens of heads in each of dozens of layers, and most are harder to interpret.</p>
+    </div>
+  </div>
+
+  <div class="inst" id="vq">
+    <div class="inst-head"><h4>Attention with vectors you can drag</h4><span class="label">Real maths · softmax(q·k / √d)</span></div>
+    <div class="inst-body">
+      <p class="howto">Drag the <b>query</b> arrow (what this word is looking for) and the three <b>key</b> arrows (what each earlier word offers). The more a key points the same way as the query, the more attention it gets, and the more its <b>value</b> colour flows into the output.</p>
+      <div class="inst-cols wide-first">
+        <canvas class="cv" id="vq-cv" style="touch-action:none;cursor:grab" aria-label="Draggable query and key vectors"></canvas>
+        <div style="display:grid;gap:0.8rem">
+          <div class="ctl"><div class="row"><span>Sharpness (vector length)</span><output for="vq-s"></output></div><input type="range" id="vq-s" min="0.2" max="4" step="0.1" value="1.5"><small>Longer vectors make the softmax pickier.</small></div>
+          <canvas class="cv" id="vq-bars" aria-label="Attention weights and blended output"></canvas>
+          <p class="note" id="vq-eq"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="concepts">
+    <article class="concept">
+      <div class="concept-head"><h3>Attention</h3></div>
+      <div class="level" data-l="1"><p>When you read "it", you look back to work out what "it" is. Attention lets every word do that: it looks back at the earlier words and decides which ones matter most right now.</p></div>
+      <div class="level" data-l="2"><p>Every word makes three things: a <b>question</b> (query: "what am I looking for?"), a <b>label</b> (key: "here's what I contain") and a <b>message</b> (value). Each word compares its question with every earlier word's label, and collects messages mostly from the best matches. Many of these "heads" run side by side, each free to look for something different. Jay Alammar's illustrated guide is a good next read<sup class="ref"><a href="#ref-47">47</a></sup>.</p></div>
+      <div class="level" data-l="3"><p>In a decoder, attention is <b>causal</b>: position t sees only positions ≤ t. Cost grows with the square of sequence length, which is why long contexts are expensive and why variants exist: grouped-query attention shares keys and values across heads<sup class="ref"><a href="#ref-6">6</a></sup>, sliding windows limit how far back a layer looks, and FlashAttention computes it in on-chip tiles to avoid slow memory traffic<sup class="ref"><a href="#ref-44">44</a></sup>. The keys and values of past tokens are what the serving system caches (chapter 5).</p></div>
+      <div class="level" data-l="4"><p>For one head with Q = XW_Q, K = XW_K, V = XW_V and causal mask M (0 on and below the diagonal, −∞ above):</p><div class="eq">Attention(Q, K, V) = softmax(QKᵀ / √d_k + M) · V</div><p>The 1/√d_k keeps dot products from growing with dimension and saturating the softmax<sup class="ref"><a href="#ref-5">5</a></sup>. Multi-head attention concatenates h heads and projects with W_O. Positional information is usually injected by rotating q and k (RoPE), so q·k depends on relative position.</p></div>
+    </article>
+    <article class="concept">
+      <div class="concept-head"><h3>The layer stack</h3></div>
+      <div class="level" data-l="1"><p>Imagine an assembly line with the same two stations repeated many times: first "look around" (attention), then "think about it" (MLP). Each pass makes the understanding a bit richer.</p></div>
+      <div class="level" data-l="2"><p>Every token carries a list of numbers that gets updated layer by layer. Nothing is thrown away: each layer adds its result on top of what was there (a "residual" connection). After the last layer, the numbers at the final position are turned into a score for every possible next token.</p></div>
+      <div class="level" data-l="3"><p>A Llama-style block is: RMSNorm → attention → add; RMSNorm → SwiGLU MLP → add. Llama 3 8B has 32 such layers with width 4,096; the 70B has 80 layers with width 8,192. Most parameters live in the MLPs; at inference, attention dominates memory traffic for long contexts<sup class="ref"><a href="#ref-1">1</a></sup>. A forward pass costs roughly 2 FLOPs per parameter per token<sup class="ref"><a href="#ref-7">7</a></sup>.</p></div>
+      <div class="level" data-l="4"><div class="eq">h ← h + Attn(Norm(h)) ;  h ← h + W₂( SiLU(W₁·Norm(h)) ⊙ W₃·Norm(h) )</div><p>Per layer, attention has about 2d² + 2d·d_kv parameters (Q and O, plus K and V at reduced width under GQA) and the SwiGLU MLP 3·d·d_ff. Embeddings add |V|·d (doubled if untied).</p></div>
+    </article>
+    <article class="concept">
+      <div class="concept-head"><h3>Mixture of experts</h3></div>
+      <div class="level" data-l="1"><p>Instead of one big brain that does everything, the model has many specialist helpers and a receptionist who sends each word to just a couple of them.</p></div>
+      <div class="level" data-l="2"><p>The model can be huge in total, but each word only uses a small part of it, so it's cheaper to run than its size suggests. The catch: all the specialists still need to be stored somewhere.</p></div>
+      <div class="level" data-l="3"><p>DeepSeek-V3 has 671B parameters but activates 37B per token<sup class="ref"><a href="#ref-10">10</a></sup>. Compute per token follows the active parameters; memory follows the total. Experts are spread across devices, so tokens are shuffled between GPUs with all-to-all communication, and a load-balancing mechanism keeps any one expert from being swamped<sup class="ref"><a href="#ref-1">1</a></sup>.</p></div>
+      <div class="level" data-l="4"><p>A router computes gate scores g = softmax(W_r h) and keeps the top-k experts: y = Σ_{i∈TopK(g)} gᵢ · Eᵢ(h). Sparsity, total experts ÷ active experts, has been rising, from 4 in Mixtral to about 29 in DeepSeek-V3 and over 40 in some 2025 models<sup class="ref"><a href="#ref-1">1</a></sup>.</p></div>
+    </article>
+  </div>
+
+  <details class="tool" id="pc"><summary>Parameter counter for Llama-style models <span class="label">Engineer tool</span></summary><div class="inst-body">
+    <div class="inst-cols">
+      <div class="ctrls">
+        <div class="ctl"><label for="pc-preset">Preset</label><select id="pc-preset"><option value="l1b">Llama 3.2 1B</option><option value="smol3">SmolLM3 3B</option><option value="l8b" selected>Llama 3 8B</option><option value="l70b">Llama 3 70B</option><option value="custom">Custom</option></select></div>
+        <div class="ctl"><div class="row"><span>d_model</span><output for="pc-h"></output></div><input type="range" id="pc-h" min="512" max="16384" step="256" value="4096"></div>
+        <div class="ctl"><div class="row"><span>Layers</span><output for="pc-L"></output></div><input type="range" id="pc-L" min="4" max="128" step="1" value="32"></div>
+        <div class="ctl"><div class="row"><span>Query heads</span><output for="pc-a"></output></div><input type="range" id="pc-a" min="4" max="128" step="4" value="32"></div>
+        <div class="ctl"><div class="row"><span>KV heads</span><output for="pc-kv"></output></div><input type="range" id="pc-kv" min="1" max="128" step="1" value="8"></div>
+        <div class="ctl"><div class="row"><span>MLP width</span><output for="pc-f"></output></div><input type="range" id="pc-f" min="1024" max="65536" step="256" value="14336"></div>
+        <div class="ctl"><div class="row"><span>Vocabulary</span><output for="pc-v"></output></div><input type="range" id="pc-v" min="32000" max="262144" step="256" value="128256"></div>
+        <label class="toggle"><input type="checkbox" id="pc-tie"> Tie input and output embeddings</label>
+      </div>
+      <div style="display:grid;gap:0.8rem;align-content:start"><div class="readouts" id="pc-read"></div><canvas class="cv" id="pc-cv" aria-label="Parameter breakdown"></canvas>
+        <p class="note">Exact formulas for a Llama-style decoder (RMSNorm, GQA, SwiGLU). The presets reproduce the published sizes; Llama 3 8B comes out at 8,030,261,248 parameters.</p></div>
+    </div>
+  </div></details>
+
+  <div class="quiz"><div class="label">Check yourself</div>
+    <div class="q" data-answer="1"><p>In the sentence about the animal, why can "it" attend to "animal" but "animal" cannot attend to "it"?</p><div class="opts"><button>Pronouns have more attention heads</button><button>The causal mask lets each position see only earlier positions</button><button>"animal" is a more common word</button></div><div class="why">A decoder predicts left to right, so each token may only look at itself and what came before.</div></div>
+    <div class="q" data-answer="2"><p>In the drag demo, you double the length of every vector. What happens to the attention weights?</p><div class="opts"><button>Nothing, only directions matter</button><button>They become more even</button><button>They become sharper, concentrating on the best match</button></div><div class="why">Longer vectors mean larger dot products, and softmax of larger numbers is more peaked. That's why the √d scaling exists.</div></div>
+  </div>
+</section>

@@ -1,0 +1,70 @@
+<section class="chapter" id="sharing" data-title="Batching">
+  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 6</span><span class="label">Batching</span></div>
+  <h2>How does one GPU serve many people?</h2>
+  <div class="answer"><span class="label">Short answer</span><p>To write one token, a GPU must read the entire model from its memory. Reading is the slow part, so it writes the next token for many conversations in one go. Each extra person barely slows the step, which is what makes AI affordable to serve.</p></div>
+
+  <div class="inst" id="ds">
+    <div class="inst-head"><h4>One decode step, up close</h4><span class="label">Simulation · roofline arithmetic</span></div>
+    <div class="inst-body">
+      <p class="howto">Every step, the weights (blue) stream from memory to the compute units, then the maths runs once for every person in the batch. Drag <b>People in the batch</b> and watch which part becomes the bottleneck.</p>
+      <div class="inst-cols">
+        <div class="ctrls">
+          <div class="ctl"><div class="row"><span>People in the batch</span><output for="ds-b"></output></div><input type="range" id="ds-b" min="0" max="10" step="1" value="0"></div>
+          <div class="ctl"><label for="ds-m">Model</label><select id="ds-m"><option value="8">Llama 3 8B · 16 GB in BF16</option><option value="70">Llama 3 70B · 141 GB (2 GPUs)</option></select></div>
+          <div class="ctl"><div class="row"><span>Conversation length so far</span><output for="ds-c"></output></div><input type="range" id="ds-c" min="256" max="32768" step="256" value="2048"><small>Each person's KV cache must be read too.</small></div>
+          <div class="ctl"><div class="row"><span>GPU price per hour</span><output for="ds-p"></output></div><input type="range" id="ds-p" min="1" max="8" step="0.25" value="3"></div>
+          <button class="btn ghost" type="button" id="ds-play">Pause animation</button>
+        </div>
+        <div style="display:grid;gap:0.8rem;min-width:0">
+          <canvas class="cv" id="ds-cv" aria-label="Animated decode step: weights streaming from memory to compute, tokens emitted per person"></canvas>
+          <div class="readouts" id="ds-read"></div>
+        </div>
+      </div>
+      <p class="note">NVIDIA H100 SXM: 3.35 TB/s memory bandwidth, 989 dense BF16 TFLOPS<sup class="ref"><a href="#ref-23">23</a></sup>. Step time = max(bytes read ÷ bandwidth, FLOPs ÷ compute), assuming a realistic 70% of peak bandwidth and 50% of peak compute; real servers also spend time on scheduling and communication, so treat results as order-of-magnitude. Cost per token assumes the GPU is fully busy.</p>
+    </div>
+  </div>
+
+  <div class="inst" id="cb">
+    <div class="inst-head"><h4>Waiting for the slowest, or refilling seats</h4><span class="label">Simulation · same requests, two schedulers</span></div>
+    <div class="inst-body">
+      <p class="howto">Eight seats on one GPU. Requests arrive and each needs a different number of tokens. <b>Static batching</b> waits for the whole batch to finish before starting the next. <b>Continuous batching</b> refills a seat the moment it frees up. Press <b>Play</b>.</p>
+      <div class="btn-row"><button class="btn" type="button" id="cb-play">Play</button><button class="btn ghost" type="button" id="cb-new">New requests</button>
+        <label class="toggle" style="margin-left:0.5rem"><input type="checkbox" id="cb-spread" checked> Very mixed reply lengths</label></div>
+      <canvas class="cv" id="cb-cv" aria-label="Seat occupancy over time for both schedulers"></canvas>
+      <div class="readouts" id="cb-read"></div>
+    </div>
+  </div>
+
+  <div class="concepts">
+    <article class="concept">
+      <div class="concept-head"><h3>Why batching is nearly free</h3></div>
+      <div class="level" data-l="1"><p>A chef has one giant recipe book in the pantry. To cook anything, they must carry the whole book to the kitchen. Carrying it is slow; cooking is fast. So if eight people want dinner, the chef carries the book once and cooks eight meals.</p></div>
+      <div class="level" data-l="2"><p>The "book" is the model's weights. For every new token, the GPU has to read all of them from memory. With one person, the GPU's maths units sit mostly idle while it waits for that read. Adding more people uses that idle maths, so total output rises almost in proportion while each person's speed barely changes, until the maths units are finally full.</p></div>
+      <div class="level" data-l="3"><p>This is the <b>roofline</b> model. A workload's arithmetic intensity is FLOPs per byte moved. Decoding a BF16 model does about 2 FLOPs per 2-byte weight per sequence, so intensity ≈ batch size. An H100's ridge point is 989 TFLOPS ÷ 3.35 TB/s ≈ 295 FLOPs/byte, so decode stays memory-bound until batches of a few hundred, and in practice KV-cache reads and memory capacity cap the batch first. Prefill, which processes thousands of prompt tokens at once, is compute-bound.</p></div>
+      <div class="level" data-l="4"><div class="eq">t_step ≈ max( (W + B·c·s_kv) / BW ,  2·N_act·B / F )</div><p>with W weight bytes, B batch, c context length, s_kv KV bytes per token, BW bandwidth, F peak FLOPs. Throughput = B / t_step; per-user speed = 1 / t_step. Cost per token = (GPU $/s) · t_step / B, which falls roughly as 1/B while weight reads dominate.</p></div>
+    </article>
+    <article class="concept">
+      <div class="concept-head"><h3>Continuous batching</h3></div>
+      <div class="level" data-l="1"><p>A bus that only leaves when everyone from the last trip has got off wastes seats. A better bus lets someone new hop on at every stop.</p></div>
+      <div class="level" data-l="2"><p>Replies have very different lengths. If the server waits for the longest reply in a group before starting new ones, most seats sit empty. Scheduling one token-step at a time lets a finished seat be refilled immediately.</p></div>
+      <div class="level" data-l="3"><p>Iteration-level scheduling was introduced by Orca<sup class="ref"><a href="#ref-35">35</a></sup> and is standard in vLLM, TensorRT-LLM and SGLang. Combined with paged KV memory it gives large throughput gains<sup class="ref"><a href="#ref-34">34</a></sup>. Production stacks add more: chunked prefill (splitting long prompts so they don't stall decoding), separate prefill and decode pools with the KV cache shipped between them<sup class="ref"><a href="#ref-36">36</a></sup><sup class="ref"><a href="#ref-37">37</a></sup>, speculative decoding where a small model drafts tokens the big one verifies in parallel<sup class="ref"><a href="#ref-38">38</a></sup>, and quantisation to 8 or 4 bits so fewer bytes are read per step.</p></div>
+      <div class="level" data-l="4"><p>Under static batching a batch takes max(ℓ₁…ℓ_B) steps while doing Σℓᵢ useful work, so utilisation is E[ℓ] / E[max ℓ], which falls as length variance and batch size grow. Continuous batching keeps utilisation near min(1, λ·E[ℓ] / B) for arrival rate λ, until the queue saturates.</p></div>
+    </article>
+  </div>
+
+  <details class="tool" id="rf"><summary>Roofline across accelerators <span class="label">Engineer tool</span></summary><div class="inst-body">
+    <div class="inst-cols">
+      <div class="ctrls">
+        <div class="ctl"><label for="rf-chip">Chip</label><select id="rf-chip"><option value="h100">NVIDIA H100 SXM · 989 TF BF16 · 3.35 TB/s</option><option value="b200">NVIDIA B200 · ~2,250 TF BF16 · ~8 TB/s</option><option value="tpu7">Google TPU7x · ~2,307 TF BF16 · 7.37 TB/s</option><option value="trn2">AWS Trainium2 · 1,300 TF FP8 · ~2.9 TB/s</option></select></div>
+        <div class="ctl"><div class="row"><span>Decode batch size</span><output for="rf-b"></output></div><input type="range" id="rf-b" min="0" max="10" step="1" value="3"></div>
+      </div>
+      <div style="display:grid;gap:0.8rem"><canvas class="cv" id="rf-cv" aria-label="Roofline chart"></canvas><div class="readouts" id="rf-read"></div>
+      <p class="note">Sources: NVIDIA<sup class="ref"><a href="#ref-23">23</a></sup><sup class="ref"><a href="#ref-22">22</a></sup>, Google Cloud<sup class="ref"><a href="#ref-24">24</a></sup><sup class="ref"><a href="#ref-53">53</a></sup>, AWS<sup class="ref"><a href="#ref-25">25</a></sup>. B200 and TPU7x BF16 peaks are approximate; Trainium2 is shown at FP8 (20.8 PF per 16-chip instance ÷ 16).</p></div>
+    </div>
+  </div></details>
+
+  <div class="quiz"><div class="label">Check yourself</div>
+    <div class="q" data-answer="1"><p>Going from 1 to 16 people in a batch on the same GPU, what happens to each person's speed?</p><div class="opts"><button>It drops to one sixteenth</button><button>It barely changes, while total output rises roughly 16×</button><button>It speeds up</button></div><div class="why">At small batches the step time is set by reading the weights, which is shared across everyone in the batch.</div></div>
+    <div class="q" data-answer="0"><p>Why do long conversations make serving more expensive per token?</p><div class="opts"><button>Each step must also read every person's growing KV cache, and fewer people fit in memory</button><button>Long conversations use a bigger model</button><button>The tokenizer is slower on long text</button></div><div class="why">KV reads add bytes per step, and KV memory limits batch size, so the weight read is shared by fewer people.</div></div>
+  </div>
+</section>

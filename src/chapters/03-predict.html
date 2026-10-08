@@ -1,0 +1,67 @@
+<section class="chapter" id="predict" data-title="Next word">
+  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 3</span><span class="label">Decode</span></div>
+  <h2>How does a model pick the next word?</h2>
+  <div class="answer"><span class="label">Short answer</span><p>It gives every possible next token a probability, then a dice roll weighted by those probabilities picks one. The chosen token is added to the text and the whole thing repeats.</p></div>
+
+  <div class="inst" id="lm">
+    <div class="inst-head"><h4>Write with a tiny language model</h4><span class="label">Real model · trigram, trained in your browser</span></div>
+    <div class="inst-body">
+      <p class="howto">The bars show what the model thinks comes next. <b>Spin</b> rolls the weighted wheel to pick a word. Then change <b>temperature</b>, <b>top-k</b> and <b>top-p</b> and watch the wheel change shape.</p>
+      <div class="stage" style="padding:0.8rem 1rem;font-size:1.1rem;min-height:3.4rem" id="lm-text" aria-live="polite"></div>
+      <div class="inst-cols">
+        <div class="ctrls">
+          <div class="btn-row"><button class="btn" type="button" id="lm-spin">Spin</button><button class="btn ghost" type="button" id="lm-greedy">Most likely</button><button class="btn ghost" type="button" id="lm-auto">Write 12</button></div>
+          <div class="btn-row"><button class="btn ghost" type="button" id="lm-undo">Undo</button><button class="btn ghost" type="button" id="lm-reset">Start over</button></div>
+          <div class="ctl"><label for="lm-start">Start from</label><select id="lm-start"><option>the model</option><option>the cat</option><option>the datacenter</option><option>a good answer</option><option>the gpu</option></select></div>
+          <div class="ctl"><div class="row"><span>Temperature</span><output for="lm-t"></output></div><input type="range" id="lm-t" min="0" max="2" step="0.05" value="1"><small>Low: safe and repetitive. High: surprising, then nonsense.</small></div>
+          <div class="ctl"><div class="row"><span>Top-k</span><output for="lm-k"></output></div><input type="range" id="lm-k" min="1" max="20" step="1" value="20"><small>Keep only the k most likely words.</small></div>
+          <div class="ctl"><div class="row"><span>Top-p</span><output for="lm-p"></output></div><input type="range" id="lm-p" min="0.05" max="1" step="0.01" value="1"><small>Keep the fewest words whose chances add up to p.</small></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;align-items:start;min-width:0">
+          <canvas class="cv" id="lm-wheel" aria-label="Sampling wheel"></canvas>
+          <canvas class="cv" id="lm-bars" aria-label="Next-word probabilities"></canvas>
+        </div>
+      </div>
+      <p class="note">This is a genuine language model, just tiny: it counts which word follows each pair of words in about 50 sentences written for this course, and falls back to shorter contexts when it hasn't seen a pair. A real LLM replaces the counting with a neural network that can generalise, and its vocabulary has over 100,000 tokens, but the sampling step works the same way<sup class="ref"><a href="#ref-39">39</a></sup>.</p>
+    </div>
+  </div>
+
+  <div class="inst" id="bt">
+    <div class="inst-head"><h4>Be the model</h4><span class="label">Game · how training measures mistakes</span></div>
+    <div class="inst-body">
+      <p class="howto">Guess the hidden next word. Then see how surprised the model was by the true answer. Its <b>surprise</b> is exactly what training tries to shrink. The sentences come from the model's own training text, so it does better here than it would on new text.</p>
+      <div class="stage" style="padding:0.9rem 1rem;font-size:1.1rem" id="bt-q"></div>
+      <div class="btn-row" id="bt-opts"></div>
+      <div id="bt-res" class="note" aria-live="polite"></div>
+      <div class="readouts" id="bt-score"></div>
+    </div>
+  </div>
+
+  <div class="concepts">
+    <article class="concept">
+      <div class="concept-head"><h3>Probabilities, not answers</h3></div>
+      <div class="level" data-l="1"><p>The model never just "knows" the next word. It has a hunch for every word, like "I'm pretty sure it's <i>blue</i>, but it might be <i>grey</i>". Then it picks one.</p></div>
+      <div class="level" data-l="2"><p>For every position, the model outputs a score for every token in its vocabulary. Those scores are turned into probabilities that add up to 100%. Picking the top one every time sounds safe but tends to be dull and repetitive; picking at random in proportion to the probabilities gives more natural text.</p></div>
+      <div class="level" data-l="3"><p>The final layer produces one <b>logit</b> per vocabulary entry (about 128k for Llama 3). A softmax converts logits to probabilities, and a <b>sampler</b> picks the token. Common controls: temperature (sharpen or flatten), top-k (keep k best), top-p or nucleus sampling (keep the smallest set with total probability ≥ p)<sup class="ref"><a href="#ref-39">39</a></sup>. This small piece of code matters in production: one of the bugs in Anthropic's 2025 postmortem was an approximate top-k operation, miscompiled on TPUs, that sometimes dropped the most likely token<sup class="ref"><a href="#ref-30">30</a></sup>.</p></div>
+      <div class="level" data-l="4"><p>With logits zᵢ and temperature T:</p><div class="eq">pᵢ = exp(zᵢ / T) / Σⱼ exp(zⱼ / T)</div><p>As T → 0 this approaches argmax (greedy decoding); T = 1 leaves the model's distribution unchanged; T → ∞ approaches uniform. Top-p keeps the smallest set S with Σ_{i∈S} pᵢ ≥ p and renormalises. Sampling is the only random step: with greedy decoding and exact arithmetic the output is deterministic, though in practice batching and floating-point order can still cause tiny differences.</p></div>
+    </article>
+    <article class="concept">
+      <div class="concept-head"><h3>Surprise is the score</h3></div>
+      <div class="level" data-l="1"><p>If the right word was one the model thought was likely, it gets a small "oops". If it thought the right word was very unlikely, it gets a big "oops". Learning means making fewer big oopses.</p></div>
+      <div class="level" data-l="2"><p>We measure surprise as how unlikely the model thought the true word was. Average that over trillions of words and you get the <b>loss</b>, the single number every training run watches go down.</p></div>
+      <div class="level" data-l="3"><p>The loss is <b>cross-entropy</b>: the average of −log p(true token). Perplexity, e^loss, reads as "how many equally likely choices the model is torn between". A loss of 2.0 nats means perplexity of about 7.4. Lower loss on held-out text generally tracks better downstream ability, though not perfectly<sup class="ref"><a href="#ref-1">1</a></sup>.</p></div>
+      <div class="level" data-l="4"><div class="eq">L(θ) = −(1/T) Σₜ log p_θ(xₜ | x_{&lt;t}) ,   PPL = exp(L)</div><p>Minimising L is equivalent to minimising the KL divergence from the data distribution to the model, up to the data's own entropy, which no model can beat.</p></div>
+    </article>
+    <article class="concept">
+      <div class="concept-head"><h3>Why do models sometimes make things up?</h3></div>
+      <div class="level" data-l="1"><p>The model is trying to say something that <i>sounds</i> right. Usually that's also true. Sometimes it isn't, and the model doesn't notice.</p></div>
+      <div class="level" data-l="2"><p>Next-word prediction rewards plausible text. If the model hasn't learned a fact, a fluent guess can still score well on "sounds right". Training it to say "I'm not sure", and giving it tools like search, reduces this but doesn't remove it.</p></div>
+      <div class="level" data-l="3"><p>Mitigations include post-training that rewards calibrated answers and abstaining, retrieval so answers can cite sources, and evaluations that measure factual accuracy. Your tiny model above shows the root cause clearly: it happily continues into grammatical sentences that were never in its training text.</p></div>
+    </article>
+  </div>
+
+  <div class="quiz"><div class="label">Check yourself</div>
+    <div class="q" data-answer="2"><p>You set temperature to 0. What happens?</p><div class="opts"><button>The model refuses to answer</button><button>Every word becomes equally likely</button><button>It always picks the single most likely token</button></div><div class="why">Low temperature sharpens the distribution; at 0 it becomes greedy decoding.</div></div>
+    <div class="q" data-answer="0"><p>A model gave the true next word a probability of 1%. Is that a big or small contribution to its loss?</p><div class="opts"><button>Big: −ln(0.01) ≈ 4.6, much larger than a confident correct guess</button><button>Small, because 1% is close to zero</button><button>Zero, loss only counts wrong picks</button></div><div class="why">Loss is the surprise −log p of the true token. A 90% guess costs about 0.1; a 1% guess costs about 4.6.</div></div>
+  </div>
+</section>

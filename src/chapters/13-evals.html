@@ -1,0 +1,54 @@
+<section class="chapter" id="evals" data-title="Evaluation">
+  <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 13</span><span class="label">Rewind · evaluation and safety</span></div>
+  <h2>How do we know it's good and safe?</h2>
+  <div class="answer"><span class="label">Short answer</span><p>Teams test the model on thousands of questions with known answers, have people and other models judge open-ended replies, and run dedicated safety tests before release. Scores are noisy, so small differences often mean nothing.</p></div>
+
+  <div class="inst" id="nm">
+    <div class="inst-head"><h4>The noise machine</h4><span class="label">Simulation · binomial sampling</span></div>
+    <div class="inst-body">
+      <p class="howto">Two models with the <b>true</b> skill you set take the same kind of test again and again, each time with fresh questions. Every dot is one test. Press <b>Run 200 tests</b> and see how often the worse model looks better.</p>
+      <div class="ctrls row">
+        <div class="ctl"><div class="row"><span>Model A true accuracy</span><output for="nm-a"></output></div><input type="range" id="nm-a" min="0.3" max="0.95" step="0.005" value="0.62"></div>
+        <div class="ctl"><div class="row"><span>Model B true accuracy</span><output for="nm-b"></output></div><input type="range" id="nm-b" min="0.3" max="0.95" step="0.005" value="0.64"></div>
+        <div class="ctl"><div class="row"><span>Questions per test</span><output for="nm-n"></output></div><input type="range" id="nm-n" min="1.5" max="4.3" step="0.05" value="2.5"></div>
+        <button class="btn" type="button" id="nm-run">Run 200 tests</button>
+      </div>
+      <canvas class="cv" id="nm-cv" aria-label="Distribution of observed score differences"></canvas>
+      <div class="readouts" id="nm-read"></div>
+      <p class="note">Each test draws each question as right or wrong with the model's true probability, independently for the two models. Real comparisons on the <i>same</i> questions are somewhat less noisy, because the models tend to get the same easy questions right. HumanEval has 164 problems; MMLU about 14,000<sup class="ref"><a href="#ref-1">1</a></sup>.</p>
+    </div>
+  </div>
+
+  <div class="concepts">
+    <article class="concept">
+      <div class="concept-head"><h3>Benchmarks</h3></div>
+      <div class="level" data-l="1"><p>Like school exams for the model: lots of questions where we know the right answer, so we can count how many it gets right.</p></div>
+      <div class="level" data-l="2"><p>Different tests check different skills: general knowledge, maths, coding, common sense, reading very long documents. For chat models, people or other models also compare open-ended answers side by side. A good evaluation suite covers what the model will actually be used for.</p></div>
+      <div class="level" data-l="3"><p>During pretraining, teams watch loss plus quick benchmarks such as MMLU, ARC, HellaSwag, GSM8K and HumanEval; question format matters, and early in training scoring answer likelihoods ("cloze") gives cleaner signal than multiple-choice letters<sup class="ref"><a href="#ref-1">1</a></sup>. Pitfalls: <b>contamination</b> (test questions leaked into training data), prompt-format sensitivity, saturated benchmarks, and over-reading small gaps. Hugging Face's advice: first reproduce published scores for known models, and read generations by hand<sup class="ref"><a href="#ref-1">1</a></sup><sup class="ref"><a href="#ref-20">20</a></sup>.</p></div>
+      <div class="level" data-l="4"><p>An accuracy p̂ on n questions has standard error √(p̂(1−p̂)/n). For two independent models the difference has SE √(p₁q₁/n + p₂q₂/n); detecting a gap Δ with 80% power at 5% significance needs n ≈ (1.96 + 0.84)²(p₁q₁ + p₂q₂)/Δ². For 62% vs 64% that is about 9,000 questions each.</p></div>
+    </article>
+    <article class="concept">
+      <div class="concept-head"><h3>Safety evaluations</h3></div>
+      <div class="level" data-l="1"><p>Before letting the model out, testers try hard to make it do bad things, to check it says no and to find its weak spots.</p></div>
+      <div class="level" data-l="2"><p>Labs test whether the model refuses harmful requests, resists tricks ("jailbreaks"), avoids leaking private data, and whether it has dangerous abilities, for example helping with weapons or cyberattacks. Results decide what protections are needed and whether to release.</p></div>
+      <div class="level" data-l="3"><p>Practices include internal and external red-teaming, automated attack generation, and dangerous-capability evaluations in areas such as biology and cyber security. Anthropic's Responsible Scaling Policy ties capability thresholds to required safeguards<sup class="ref"><a href="#ref-21">21</a></sup>, and labs publish system cards describing tests and results. Evaluation continues after launch: Anthropic's September 2025 postmortem found that its offline evaluations had missed infrastructure bugs users were reporting, and it added continuous quality checks on production systems<sup class="ref"><a href="#ref-30">30</a></sup>.</p></div>
+    </article>
+  </div>
+
+  <details class="tool" id="ev"><summary>Is model B really better than model A? <span class="label">Engineer tool</span></summary><div class="inst-body">
+    <div class="inst-cols">
+      <div class="ctrls">
+        <div class="ctl"><div class="row"><span>Questions</span><output for="ev-n"></output></div><input type="range" id="ev-n" min="50" max="20000" step="50" value="1000"></div>
+        <div class="ctl"><div class="row"><span>Model A accuracy</span><output for="ev-a"></output></div><input type="range" id="ev-a" min="0.05" max="0.95" step="0.005" value="0.62"></div>
+        <div class="ctl"><div class="row"><span>Model B accuracy</span><output for="ev-b"></output></div><input type="range" id="ev-b" min="0.05" max="0.95" step="0.005" value="0.64"></div>
+      </div>
+      <div style="display:grid;gap:0.8rem"><canvas class="cv" id="ev-cv" aria-label="95% confidence intervals"></canvas><div class="readouts" id="ev-read"></div>
+        <p class="note">95% Wilson score intervals and a two-proportion z-test treating answers as independent. A paired test on the same questions is usually somewhat more sensitive.</p></div>
+    </div>
+  </div></details>
+
+  <div class="quiz"><div class="label">Check yourself</div>
+    <div class="q" data-answer="1"><p>Model B beats model A by 1.5 points on a 300-question benchmark. What should you conclude?</p><div class="opts"><button>B is better</button><button>Probably nothing yet: that gap is well within the noise for 300 questions</button><button>A is better</button></div><div class="why">With 300 questions the standard error of each score is about 2.8 points, so a 1.5-point gap is easily chance.</div></div>
+    <div class="q" data-answer="0"><p>Why can a model score suspiciously well on an old, famous benchmark?</p><div class="opts"><button>Its questions may have leaked into the training data (contamination)</button><button>Old benchmarks are always easier</button><button>Because of the tokenizer</button></div><div class="why">Popular test sets get copied around the web, so they can end up in training data unless carefully removed.</div></div>
+  </div>
+</section>

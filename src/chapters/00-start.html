@@ -1,0 +1,41 @@
+<section class="chapter" id="start" data-title="Start here">
+  <div class="hero-grid">
+    <div>
+      <div class="label">An interactive field guide · October 2026</div>
+      <h1 style="margin-top:0.5rem">What really happens when you talk to an AI?</h1>
+      <p class="lede">You type a question and words start appearing a second later. This course follows that one moment backwards, from the reply on your screen to the gigawatt buildings and months of training behind it. Every idea starts simple and goes as deep as you want.</p>
+      <div class="btn-row" style="margin-top:1rem"><a class="btn big" href="#send" style="text-decoration:none">Start: press send →</a></div>
+    </div>
+    <div class="path">
+      <a href="#send"><span class="n">1</span><b>Press send</b><span>Follow one prompt through the servers, the tokenizer, the model and the chips, until the reply streams back.</span></a>
+      <a href="#data"><span class="n">2</span><b>Rewind</b><span>Where did the model come from? Data, learning, scale, thousands of chips, alignment and safety testing.</span></a>
+      <a href="#datacenter"><span class="n">3</span><b>The building</b><span>Zoom out from one chip to a campus that draws as much power as a city.</span></a>
+      <a href="#harness"><span class="n">4</span><b>Around the model</b><span>The software that turns a model into a chatbot or an agent that uses tools.</span></a>
+    </div>
+  </div>
+
+  <h3 class="section-title">How each idea is explained</h3>
+  <p class="prose">Every concept is a ladder. It opens at <b>Age 5</b>, and you climb with <b>Go deeper</b> only when you're ready. Set your usual starting rung with <b>Explain at</b> in the top bar. Try it on the card below.</p>
+  <div class="concepts">
+    <article class="concept">
+      <div class="concept-head"><h3>What is an AI language model?</h3></div>
+      <div class="level" data-l="1"><p>It's a very well-read guessing machine. You give it the start of some writing, and it guesses the next word. Then it guesses the word after that, again and again, until it has written a whole answer.</p></div>
+      <div class="level" data-l="2"><p>It learned to guess by reading a huge amount of text and practising: hide the next word, guess it, check, adjust. After trillions of rounds, good guesses require knowing grammar, facts and some reasoning, so the model picks those up along the way. Extra training afterwards teaches it to be a helpful assistant.</p></div>
+      <div class="level" data-l="3"><p>A large language model (LLM) is a neural network, almost always a decoder-only transformer, with billions of numeric parameters. Text is split into tokens; the network maps the tokens so far to a probability for every possible next token; a sampler picks one; repeat. Serving it means running that loop fast for many users on accelerators like GPUs or TPUs.</p></div>
+      <div class="level" data-l="4"><p>The model defines a distribution over sequences factorised autoregressively:</p><div class="eq">p(x₁…x_T) = ∏ₜ p_θ(xₜ | x₁…x_{t−1})</div><p>Pretraining chooses parameters θ to minimise the average cross-entropy −log p_θ(xₜ | x_{&lt;t}) over a corpus. Post-training then adjusts θ toward a reward signal while staying close to the pretrained distribution.</p></div>
+    </article>
+  </div>
+
+  <div class="levels-demo">
+    <div style="border-color:var(--l1)"><b>Age 5</b><br>A picture you could explain to a child.</div>
+    <div style="border-color:var(--l2)"><b>Curious</b><br>How it works, in plain words.</div>
+    <div style="border-color:var(--l3)"><b>Engineer</b><br>Real systems, real numbers and trade-offs.</div>
+    <div style="border-color:var(--l4)"><b>Mathematician</b><br>The formulas underneath.</div>
+  </div>
+
+  <h3 class="section-title">Why trust it</h3>
+  <p class="prose">Facts come from primary sources: research papers, engineering blogs from the companies that run these systems (Meta, DeepSeek, AWS, Google, Microsoft, OpenAI, Oracle, NVIDIA, Anthropic, Hugging Face) and vendor documentation. Small numbers in brackets link to the <a href="#refs">references</a>. Simulations are simplified on purpose; where one uses made-up inputs, its panel says so.</p>
+  <details class="tool"><summary>How this compares with Hugging Face's Smol Training Playbook <span class="label">Context</span></summary><div class="inst-body">
+    <p class="prose" style="margin:0">The Smol Training Playbook<sup class="ref"><a href="#ref-1">1</a></sup> is a deep, honest account of how one team trained one model (SmolLM3, 3B parameters on 11T tokens), part of a series covering data, multi-GPU training and evaluation<sup class="ref"><a href="#ref-2">2</a></sup><sup class="ref"><a href="#ref-3">3</a></sup>. This course shares its habits (ask why first, change one thing at a time, budget for failure, trust measurement) but takes a different route: it starts from the user's prompt, covers serving, datacenters and agents as well as training, and lets you drive every idea with your own inputs. Read the playbooks when you want depth on training.</p>
+  </div></details>
+</section>
