@@ -1,19 +1,19 @@
 <section class="chapter" id="inside" data-title="Inside the model">
-  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 4</span><span class="label">Prefill</span></div>
+  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 4</span><span class="label">Forward pass</span></div>
   <h2>What happens inside the model?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Each token's numbers pass through a stack of identical layers. In every layer, <b>attention</b> lets each word look back at earlier words that matter to it, and an <b>MLP</b> then works on what it gathered. At the end, the last position's numbers become next-token probabilities.</p></div>
 
   <div class="inst" id="ax">
     <div class="inst-head"><h4>Who is "it"? Explore attention</h4><span class="label">Illustration · patterns like those found in real models</span></div>
     <div class="inst-body">
-      <p class="howto">Click any word to see which earlier words it pays attention to. Pick a <b>head</b>, then swap the last word between <b>tired</b> and <b>wide</b> and watch what "it" points to.</p>
+      <p class="howto">Click any word (or use the arrow keys) to see which earlier words it pays attention to. Start on the last word, then swap it between <b>tired</b> and <b>wide</b>: watch which noun it links to "it". Then click "it" itself to see why it can't decide on its own.</p>
       <div class="ctrls row">
-        <div class="ctl"><span>Attention head</span><div class="seg" id="ax-head"><button type="button" data-v="coref" aria-pressed="true">Who is "it"?</button><button type="button" data-v="prev" aria-pressed="false">Previous word</button><button type="button" data-v="sink" aria-pressed="false">Sentence start</button></div></div>
-        <div class="ctl"><span>Last word</span><div class="seg" id="ax-adj"><button type="button" data-v="tired" aria-pressed="true">tired</button><button type="button" data-v="wide" aria-pressed="false">wide</button></div></div>
+        <div class="ctl"><span id="ax-head-lbl">Attention head</span><div class="seg" id="ax-head" role="group" aria-labelledby="ax-head-lbl"><button type="button" data-v="coref" aria-pressed="true">Who is "it"?</button><button type="button" data-v="prev" aria-pressed="false">Previous word</button><button type="button" data-v="sink" aria-pressed="false">Sentence start</button></div></div>
+        <div class="ctl"><span id="ax-adj-lbl">Last word</span><div class="seg" id="ax-adj" role="group" aria-labelledby="ax-adj-lbl"><button type="button" data-v="tired" aria-pressed="true">tired</button><button type="button" data-v="wide" aria-pressed="false">wide</button></div></div>
       </div>
-      <div style="overflow-x:auto"><canvas class="cv" id="ax-cv" style="min-width:560px;cursor:pointer" aria-label="Attention arcs between words"></canvas></div>
+      <canvas class="cv" id="ax-cv" aria-label="Attention arcs between words"></canvas>
       <p class="note" id="ax-note"></p>
-      <p class="note">Weights here are hand-set to show three behaviours researchers have observed in trained transformers: heads that track the previous token, heads that link a pronoun to what it refers to (this sentence pair is the example from Google's Transformer announcement<sup class="ref"><a href="#ref-57">57</a></sup>), and heads that dump spare attention on the first token, an "attention sink"<sup class="ref"><a href="#ref-1">1</a></sup>. A real model has dozens of heads in each of dozens of layers, and most are harder to interpret.</p>
+      <p class="note">Weights here are hand-set to show three behaviours researchers have observed in trained transformers: heads that track the previous token, heads that link a pronoun to what it refers to (this sentence pair is the example from Google's Transformer announcement, whose model read in both directions; a left-to-right model can only make the link once it reaches the deciding word<sup class="ref"><a href="#ref-57">57</a></sup>), and heads that dump spare attention on the first token, an "attention sink"<sup class="ref"><a href="#ref-61">61</a></sup><sup class="ref"><a href="#ref-1">1</a></sup>. A real model has dozens of heads in each of dozens of layers, and most are harder to interpret.</p>
     </div>
   </div>
 
@@ -24,7 +24,7 @@
       <div class="inst-cols wide-first">
         <canvas class="cv" id="vq-cv" style="touch-action:none;cursor:grab" aria-label="Draggable query and key vectors"></canvas>
         <div style="display:grid;gap:0.8rem">
-          <div class="ctl"><div class="row"><span>Sharpness (vector length)</span><output for="vq-s"></output></div><input type="range" id="vq-s" min="0.2" max="4" step="0.1" value="1.5"><small>Longer vectors make the softmax pickier.</small></div>
+          <div class="ctl"><div class="row"><label for="vq-s">Sharpness (vector length)</label><output for="vq-s"></output></div><input type="range" id="vq-s" min="0.2" max="4" step="0.1" value="1.5"><small>Longer vectors make the softmax pickier.</small></div>
           <canvas class="cv" id="vq-bars" aria-label="Attention weights and blended output"></canvas>
           <p class="note" id="vq-eq"></p>
         </div>
@@ -60,12 +60,12 @@
     <div class="inst-cols">
       <div class="ctrls">
         <div class="ctl"><label for="pc-preset">Preset</label><select id="pc-preset"><option value="l1b">Llama 3.2 1B</option><option value="smol3">SmolLM3 3B</option><option value="l8b" selected>Llama 3 8B</option><option value="l70b">Llama 3 70B</option><option value="custom">Custom</option></select></div>
-        <div class="ctl"><div class="row"><span>d_model</span><output for="pc-h"></output></div><input type="range" id="pc-h" min="512" max="16384" step="256" value="4096"></div>
-        <div class="ctl"><div class="row"><span>Layers</span><output for="pc-L"></output></div><input type="range" id="pc-L" min="4" max="128" step="1" value="32"></div>
-        <div class="ctl"><div class="row"><span>Query heads</span><output for="pc-a"></output></div><input type="range" id="pc-a" min="4" max="128" step="4" value="32"></div>
-        <div class="ctl"><div class="row"><span>KV heads</span><output for="pc-kv"></output></div><input type="range" id="pc-kv" min="1" max="128" step="1" value="8"></div>
-        <div class="ctl"><div class="row"><span>MLP width</span><output for="pc-f"></output></div><input type="range" id="pc-f" min="1024" max="65536" step="256" value="14336"></div>
-        <div class="ctl"><div class="row"><span>Vocabulary</span><output for="pc-v"></output></div><input type="range" id="pc-v" min="32000" max="262144" step="256" value="128256"></div>
+        <div class="ctl"><div class="row"><label for="pc-h">d_model</label><output for="pc-h"></output></div><input type="range" id="pc-h" min="512" max="16384" step="256" value="4096"></div>
+        <div class="ctl"><div class="row"><label for="pc-L">Layers</label><output for="pc-L"></output></div><input type="range" id="pc-L" min="4" max="128" step="1" value="32"></div>
+        <div class="ctl"><div class="row"><label for="pc-a">Query heads</label><output for="pc-a"></output></div><input type="range" id="pc-a" min="4" max="128" step="4" value="32"></div>
+        <div class="ctl"><div class="row"><label for="pc-kv">KV heads</label><output for="pc-kv"></output></div><input type="range" id="pc-kv" min="1" max="128" step="1" value="8"></div>
+        <div class="ctl"><div class="row"><label for="pc-f">MLP width</label><output for="pc-f"></output></div><input type="range" id="pc-f" min="1024" max="65536" step="256" value="14336"></div>
+        <div class="ctl"><div class="row"><label for="pc-v">Vocabulary</label><output for="pc-v"></output></div><input type="range" id="pc-v" min="32000" max="262144" step="256" value="128256"></div>
         <label class="toggle"><input type="checkbox" id="pc-tie"> Tie input and output embeddings</label>
       </div>
       <div style="display:grid;gap:0.8rem;align-content:start"><div class="readouts" id="pc-read"></div><canvas class="cv" id="pc-cv" aria-label="Parameter breakdown"></canvas>
@@ -74,7 +74,7 @@
   </div></details>
 
   <div class="quiz"><div class="label">Check yourself</div>
-    <div class="q" data-answer="1"><p>In the sentence about the animal, why can "it" attend to "animal" but "animal" cannot attend to "it"?</p><div class="opts"><button>Pronouns have more attention heads</button><button>The causal mask lets each position see only earlier positions</button><button>"animal" is a more common word</button></div><div class="why">A decoder predicts left to right, so each token may only look at itself and what came before.</div></div>
+    <div class="q" data-answer="1"><p>In the sentence about the animal, why can "it" attend to "animal" but "animal" cannot attend to "it"?</p><div class="opts"><button>Attention is symmetric; the picture just draws one direction</button><button>The causal mask lets each position see only earlier positions</button><button>Later words get stronger attention weights</button></div><div class="why">A decoder predicts left to right, so each token may only look at itself and what came before.</div></div>
     <div class="q" data-answer="2"><p>In the drag demo, you double the length of every vector. What happens to the attention weights?</p><div class="opts"><button>Nothing, only directions matter</button><button>They become more even</button><button>They become sharper, concentrating on the best match</button></div><div class="why">Longer vectors mean larger dot products, and softmax of larger numbers is more peaked. That's why the √d scaling exists.</div></div>
   </div>
 </section>

@@ -12,7 +12,7 @@ chapter("cluster", () => {
   }
   const cv = $("#ar-cv");
   function draw(prog = 1) {
-    const H = 360; const { ctx, w } = setupCanvas(cv, H); ctx.clearRect(0, 0, w, H); const cx = w / 2, cy = H / 2, R = Math.min(w / 2 - 82, 140);
+    const H = 360; const { ctx, w } = setupCanvas(cv, H); ctx.clearRect(0, 0, w, H); const cx = w / 2, cy = H / 2, R = Math.max(40, Math.min(w / 2 - 82, 140));
     const pos = [0, 1, 2, 3].map(g => [cx + R * Math.cos(-Math.PI / 2 + g * Math.PI / 2), cy + R * Math.sin(-Math.PI / 2 + g * Math.PI / 2)]);
     ctx.strokeStyle = css("--line"); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.stroke(); ctx.lineWidth = 1;
     const cols = [css("--accent"), css("--heat"), css("--ok"), css("--l3")]; const bw = Math.min(34, (w - 20) / 9), bh = 26;

@@ -18,7 +18,7 @@ chapter("datacenter", () => {
     ctx.fillStyle = css("--heat"); for (let i = 0; i < 4; i++) { rr(ctx, x + s * 0.06, y + s * (0.16 + i * 0.17), s * 0.17, s * 0.13, s * 0.02); ctx.fill(); rr(ctx, x + s * 0.77, y + s * (0.16 + i * 0.17), s * 0.17, s * 0.13, s * 0.02); ctx.fill(); }
     if (detail) { font(ctx, 12, "--f-mono"); ctx.fillStyle = css("--surface"); ctx.textAlign = "center"; ctx.fillText("compute", x + s / 2, y + s / 2); ctx.fillStyle = css("--ink"); ctx.fillText("HBM", x + s * 0.145, y + s * 0.95); ctx.fillText("HBM", x + s * 0.855, y + s * 0.95); } }
   function draw() {
-    const W = cv.parentElement.clientWidth, H = Math.min(360, Math.max(260, W * 0.62)); const { ctx, w } = setupCanvas(cv, H); ctx.clearRect(0, 0, w, H);
+    const W = innerW(cv.parentElement), H = Math.min(360, Math.max(260, W * 0.62)); const { ctx, w } = setupCanvas(cv, H); ctx.clearRect(0, 0, w, H);
     const e = 1 - (1 - anim) ** 3; const sc = 0.55 + 0.45 * e; ctx.save(); ctx.globalAlpha = 0.25 + 0.75 * e; ctx.translate(w / 2, H / 2); ctx.scale(sc, sc); ctx.translate(-w / 2, -H / 2);
     const cx = w / 2, cy = H / 2;
     if (lvl === 0) { const s = Math.min(w, H) * 0.7; chip(ctx, cx - s / 2, cy - s / 2, s, true); }

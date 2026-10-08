@@ -14,10 +14,12 @@
             <button class="btn ghost" type="button" data-p="Why is the sky blue?">Sky</button>
             <button class="btn ghost" type="button" data-p="Write a haiku about servers.">Haiku</button>
             <button class="btn ghost" type="button" data-p="What is 17 × 24?">Maths</button>
+            <button class="btn ghost" type="button" data-p="__long__">Long document</button>
           </div>
-          <div class="ctl"><span>Sent from</span><div class="seg" id="tr-client"><button type="button" data-v="app" aria-pressed="true">Chat app</button><button type="button" data-v="cli" aria-pressed="false">Terminal</button><button type="button" data-v="api" aria-pressed="false">Your code</button></div></div>
-          <div class="ctl"><div class="row"><span>How busy is the service?</span><output for="tr-load"></output></div><input type="range" id="tr-load" min="0" max="0.95" step="0.05" value="0.5"><small>Busier means longer waits in the queue.</small></div>
-          <div class="ctl"><span>Playback</span><div class="seg" id="tr-speed"><button type="button" data-v="1" aria-pressed="false">Real time</button><button type="button" data-v="6" aria-pressed="true">Slow motion</button></div></div>
+          <div class="ctl"><span id="tr-client-lbl">Sent from</span><div class="seg" id="tr-client" role="group" aria-labelledby="tr-client-lbl"><button type="button" data-v="app" aria-pressed="true">Chat app</button><button type="button" data-v="cli" aria-pressed="false">Terminal</button><button type="button" data-v="api" aria-pressed="false">Your code</button></div><small>Apps and coding tools add hidden instructions to every request; your own API call sends only what you write.</small></div>
+          <label class="toggle"><input type="checkbox" id="tr-think"> Thinking model (reasons before answering)</label>
+          <div class="ctl"><div class="row"><label for="tr-load">How busy is the service?</label><output for="tr-load"></output></div><input type="range" id="tr-load" min="0" max="0.95" step="0.05" value="0.5"><small>Busier means longer waits in the queue.</small></div>
+          <div class="ctl"><span id="tr-speed-lbl">Playback</span><div class="seg" id="tr-speed" role="group" aria-labelledby="tr-speed-lbl"><button type="button" data-v="1" aria-pressed="false">Real time</button><button type="button" data-v="3" aria-pressed="true">Slow motion</button></div></div>
           <button class="btn big" type="button" id="tr-go">Send</button>
         </div>
         <div style="display:grid;gap:0.8rem;min-width:0">
@@ -35,10 +37,11 @@
   </div>
 
   <h3 class="section-title">Now rewind</h3>
-  <p class="prose">Those two seconds sit on top of months of work. Click a point on the timeline to jump to that stage. Part 2 of the course walks it in this order.</p>
+  <p class="prose">Those two seconds sit on top of months of work. Pick a stage to see what happened then. Part 2 of the course jumps back to the beginning and plays it forward, from raw data to the finished model.</p>
   <div class="inst" id="rw">
     <div class="inst-body">
       <canvas class="cv" id="rw-cv" aria-label="Timeline of everything that happened before the reply, on a logarithmic time scale"></canvas>
+      <ul class="rewind-list" id="rw-list" aria-label="Stages before your reply"></ul>
       <div class="stage" style="padding:0.7rem 1rem"><b id="rw-t">Your reply</b><div id="rw-d" class="muted" style="font-size:0.95rem">Click a point on the timeline.</div></div>
       <p class="note">Positions are rough orders of magnitude, not any particular model's schedule. Stages often overlap: data work continues during training, and evaluations run throughout.</p>
     </div>
@@ -51,7 +54,7 @@
       <div class="level" data-l="1"><p>Your words go into a little digital envelope with an address on it. The envelope flies over the internet to a big building full of computers that know how to answer.</p></div>
       <div class="level" data-l="2"><p>The app sends your whole conversation so far, not just the last message, plus settings such as which model to use and how long the answer may be. The connection is encrypted, so nobody in between can read it.</p></div>
       <div class="level" data-l="3"><p>It's an HTTPS POST to an API endpoint with a JSON body: a list of messages (system, user, assistant turns), the model name, a maximum output length and <code>"stream": true</code>. An API gateway checks the key, applies rate limits and records usage. With streaming on, the reply comes back as server-sent events, a long-lived HTTP response that delivers small chunks as they're produced<sup class="ref"><a href="#ref-55">55</a></sup>.</p></div>
-      <div class="level" data-l="4"><p>Because the model is stateless between requests, the client resends the full history each turn, so request size grows with conversation length. Providers reduce the repeated work with prefix (prompt) caching on the server: if the beginning of the token sequence matches a recent request, its attention keys and values can be reused rather than recomputed (chapter 5).</p></div>
+      <div class="level" data-l="4"><p>Because the model is stateless between requests, the client resends the full history each turn. With a system prompt of s tokens and m new tokens per turn, the tokens sent over n turns add up quadratically:</p><div class="eq">Σᵢ₌₁ⁿ (s + i·m) = n·s + m·n(n+1)/2</div><p> Providers reduce the repeated work with prefix (prompt) caching on the server: if the beginning of the token sequence matches a recent request, its attention keys and values can be reused rather than recomputed (chapter 5).</p></div>
     </article>
     <article class="concept">
       <div class="concept-head"><h3>Why does the first word take the longest?</h3></div>
@@ -71,6 +74,6 @@
 
   <div class="quiz"><div class="label">Check yourself</div>
     <div class="q" data-answer="1"><p>Your prompt is 3,000 tokens long and the reply is 50. Which phase most likely dominates the wait before the first word appears?</p><div class="opts"><button>Writing the 50 output tokens</button><button>Queueing plus reading (prefilling) the 3,000-token prompt</button><button>Encrypting the request</button></div><div class="why">The first token can't appear until the prompt has been read. Encryption is cheap, and the remaining output tokens come after the first one.</div></div>
-    <div class="q" data-answer="2"><p>Why does a chat app send the whole conversation every time you reply?</p><div class="opts"><button>To check your spelling</button><button>Because the model learns from every message in real time</button><button>Because the model itself keeps no memory between requests</button></div><div class="why">Each request is independent. The conversation history is the model's only memory, so it is sent again with every turn.</div></div>
+    <div class="q" data-answer="2"><p>Why does a chat app send the whole conversation every time you reply?</p><div class="opts"><button>So the server can bill you for the whole conversation</button><button>Because the model learns from every message in real time</button><button>Because the model itself keeps no memory between requests</button></div><div class="why">Each request is independent. The conversation history is the model's only memory, so it is sent again with every turn.</div></div>
   </div>
 </section>

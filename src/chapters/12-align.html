@@ -9,7 +9,7 @@
       <p class="howto">Pick a prompt, then step through the stages to see how the same model's answer changes.</p>
       <div class="ctrls row">
         <div class="ctl"><label for="st-p">Prompt</label><select id="st-p"><option value="0">What is the capital of Australia?</option><option value="1">I think my startup idea is perfect. You agree, right?</option><option value="2">Explain what a GPU is in one sentence.</option></select></div>
-        <div class="ctl"><span>Training stage</span><div class="seg" id="st-s"><button type="button" data-v="0" aria-pressed="true">1 · Base model</button><button type="button" data-v="1" aria-pressed="false">2 · Fine-tuned (SFT)</button><button type="button" data-v="2" aria-pressed="false">3 · Feedback (RL)</button></div></div>
+        <div class="ctl"><span id="st-s-lbl">Training stage</span><div class="seg" id="st-s" role="group" aria-labelledby="st-s-lbl"><button type="button" data-v="0" aria-pressed="true">1 · Base</button><button type="button" data-v="1" aria-pressed="false">2 · SFT</button><button type="button" data-v="2" aria-pressed="false">3 · Feedback</button></div></div>
       </div>
       <div class="stage" style="padding:0.9rem 1rem"><div class="label" id="st-who">Base model</div><div id="st-out" style="margin-top:0.4rem;white-space:pre-wrap;font-size:1rem"></div></div>
       <p class="note" id="st-why"></p>
@@ -20,17 +20,17 @@
   <div class="inst" id="kl">
     <div class="inst-head"><h4>Chasing reward without losing yourself</h4><span class="label">Simulation · exact optimum of the RLHF objective</span></div>
     <div class="inst-body">
-      <p class="howto">Five candidate replies to a coding question. A reward model scores them; training shifts probability toward high scores, held back by a leash (<b>β</b>) to the original model. Shorten the leash, then switch on the <b>flawed reward model</b> that loves flattery.</p>
+      <p class="howto">Five candidate replies to a coding question. A reward model scores them; training shifts probability toward high scores, held back by a leash (<b>β</b>) to the original model. Loosen the leash (drag β to the left), then switch on the <b>flawed reward model</b> that loves flattery.</p>
       <div class="inst-cols">
         <div class="ctrls">
           <p class="note" style="margin:0"><b>Prompt:</b> "My Java service throws a NullPointerException on startup. Can you help?"</p>
-          <div class="ctl"><div class="row"><span>Leash strength β</span><output for="kl-b"></output></div><input type="range" id="kl-b" min="-1.3" max="0.8" step="0.02" value="0"><small>Small β chases reward; large β stays close to the starting model.</small></div>
+          <div class="ctl"><div class="row"><label for="kl-b">Leash strength β</label><output for="kl-b"></output></div><input type="range" id="kl-b" min="-1.3" max="0.8" step="0.02" value="0"><small>Small β chases reward; large β stays close to the starting model.</small></div>
           <label class="toggle"><input type="checkbox" id="kl-flaw"> Flawed reward model that overrates flattery</label>
           <div class="readouts" id="kl-read"></div>
         </div>
         <canvas class="cv" id="kl-cv" aria-label="Probabilities of five replies before and after training"></canvas>
       </div>
-      <p class="note">The optimum of "maximise reward minus β × KL distance from the reference" has the closed form π*(y) ∝ π_ref(y)·exp(r(y)/β)<sup class="ref"><a href="#ref-18">18</a></sup>; this panel computes it exactly. Rewards are illustrative. With a flawed reward and a short leash, the policy learns to flatter: a small example of <b>reward hacking</b>.</p>
+      <p class="note">The optimum of "maximise reward minus β × KL distance from the reference" has the closed form π*(y) ∝ π_ref(y)·exp(r(y)/β)<sup class="ref"><a href="#ref-18">18</a></sup>; this panel computes it exactly. Rewards are illustrative. With a flawed reward and a loose leash (small β), the policy learns to flatter: a small example of <b>reward hacking</b>.</p>
     </div>
   </div>
 
@@ -52,6 +52,6 @@
 
   <div class="quiz"><div class="label">Check yourself</div>
     <div class="q" data-answer="2"><p>A base model asked "What is the capital of Australia?" replies with more quiz questions. Why?</p><div class="opts"><button>It doesn't know the answer</button><button>Its temperature is too high</button><button>It continues text the way web pages continue, and lists of questions are common online</button></div><div class="why">Pretraining teaches continuation, not answering. Fine-tuning teaches the assistant format.</div></div>
-    <div class="q" data-answer="0"><p>Why keep the trained model close to the original with a KL penalty?</p><div class="opts"><button>To stop it exploiting flaws in the reward model and losing general ability</button><button>To make training slower on purpose</button><button>To keep the vocabulary the same</button></div><div class="why">Reward models are imperfect. A leash limits how far the policy can wander chasing quirks in the score.</div></div>
+    <div class="q" data-answer="0"><p>Why keep the trained model close to the original with a KL penalty?</p><div class="opts"><button>To stop it exploiting flaws in the reward model and losing general ability</button><button>To make the reward model train faster</button><button>Because larger changes would need more GPU memory</button></div><div class="why">Reward models are imperfect. A leash limits how far the policy can wander chasing quirks in the score.</div></div>
   </div>
 </section>

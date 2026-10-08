@@ -9,7 +9,7 @@
       <p class="howto">The map is the model's error for every setting of two numbers: dark means low error. <b>Click anywhere</b> to drop a ball, then press <b>Run</b>. It can only feel the slope under it. Try a tiny step size, a huge one, and turning on momentum.</p>
       <div class="inst-cols">
         <div class="ctrls">
-          <div class="ctl"><div class="row"><span>Step size (learning rate)</span><output for="gd-lr"></output></div><input type="range" id="gd-lr" min="-3" max="-0.3" step="0.05" value="-1.6"></div>
+          <div class="ctl"><div class="row"><label for="gd-lr">Step size (learning rate)</label><output for="gd-lr"></output></div><input type="range" id="gd-lr" min="-3" max="-0.3" step="0.05" value="-1.6"></div>
           <label class="toggle"><input type="checkbox" id="gd-mom"> Momentum (keep some speed between steps)</label>
           <div class="btn-row"><button class="btn" type="button" id="gd-run">Run</button><button class="btn ghost" type="button" id="gd-step">One step</button></div>
           <div class="readouts" id="gd-read"></div>
@@ -27,14 +27,14 @@
       <div class="inst-cols">
         <div class="ctrls">
           <div class="btn-row"><button class="btn" type="button" id="nn-run">Train</button><button class="btn ghost" type="button" id="nn-reset">Re-randomise</button></div>
-          <div class="ctl"><div class="row"><span>Learning rate</span><output for="nn-lr"></output></div><input type="range" id="nn-lr" min="-4" max="0" step="0.1" value="-1.7"></div>
-          <div class="ctl"><div class="row"><span>Hidden neurons</span><output for="nn-h"></output></div><input type="range" id="nn-h" min="1" max="48" step="1" value="16"></div>
+          <div class="ctl"><div class="row"><label for="nn-lr">Learning rate</label><output for="nn-lr"></output></div><input type="range" id="nn-lr" min="-4" max="0" step="0.1" value="-1.7"></div>
+          <div class="ctl"><div class="row"><label for="nn-h">Hidden neurons</label><output for="nn-h"></output></div><input type="range" id="nn-h" min="1" max="48" step="1" value="16"></div>
           <div class="ctl"><label for="nn-f">Pattern to learn</label><select id="nn-f"><option value="wave">Wave</option><option value="step">Step</option><option value="bump">Two bumps</option></select></div>
           <div class="readouts" id="nn-read"></div>
         </div>
         <div style="display:grid;gap:0.6rem;min-width:0"><canvas class="cv" id="nn-cv" aria-label="Network prediction against training data"></canvas><canvas class="cv" id="nn-loss" aria-label="Loss over training steps"></canvas></div>
       </div>
-      <p class="note">A genuine network: one input, one hidden layer of tanh neurons, one output, trained with mean-squared error, hand-written backpropagation and the Adam optimiser<sup class="ref"><a href="#ref-58">58</a></sup>. An LLM is the same idea scaled up: billions of weights, cross-entropy on next tokens instead of squared error.</p>
+      <p class="note">A genuine network: one input, one hidden layer of tanh neurons, one output, trained with mean-squared error, hand-written backpropagation and the Adam optimiser<sup class="ref"><a href="#ref-58">58</a></sup>. An LLM is the same idea scaled up: billions of weights, cross-entropy on next tokens instead of squared error. Small spikes in the loss curve are normal with Adam at higher learning rates.</p>
     </div>
   </div>
 
@@ -43,7 +43,7 @@
       <div class="concept-head"><h3>Gradient descent</h3></div>
       <div class="level" data-l="1"><p>You're on a foggy hill and want to reach the bottom. You can't see far, but you can feel which way the ground slopes. So you take a small step downhill, feel again, and repeat.</p></div>
       <div class="level" data-l="2"><p>The "hill" is the model's error. The "ground" is all its numbers. The slope tells each number whether to go up or down to make the error smaller. Steps that are too small take forever; steps that are too big overshoot and bounce around or fly off.</p></div>
-      <div class="level" data-l="3"><p>LLMs use mini-batch stochastic gradient descent: each step uses a batch of a few million tokens, so the slope is a noisy estimate. The optimiser is almost always AdamW, which keeps running averages of the gradient and its square for every parameter<sup class="ref"><a href="#ref-58">58</a></sup>. The learning rate follows a schedule: a short warm-up, then a decay, either cosine or warmup–stable–decay (WSD), which SmolLM3 and Kimi K2 used<sup class="ref"><a href="#ref-1">1</a></sup>.</p></div>
+      <div class="level" data-l="3"><p>LLMs use mini-batch stochastic gradient descent: each step uses a batch of a few million tokens, so the slope is a noisy estimate. The optimiser is usually AdamW<sup class="ref"><a href="#ref-68">68</a></sup>, a variant of Adam<sup class="ref"><a href="#ref-58">58</a></sup> that keeps running averages of the gradient and its square for every parameter. The learning rate follows a schedule: a short warm-up, then a decay, either cosine or warmup–stable–decay (WSD), which SmolLM3 and Kimi K2 used<sup class="ref"><a href="#ref-1">1</a></sup>.</p></div>
       <div class="level" data-l="4"><div class="eq">θ ← θ − η · ∇_θ L(θ)    (plain SGD)</div><div class="eq">m ← β₁m + (1−β₁)g ;  v ← β₂v + (1−β₂)g² ;  θ ← θ − η·( m̂ / (√v̂ + ε) + λθ )</div><p>(AdamW, with bias-corrected m̂, v̂ and decoupled weight decay λ.) Typical LLM settings: β₁ = 0.9, β₂ = 0.95, peak η around 10⁻⁴ to 10⁻³, gradient-norm clipping at 1.0<sup class="ref"><a href="#ref-1">1</a></sup>.</p></div>
     </article>
     <article class="concept">
@@ -62,7 +62,7 @@
   </div>
 
   <div class="quiz"><div class="label">Check yourself</div>
-    <div class="q" data-answer="1"><p>The loss bounces up and down and never settles. What's the most likely fix?</p><div class="opts"><button>Use more hidden neurons</button><button>Lower the learning rate</button><button>Remove the training data</button></div><div class="why">Steps that are too big overshoot the valley. Smaller steps, or a schedule that decays them, let it settle.</div></div>
-    <div class="q" data-answer="2"><p>Why does training cost about three times as much compute per token as a forward pass alone?</p><div class="opts"><button>The data must be tokenized three times</button><button>The model is copied three times</button><button>The backward pass to compute gradients costs about twice the forward pass</button></div><div class="why">2 FLOPs per parameter forward plus about 4 backward gives the familiar 6·N per token.</div></div>
+    <div class="q" data-answer="1"><p>The loss bounces up and down and never settles. What's the most likely fix?</p><div class="opts"><button>Use more hidden neurons</button><button>Lower the learning rate</button><button>Train for fewer steps</button></div><div class="why">Steps that are too big overshoot the valley. Smaller steps, or a schedule that decays them, let it settle.</div></div>
+    <div class="q" data-answer="2"><p>Why does training cost about three times as much compute per token as a forward pass alone?</p><div class="opts"><button>Each token is processed by three copies of the model</button><button>The optimiser state is three times larger than the weights</button><button>The backward pass to compute gradients costs about twice the forward pass</button></div><div class="why">2 FLOPs per parameter forward plus about 4 backward gives the familiar 6·N per token.</div></div>
   </div>
 </section>

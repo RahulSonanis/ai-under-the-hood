@@ -1,10 +1,12 @@
 /* Chapter 2: step-through BPE + embedding map */
 chapter("tokens", () => {
   const SP = "·";
-  const pretok = t => (t.toLowerCase().match(/ ?[^\s]+/g) || []).map(w => w.replace(/^ /, SP));
+  const seg2 = typeof Intl !== "undefined" && Intl.Segmenter ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+  const graphemes = w => seg2 ? Array.from(seg2.segment(w), x => x.segment) : Array.from(w);
+  const pretok = t => (t.match(/ ?[^\s]+/g) || []).map(w => w.replace(/^ /, SP));
   let corpus, words, learned, history;
   function reset() {
-    const text = $("#bp-train").value; words = pretok(text).map(w => Array.from(w));
+    const text = $("#bp-train").value; words = pretok(text).map(w => graphemes(w));
     learned = []; history = [[0, count()]]; render(null);
   }
   const count = () => words.reduce((a, w) => a + w.length, 0);
@@ -17,7 +19,7 @@ chapter("tokens", () => {
     words = words.map(s => { const o = []; for (let i = 0; i < s.length; i++) { if (i + 1 < s.length && s[i] === a && s[i + 1] === b) { o.push(a + b); i++; } else o.push(s[i]); } return o; });
     history.push([learned.length, count()]); return a + b;
   }
-  function encode(text) { return pretok(text).flatMap(w => { let s = Array.from(w); learned.forEach(([a, b]) => { const o = []; for (let i = 0; i < s.length; i++) { if (i + 1 < s.length && s[i] === a && s[i + 1] === b) { o.push(a + b); i++; } else o.push(s[i]); } s = o; }); return s; }); }
+  function encode(text) { return pretok(text).flatMap(w => { let s = graphemes(w); learned.forEach(([a, b]) => { const o = []; for (let i = 0; i < s.length; i++) { if (i + 1 < s.length && s[i] === a && s[i + 1] === b) { o.push(a + b); i++; } else o.push(s[i]); } s = o; }); return s; }); }
   const hue = t => { let h = 0; for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; };
   const dark = () => getComputedStyle(document.documentElement).colorScheme.includes("dark");
   const chip = (t, hl) => `<span style="background:hsl(${hue(t)} 55% ${dark() ? 24 : 88}%);${hl ? "outline:2px solid var(--heat);" : ""}">${esc(t)}</span>`;
@@ -25,7 +27,7 @@ chapter("tokens", () => {
     const all = words.flat(); const chars = $("#bp-train").value.length;
     $("#bp-tok").innerHTML = all.map(t => chip(t, t === newTok)).join("");
     $("#bp-tok2").innerHTML = encode($("#bp-test").value).map(t => chip(t, t === newTok)).join("");
-    const base = new Set(Array.from($("#bp-train").value.toLowerCase().replace(/\s+/g, SP))).size;
+    const base = new Set(graphemes($("#bp-train").value.replace(/\s+/g, SP))).size;
     const last = learned[learned.length - 1];
     $("#bp-last").innerHTML = last ? `Merge ${learned.length}: <b style="color:var(--heat)">${esc(last[0])} + ${esc(last[1])} → ${esc(last[0] + last[1])}</b> (seen ${last[2]}×)` : "Training text, as tokens (single letters to start)";
     $("#bp-read").innerHTML = `<div class="readout"><div class="k">Vocabulary</div><div class="v">${base + learned.length}</div><div class="s">${base} letters + ${learned.length} merges</div></div>
@@ -57,7 +59,7 @@ chapter("tokens", () => {
   let picks = [];
   const cv = $("#em-cv");
   function edraw() {
-    const w0 = cv.parentElement.clientWidth; const h = Math.min(380, Math.max(280, w0 * 0.75));
+    const w0 = innerW(cv.parentElement); const h = Math.min(380, Math.max(280, w0 * 0.75));
     const { ctx, w } = setupCanvas(cv, h); ctx.clearRect(0, 0, w, h);
     const P = ([, x, y]) => [20 + x * (w - 70), h - 20 - y * (h - 40)];
     ctx.strokeStyle = css("--grid"); for (let i = 0; i <= 10; i++) { ctx.beginPath(); ctx.moveTo(20 + i / 10 * (w - 70), 20); ctx.lineTo(20 + i / 10 * (w - 70), h - 20); ctx.stroke(); ctx.beginPath(); ctx.moveTo(20, 20 + i / 10 * (h - 40)); ctx.lineTo(w - 50, 20 + i / 10 * (h - 40)); ctx.stroke(); }
@@ -70,6 +72,7 @@ chapter("tokens", () => {
       arrow(P(c), P(target), css("--heat"), [6, 4]);
       const [x, y] = P(target); ctx.strokeStyle = css("--ok"); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 14, 0, 7); ctx.stroke(); ctx.lineWidth = 1;
     }
+    if (kb && document.activeElement === cv) { const [x, y] = P(W[cursor]); ctx.strokeStyle = css("--ink"); ctx.lineWidth = 2; ctx.strokeRect(x - 9, y - 9, 18, 18); ctx.lineWidth = 1; $("#em-kb").textContent = "Focused: " + W[cursor][0]; }
     W.forEach((v, i) => { const [x, y] = P(v); const on = picks.includes(i) || i === near;
       ctx.fillStyle = i === near ? css("--ok") : on ? css("--heat") : css("--accent"); ctx.beginPath(); ctx.arc(x, y, on ? 6 : 4.5, 0, 7); ctx.fill();
       font(ctx, 12, "--f-mono", on ? "600" : ""); ctx.fillStyle = css("--ink"); ctx.textAlign = "left"; ctx.fillText(v[0], x + 8, y + 4); });
@@ -83,5 +86,8 @@ chapter("tokens", () => {
     W.forEach((v, i) => { const [px, py] = cv._P(v); const d = Math.hypot(px - x, py - y); if (d < bd) { bd = d; bi = i; } });
     if (bi < 0) return; if (picks.length >= 3) picks = []; if (!picks.includes(bi)) picks.push(bi); edraw(); });
   $("#em-reset").addEventListener("click", () => { picks = []; edraw(); });
+  let cursor = 0; cv.tabIndex = 0; cv.setAttribute("aria-label", "Word map. Use arrow keys to move between words and Enter to pick one.");
+  cv.addEventListener("keydown", e => { if (["ArrowRight", "ArrowDown"].includes(e.key)) { cursor = (cursor + 1) % W.length; } else if (["ArrowLeft", "ArrowUp"].includes(e.key)) { cursor = (cursor + W.length - 1) % W.length; } else if (e.key === "Enter" || e.key === " ") { if (picks.length >= 3) picks = []; if (!picks.includes(cursor)) picks.push(cursor); } else return; e.preventDefault(); kb = true; edraw(); });
+  let kb = false;
   onRedraw(edraw);
 });

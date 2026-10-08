@@ -11,14 +11,16 @@ chapter("sharing", () => {
   }
   function readouts(s) {
     $("#ds-read").innerHTML = `
-      <div class="readout"><div class="k">Each person sees</div><div class="v">${(1 / s.t).toFixed(0)} tok/s</div><div class="s">${(s.t * 1000).toFixed(1)} ms per step</div></div>
-      <div class="readout hot"><div class="k">GPU total</div><div class="v">${fmt(s.tps, 1)} tok/s</div></div>
+      <div class="readout ${s.fits ? "" : "bad"}"><div class="k">Each person sees</div><div class="v">${s.fits ? (1 / s.t).toFixed(0) + " tok/s" : "—"}</div><div class="s">${(s.t * 1000).toFixed(1)} ms per step</div></div>
+      <div class="readout hot"><div class="k">GPU total</div><div class="v">${s.fits ? fmt(s.tps, 1) + " tok/s" : "—"}</div></div>
       <div class="readout ${s.comp > s.mem ? "ok" : ""}"><div class="k">Bottleneck</div><div class="v" style="font-size:0.95rem">${s.comp > s.mem ? "maths" : s.kvB > s.W ? "reading KV cache" : "reading weights"}</div><div class="s">maths units ${(s.comp / s.t * 100).toFixed(s.comp / s.t < 0.1 ? 1 : 0)}% busy</div></div>
       <div class="readout ${s.fits ? "" : "bad"}"><div class="k">Cost per million tokens</div><div class="v">${s.fits ? "$" + s.cost.toFixed(2) : "won't fit"}</div><div class="s">${s.fits ? "GPU time only" : "KV cache exceeds memory"}</div></div>`;
   }
   const cv = $("#ds-cv");
   function draw(dt) {
     const s = calc(); const { ctx, w } = setupCanvas(cv, 230); ctx.clearRect(0, 0, w, 230);
+    if (!s.fits) { ctx.fillStyle = css("--crit-soft"); rr(ctx, 4, 20, w - 8, 190, 8); ctx.fill(); font(ctx, 15, "--f-display", "700"); ctx.fillStyle = css("--crit"); ctx.textAlign = "center";
+      ctx.fillText("This batch doesn't fit in GPU memory", w / 2, 100); font(ctx, 13); ctx.fillStyle = css("--ink"); ctx.fillText(`${s.B} conversations × ${s.c.toLocaleString()} tokens of KV cache = ${bytes(s.kvB)}`, w / 2, 126); ctx.fillText("Lower the batch or the conversation length.", w / 2, 148); return s; }
     const hbmW = Math.min(150, w * 0.25), cuX = hbmW + Math.max(60, w * 0.18), cuW = Math.min(150, w * 0.22), outX = cuX + cuW + 24;
     // HBM block
     ctx.fillStyle = css("--surface"); ctx.strokeStyle = css("--line"); rr(ctx, 4, 20, hbmW, 170, 8); ctx.fill(); ctx.stroke();
@@ -104,7 +106,7 @@ chapter("sharing", () => {
   function roof() {
     const [P, B, prec] = chips[$("#rf-chip").value], b = 2 ** num("rf-b"); setCtl("rf-b", num("rf-b"), () => b);
     const ridge = P / B, pts = []; for (let lg = -1; lg <= 4; lg += 0.02) { const I = 10 ** lg; pts.push([I, Math.min(P, I * B) / 1e12]); } const att = Math.min(P, b * B);
-    plot($("#rf-cv"), { height: 240, margin: { r: 30 }, x: { min: 0.1, max: 1e4, log: true, label: "arithmetic intensity (FLOPs per byte, log)" }, y: { min: 0.1, max: 1e4, log: true, label: "TFLOPS (log)", fmt: v => fmt(v, 0) },
+    plot($("#rf-cv"), { height: 240, margin: { r: 30 }, x: { min: 0.1, max: 1e4, log: true, label: "arithmetic intensity (FLOPs per byte, log)", fmt: v => v < 1 ? String(v) : fmt(v, 0) }, y: { min: 0.1, max: 1e4, log: true, label: "TFLOPS (log)", fmt: v => v < 1 ? String(v) : fmt(v, 0) },
       series: [{ data: pts, color: css("--accent"), width: 2.5 }, { data: [[b, att / 1e12]], points: true, color: css("--heat"), r: 6 }, { data: [[2000, P / 1e12]], points: true, color: css("--ok"), r: 5 }],
       labels: [{ x: ridge, y: P / 1e12, text: "ridge " + ridge.toFixed(0), dy: -8, align: "center", color: css("--muted") }, { x: b, y: att / 1e12, text: "decode, batch " + b, dx: 8, dy: 14, color: css("--heat"), bold: true }, { x: 2000, y: P / 1e12, text: "prefill / training", dy: 18, align: "center", color: css("--ok") }] });
     $("#rf-read").innerHTML = `<div class="readout"><div class="k">Ridge point</div><div class="v">${ridge.toFixed(0)} FLOP/B</div><div class="s">peak ${fmt(P / 1e12, 0)} TFLOPS ${prec}</div></div>

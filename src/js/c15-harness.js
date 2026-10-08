@@ -37,7 +37,7 @@ chapter("harness", () => {
     const cv = $("#ag-cv"); const { ctx, w } = setupCanvas(cv, 54); ctx.clearRect(0, 0, w, 54); const sc = (w - 2) / Math.max(s.W, used); let x = 1;
     s.ctx.forEach(m => { ctx.fillStyle = colOf(m.kind); ctx.globalAlpha = m.compacted ? 0.35 : 0.85; ctx.fillRect(x, 4, Math.max(1, m.tok * sc - 1), 20); x += m.tok * sc; }); ctx.globalAlpha = 1;
     ctx.strokeStyle = css("--crit"); ctx.setLineDash([4, 3]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(1 + s.W * sc, 0); ctx.lineTo(1 + s.W * sc, 28); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1;
-    font(ctx, 11); ctx.fillStyle = css("--muted"); ctx.fillText("grey system · green user · blue model · amber tool output · red line = window", 0, 46);
+    font(ctx, 11); ctx.fillStyle = css("--muted"); ctx.fillText(w < 560 ? "grey system · green you · blue model · amber tools" : "grey system · green user · blue model · amber tool output · red line = window", 0, 46);
     const costNo = s.inTot + s.outTot * 5, costYes = s.inTot - s.inCached + s.inCached * s.cp + s.outTot * 5;
     $("#ag-read").innerHTML = `<div class="readout ${s.over ? "bad" : used > s.W * 0.8 ? "hot" : ""}"><div class="k">Context in use</div><div class="v">${Math.round(used / s.W * 100)}%</div><div class="s">${used.toLocaleString()} of ${s.W.toLocaleString()}</div></div>
       <div class="readout"><div class="k">Model calls</div><div class="v">${s.calls}</div><div class="s">${s.comp} summaries</div></div>

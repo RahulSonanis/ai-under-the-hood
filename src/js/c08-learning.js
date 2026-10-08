@@ -6,7 +6,7 @@ chapter("learning", () => {
   const R = 2.2; let ball = [1.9, -1.6], vel = [0, 0], path = [ball.slice()], steps = 0, img = null, imgW = 0, diverged = false;
   const cv = $("#gd-cv");
   function render() {
-    const size = Math.min(cv.parentElement.clientWidth, 420); cv.style.width = size + "px"; const { ctx } = setupCanvas(cv, size);
+    const size = Math.min(innerW(cv.parentElement), 420); cv.style.width = size + "px"; const { ctx } = setupCanvas(cv, size);
     if (!img || imgW !== size || img._theme !== css("--bg")) {
       const dpr = window.devicePixelRatio || 1, n = Math.round(size * dpr), id = ctx.createImageData(n, n); let mn = Infinity, mx = -Infinity; const vals = new Float32Array(n * n);
       for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const v = Math.log(f(-R + 2 * R * i / n, R - 2 * R * j / n)); vals[j * n + i] = v; mn = Math.min(mn, v); mx = Math.max(mx, v); }
@@ -57,7 +57,7 @@ chapter("learning", () => {
       m = b1 * m + (1 - b1) * gr; v = b2 * v + (1 - b2) * gr * gr; const d = lr * (m / (1 - b1 ** adam.t)) / (Math.sqrt(v / (1 - b2 ** adam.t)) + 1e-8);
       if (j === undefined) { adam.m[k] = m; adam.v[k] = v; net[k] -= d; } else { adam.m[k][j] = m; adam.v[k][j] = v; net[k][j] -= d; } };
     ["W1", "b1", "W2"].forEach(k => { for (let j = 0; j < H; j++) upd(k, j); }); upd("b2");
-    it++; losses.push(L / data.length); if (losses.length > 2000) losses.shift();
+    it++; losses.push([it, L / data.length]); if (losses.length > 2000) losses.shift();
   }
   function ndraw() {
     const c1 = $("#nn-cv"); const { ctx, w } = setupCanvas(c1, 220); ctx.clearRect(0, 0, w, 220); const X = x => 10 + (x + 1) / 2 * (w - 20), Y = y => 110 - y * 85;
@@ -65,9 +65,9 @@ chapter("learning", () => {
     data.forEach(([x, y]) => { ctx.fillStyle = css("--muted"); ctx.beginPath(); ctx.arc(X(x), Y(y), 3.5, 0, 7); ctx.fill(); });
     ctx.strokeStyle = css("--heat"); ctx.lineWidth = 3; ctx.beginPath(); for (let i = 0; i <= 200; i++) { const x = -1 + 2 * i / 200, y = Math.max(-1.25, Math.min(1.25, fwd(x).y)); i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); } ctx.stroke(); ctx.lineWidth = 1;
     font(ctx, 11); ctx.fillStyle = css("--muted"); ctx.fillText("dots: training data · orange: the network's prediction", 10, 214);
-    const last = losses.length ? losses[losses.length - 1] : NaN;
-    if (losses.length > 1) { const mx = Math.max(...losses.slice(0, 50)) * 1.1, mn = 1e-4; const n = losses.length;
-      plot($("#nn-loss"), { height: 140, margin: { b: 30 }, x: { min: 0, max: Math.max(100, n), label: "training steps", fmt: v => v.toFixed(0) }, y: { min: Math.max(mn, Math.min(...losses) * 0.8), max: Math.max(mx, 0.002), log: true, label: "loss", fmt: v => v >= 0.01 ? v.toFixed(2) : v.toExponential(0) }, series: [{ data: losses.map((v, i) => [i, Math.max(v, mn)]), color: css("--accent") }] }); }
+    const last = losses.length ? losses[losses.length - 1][1] : NaN;
+    if (losses.length > 1) { const vals = losses.map(p => p[1]), mn = 1e-4; const mx = Math.max(...vals) * 1.2, lo = Math.max(mn, Math.min(...vals) * 0.8);
+      plot($("#nn-loss"), { height: 150, margin: { b: 30, l: 60 }, x: { min: losses[0][0], max: Math.max(losses[0][0] + 100, it), label: "training step", fmt: v => v.toFixed(0) }, y: { min: lo, max: Math.max(mx, lo * 2), log: true, label: "loss (log)", fmt: v => v >= 0.01 ? (+v.toPrecision(2)).toString() : v.toExponential(0) }, series: [{ data: losses.map(([i, v]) => [i, Math.max(v, mn)]), color: css("--accent") }] }); }
     else { const g = setupCanvas($("#nn-loss"), 140); g.ctx.clearRect(0, 0, g.w, 140); font(g.ctx, 12); g.ctx.fillStyle = css("--muted"); g.ctx.fillText("The loss curve appears when you press Train.", 10, 70); }
     $("#nn-read").innerHTML = `<div class="readout"><div class="k">Steps</div><div class="v">${it}</div></div><div class="readout ${last < 0.01 ? "ok" : !isFinite(last) || last > 1 ? "bad" : ""}"><div class="k">Loss</div><div class="v">${isFinite(last) ? last.toFixed(4) : "—"}</div></div>
       <div class="readout"><div class="k">Parameters</div><div class="v">${net.W1.length * 3 + 1}</div></div>`;

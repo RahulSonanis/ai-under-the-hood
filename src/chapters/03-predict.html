@@ -1,5 +1,5 @@
 <section class="chapter" id="predict" data-title="Next word">
-  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 3</span><span class="label">Decode</span></div>
+  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 3</span><span class="label">Sampling</span></div>
   <h2>How does a model pick the next word?</h2>
   <div class="answer"><span class="label">Short answer</span><p>It gives every possible next token a probability, then a dice roll weighted by those probabilities picks one. The chosen token is added to the text and the whole thing repeats.</p></div>
 
@@ -12,17 +12,17 @@
         <div class="ctrls">
           <div class="btn-row"><button class="btn" type="button" id="lm-spin">Spin</button><button class="btn ghost" type="button" id="lm-greedy">Most likely</button><button class="btn ghost" type="button" id="lm-auto">Write 12</button></div>
           <div class="btn-row"><button class="btn ghost" type="button" id="lm-undo">Undo</button><button class="btn ghost" type="button" id="lm-reset">Start over</button></div>
-          <div class="ctl"><label for="lm-start">Start from</label><select id="lm-start"><option>the model</option><option>the cat</option><option>the datacenter</option><option>a good answer</option><option>the gpu</option></select></div>
-          <div class="ctl"><div class="row"><span>Temperature</span><output for="lm-t"></output></div><input type="range" id="lm-t" min="0" max="2" step="0.05" value="1"><small>Low: safe and repetitive. High: surprising, then nonsense.</small></div>
-          <div class="ctl"><div class="row"><span>Top-k</span><output for="lm-k"></output></div><input type="range" id="lm-k" min="1" max="20" step="1" value="20"><small>Keep only the k most likely words.</small></div>
-          <div class="ctl"><div class="row"><span>Top-p</span><output for="lm-p"></output></div><input type="range" id="lm-p" min="0.05" max="1" step="0.01" value="1"><small>Keep the fewest words whose chances add up to p.</small></div>
+          <div class="ctl"><label for="lm-start">Start from</label><select id="lm-start"><option>the</option><option>the model</option><option>the cat</option><option>a good</option><option>the server</option></select></div>
+          <div class="ctl"><div class="row"><label for="lm-t">Temperature</label><output for="lm-t"></output></div><input type="range" id="lm-t" min="0" max="2" step="0.05" value="1"><small>Low: safe and repetitive. High: surprising, then nonsense.</small></div>
+          <div class="ctl"><div class="row"><label for="lm-k">Top-k</label><output for="lm-k"></output></div><input type="range" id="lm-k" min="1" max="20" step="1" value="20"><small>Keep only the k most likely words.</small></div>
+          <div class="ctl"><div class="row"><label for="lm-p">Top-p</label><output for="lm-p"></output></div><input type="range" id="lm-p" min="0.05" max="1" step="0.01" value="1"><small>Keep the fewest words whose chances add up to p.</small></div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;align-items:start;min-width:0">
           <canvas class="cv" id="lm-wheel" aria-label="Sampling wheel"></canvas>
           <canvas class="cv" id="lm-bars" aria-label="Next-word probabilities"></canvas>
         </div>
       </div>
-      <p class="note">This is a genuine language model, just tiny: it counts which word follows each pair of words in about 50 sentences written for this course, and falls back to shorter contexts when it hasn't seen a pair. A real LLM replaces the counting with a neural network that can generalise, and its vocabulary has over 100,000 tokens, but the sampling step works the same way<sup class="ref"><a href="#ref-39">39</a></sup>.</p>
+      <p class="note">This is a genuine language model, just tiny: it counts which word follows each pair of words in about 50 sentences written for this course, and falls back to shorter contexts when it hasn't seen a pair. A real LLM replaces the counting with a neural network that can generalise, and its vocabulary typically has tens of thousands to over 200,000 tokens, but the sampling step works the same way<sup class="ref"><a href="#ref-39">39</a></sup>.</p>
     </div>
   </div>
 
@@ -61,7 +61,7 @@
   </div>
 
   <div class="quiz"><div class="label">Check yourself</div>
-    <div class="q" data-answer="2"><p>You set temperature to 0. What happens?</p><div class="opts"><button>The model refuses to answer</button><button>Every word becomes equally likely</button><button>It always picks the single most likely token</button></div><div class="why">Low temperature sharpens the distribution; at 0 it becomes greedy decoding.</div></div>
+    <div class="q" data-answer="2"><p>You set temperature to 0. What happens?</p><div class="opts"><button>It picks randomly among the top few tokens</button><button>Every word becomes equally likely</button><button>It always picks the single most likely token</button></div><div class="why">Low temperature sharpens the distribution; at 0 it becomes greedy decoding.</div></div>
     <div class="q" data-answer="0"><p>A model gave the true next word a probability of 1%. Is that a big or small contribution to its loss?</p><div class="opts"><button>Big: −ln(0.01) ≈ 4.6, much larger than a confident correct guess</button><button>Small, because 1% is close to zero</button><button>Zero, loss only counts wrong picks</button></div><div class="why">Loss is the surprise −log p of the true token. A 90% guess costs about 0.1; a 1% guess costs about 4.6.</div></div>
   </div>
 </section>

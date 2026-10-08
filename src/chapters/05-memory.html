@@ -6,11 +6,11 @@
   <div class="inst" id="kv">
     <div class="inst-head"><h4>Fit conversations into GPU memory</h4><span class="label">Simulation · H100 80 GB serving Llama 3 8B</span></div>
     <div class="inst-body">
-      <p class="howto">Each square is a slice of one GPU's memory. Grey is the model itself. Coloured squares are conversations' notes; <b>faded squares are reserved but empty</b>. Press <b>Run</b>, then switch strategies and compare how many people get served.</p>
+      <p class="howto">Each square is a slice of one GPU's memory. Grey is the model itself, green is a shared system prompt, and other colours are conversations' notes; <b>faded squares are reserved but empty</b>. Press <b>Run</b>, then switch strategies and compare how many people get served.</p>
       <div class="ctrls row">
-        <div class="ctl"><span>Memory strategy</span><div class="seg" id="kv-mode"><button type="button" data-v="reserve" aria-pressed="true">Reserve max length</button><button type="button" data-v="paged" aria-pressed="false">Paged blocks</button></div></div>
+        <div class="ctl"><span id="kv-mode-lbl">Memory strategy</span><div class="seg" id="kv-mode" role="group" aria-labelledby="kv-mode-lbl"><button type="button" data-v="reserve" aria-pressed="true">Reserve max</button><button type="button" data-v="paged" aria-pressed="false">Paged</button></div></div>
         <label class="toggle"><input type="checkbox" id="kv-prefix"> Share the common system prompt (prefix caching)</label>
-        <div class="ctl"><div class="row"><span>Max conversation length</span><output for="kv-max"></output></div><input type="range" id="kv-max" min="4096" max="32768" step="4096" value="16384"></div>
+        <div class="ctl"><div class="row"><label for="kv-max">Max conversation length</label><output for="kv-max"></output></div><input type="range" id="kv-max" min="4096" max="32768" step="4096" value="16384"></div>
         <div class="btn-row"><button class="btn" type="button" id="kv-run">Run</button><button class="btn ghost" type="button" id="kv-reset">Reset</button></div>
       </div>
       <canvas class="cv" id="kv-cv" aria-label="GPU memory map"></canvas>
@@ -24,8 +24,8 @@
       <div class="concept-head"><h3>The KV cache</h3></div>
       <div class="level" data-l="1"><p>Imagine writing a story and, for each new word, re-reading the whole story from the start. Slow! Instead you keep sticky notes about each word you've already read. The model does the same.</p></div>
       <div class="level" data-l="2"><p>Attention needs the "label" and "message" (key and value) of every earlier token. Those don't change once computed, so the server stores them. Each new token only has to compute its own and look at the stored ones. The store grows with every token and every conversation.</p></div>
-      <div class="level" data-l="3"><p>KV size per token = 2 × layers × KV heads × head dim × bytes. Llama 3 70B with grouped-query attention needs 320 KiB per token, so one 128k-token context needs about 43 GB, more than half an H100. Without GQA (64 KV heads instead of 8) it would be eight times larger. DeepSeek's multi-head latent attention instead caches a small compressed vector per token<sup class="ref"><a href="#ref-10">10</a></sup><sup class="ref"><a href="#ref-1">1</a></sup>. Long context is mainly a memory problem.</p></div>
-      <div class="level" data-l="4"><div class="eq">s_KV = 2 · b · L · n_kv · d_head · n_tokens</div><p>(b bytes per element, L layers.) Without the cache, generating T tokens costs Θ(T²) recomputation of keys and values; with it, step t is Θ(t) attention work plus a constant amount of projection work, at the cost of Θ(t) memory. MLA stores ≈ 4.5·d_head values per layer per token instead of 2·n_kv·d_head<sup class="ref"><a href="#ref-1">1</a></sup>.</p></div>
+      <div class="level" data-l="3"><p>KV size per token = 2 × layers × KV heads × head dim × bytes. Llama 3 70B with grouped-query attention needs 320 KiB per token, so one 128k-token context needs about 43 GB, more than half an H100. Without GQA (64 KV heads instead of 8) it would be eight times larger. DeepSeek's multi-head latent attention instead caches a small compressed vector per token<sup class="ref"><a href="#ref-62">62</a></sup><sup class="ref"><a href="#ref-10">10</a></sup>. Long context is mainly a memory problem.</p></div>
+      <div class="level" data-l="4"><div class="eq">s_KV = 2 · b · L · n_kv · d_head · n_tokens</div><p>(b bytes per element, L layers.) Without the cache, generating T tokens costs Θ(T²) recomputation of keys and values; with it, step t is Θ(t) attention work plus a constant amount of projection work, at the cost of Θ(t) memory. MLA stores ≈ 4.5·d_head values per layer per token instead of 2·n_kv·d_head<sup class="ref"><a href="#ref-62">62</a></sup><sup class="ref"><a href="#ref-1">1</a></sup>.</p></div>
     </article>
     <article class="concept">
       <div class="concept-head"><h3>Paged memory and prefix caching</h3></div>
@@ -40,16 +40,16 @@
     <div class="inst-cols">
       <div class="ctrls">
         <div class="ctl"><label for="kc-m">Model</label><select id="kc-m"><option value="8">Llama 3 8B (32 layers, 8 KV heads)</option><option value="70" selected>Llama 3 70B (80 layers, 8 KV heads)</option><option value="405">Llama 3.1 405B (126 layers, 8 KV heads)</option><option value="ds">DeepSeek-V3 (61 layers, MLA)</option></select></div>
-        <div class="ctl"><div class="row"><span>Context length</span><output for="kc-c"></output></div><input type="range" id="kc-c" min="10" max="17" step="0.5" value="15"></div>
-        <div class="ctl"><div class="row"><span>Concurrent conversations</span><output for="kc-b"></output></div><input type="range" id="kc-b" min="0" max="8" step="1" value="4"></div>
-        <div class="ctl"><span>Cache precision</span><div class="seg" id="kc-p"><button type="button" data-v="2" aria-pressed="true">BF16</button><button type="button" data-v="1" aria-pressed="false">FP8</button></div></div>
+        <div class="ctl"><div class="row"><label for="kc-c">Context length</label><output for="kc-c"></output></div><input type="range" id="kc-c" min="10" max="17" step="0.5" value="15"></div>
+        <div class="ctl"><div class="row"><label for="kc-b">Concurrent conversations</label><output for="kc-b"></output></div><input type="range" id="kc-b" min="0" max="8" step="1" value="4"></div>
+        <div class="ctl"><span id="kc-p-lbl">Cache precision</span><div class="seg" id="kc-p" role="group" aria-labelledby="kc-p-lbl"><button type="button" data-v="2" aria-pressed="true">BF16</button><button type="button" data-v="1" aria-pressed="false">FP8</button></div></div>
       </div>
       <div style="display:grid;gap:0.8rem"><div class="readouts" id="kc-read"></div><canvas class="cv" id="kc-cv" aria-label="KV cache size compared across attention types"></canvas></div>
     </div>
   </div></details>
 
   <div class="quiz"><div class="label">Check yourself</div>
-    <div class="q" data-answer="0"><p>Why does doubling the context length roughly halve how many conversations fit on a GPU?</p><div class="opts"><button>The KV cache grows linearly with tokens, and it competes for the same memory</button><button>The model weights double in size</button><button>The GPU slows down for long text</button></div><div class="why">Weights are fixed; each conversation's notes grow with its length, so twice the tokens means twice the memory per conversation.</div></div>
-    <div class="q" data-answer="1"><p>Ten thousand users all send requests that start with the same 3,000-token instructions. What helps most?</p><div class="opts"><button>A bigger vocabulary</button><button>Prefix caching, so those 3,000 tokens are processed and stored once</button><button>Higher temperature</button></div><div class="why">Shared prefixes can reuse the same KV blocks and skip that part of prefill.</div></div>
+    <div class="q" data-answer="0"><p>Why does doubling the context length roughly halve how many conversations fit on a GPU?</p><div class="opts"><button>The KV cache grows linearly with tokens, and it competes for the same memory</button><button>The model weights double in size</button><button>Longer conversations need a larger tokenizer vocabulary</button></div><div class="why">Weights are fixed; each conversation's notes grow with its length, so twice the tokens means twice the memory per conversation.</div></div>
+    <div class="q" data-answer="1"><p>Ten thousand users all send requests that start with the same 3,000-token instructions. What helps most?</p><div class="opts"><button>A larger batch size</button><button>Prefix caching, so those 3,000 tokens are processed and stored once</button><button>A faster network between users and the datacenter</button></div><div class="why">Shared prefixes can reuse the same KV blocks and skip that part of prefill.</div></div>
   </div>
 </section>

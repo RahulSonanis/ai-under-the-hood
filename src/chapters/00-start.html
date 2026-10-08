@@ -4,7 +4,8 @@
       <div class="label">An interactive field guide · October 2026</div>
       <h1 style="margin-top:0.5rem">What really happens when you talk to an AI?</h1>
       <p class="lede">You type a question and words start appearing a second later. This course follows that one moment backwards, from the reply on your screen to the gigawatt buildings and months of training behind it. Every idea starts simple and goes as deep as you want.</p>
-      <div class="btn-row" style="margin-top:1rem"><a class="btn big" href="#send" style="text-decoration:none">Start: press send →</a></div>
+      <p class="muted" style="font-size:0.95rem;margin:0.6rem 0 0">For anyone curious, from complete beginners to engineers. No maths or coding needed to start. About 16 chapters of 15–30 minutes each; your progress is saved in this browser.</p>
+      <div class="btn-row" style="margin-top:1rem"><a class="btn big" href="#send" style="text-decoration:none">Start: press send →</a><a class="btn ghost" href="https://github.com/RahulSonanis/ai-under-the-hood" style="text-decoration:none">Source on GitHub</a></div>
     </div>
     <div class="path">
       <a href="#send"><span class="n">1</span><b>Press send</b><span>Follow one prompt through the servers, the tokenizer, the model and the chips, until the reply streams back.</span></a>
@@ -14,8 +15,15 @@
     </div>
   </div>
 
-  <h3 class="section-title">How each idea is explained</h3>
-  <p class="prose">Every concept is a ladder. It opens at <b>Age 5</b>, and you climb with <b>Go deeper</b> only when you're ready. Set your usual starting rung with <b>Explain at</b> in the top bar. Try it on the card below.</p>
+  <h3 class="section-title">How much do you already know?</h3>
+  <p class="prose">Every concept is explained as a ladder with four rungs. Pick where you'd like explanations to start; you can step up or down on any card, and change this any time with <b>Explain at</b> in the top bar.</p>
+  <div class="level-pick" id="start-depth" role="group" aria-label="Starting explanation level">
+    <button type="button" data-v="1" aria-pressed="true"><b>Age 5</b>New to all of this. Pictures and everyday comparisons.</button>
+    <button type="button" data-v="2" aria-pressed="false"><b>Curious</b>I use AI tools and want to know how they work.</button>
+    <button type="button" data-v="3" aria-pressed="false"><b>Engineer</b>I build software. Give me real systems and numbers.</button>
+    <button type="button" data-v="4" aria-pressed="false"><b>Mathematician</b>Show me the formulas and derivations.</button>
+  </div>
+  <p class="prose">Try it on this card:</p>
   <div class="concepts">
     <article class="concept">
       <div class="concept-head"><h3>What is an AI language model?</h3></div>
@@ -26,16 +34,10 @@
     </article>
   </div>
 
-  <div class="levels-demo">
-    <div style="border-color:var(--l1)"><b>Age 5</b><br>A picture you could explain to a child.</div>
-    <div style="border-color:var(--l2)"><b>Curious</b><br>How it works, in plain words.</div>
-    <div style="border-color:var(--l3)"><b>Engineer</b><br>Real systems, real numbers and trade-offs.</div>
-    <div style="border-color:var(--l4)"><b>Mathematician</b><br>The formulas underneath.</div>
-  </div>
 
   <h3 class="section-title">Why trust it</h3>
   <p class="prose">Facts come from primary sources: research papers, engineering blogs from the companies that run these systems (Meta, DeepSeek, AWS, Google, Microsoft, OpenAI, Oracle, NVIDIA, Anthropic, Hugging Face) and vendor documentation. Small numbers in brackets link to the <a href="#refs">references</a>. Simulations are simplified on purpose; where one uses made-up inputs, its panel says so.</p>
   <details class="tool"><summary>How this compares with Hugging Face's Smol Training Playbook <span class="label">Context</span></summary><div class="inst-body">
-    <p class="prose" style="margin:0">The Smol Training Playbook<sup class="ref"><a href="#ref-1">1</a></sup> is a deep, honest account of how one team trained one model (SmolLM3, 3B parameters on 11T tokens), part of a series covering data, multi-GPU training and evaluation<sup class="ref"><a href="#ref-2">2</a></sup><sup class="ref"><a href="#ref-3">3</a></sup>. This course shares its habits (ask why first, change one thing at a time, budget for failure, trust measurement) but takes a different route: it starts from the user's prompt, covers serving, datacenters and agents as well as training, and lets you drive every idea with your own inputs. Read the playbooks when you want depth on training.</p>
+    <p class="prose" style="margin:0">The Smol Training Playbook<sup class="ref"><a href="#ref-1">1</a></sup> is a deep, honest account of how one team trained one model (SmolLM3, 3B parameters on 11T tokens), part of a series covering data, multi-GPU training and evaluation<sup class="ref"><a href="#ref-2">2</a></sup><sup class="ref"><a href="#ref-3">3</a></sup><sup class="ref"><a href="#ref-20">20</a></sup>. This course shares its habits (ask why first, change one thing at a time, budget for failure, trust measurement) but takes a different route: it starts from the user's prompt, covers serving, datacenters and agents as well as training, and lets you drive every idea with your own inputs. Read the playbooks when you want depth on training.</p>
   </div></details>
 </section>

@@ -10,7 +10,7 @@
       <div class="btn-row"><button class="btn" type="button" id="ar-next">Next step</button><button class="btn ghost" type="button" id="ar-play">Play all</button><button class="btn ghost" type="button" id="ar-reset">Reset</button></div>
       <canvas class="cv" id="ar-cv" aria-label="Four GPUs in a ring exchanging gradient chunks"></canvas>
       <p class="note" id="ar-msg" aria-live="polite"></p>
-      <p class="note">Ring all-reduce has each GPU send and receive about 2·(n−1)/n of the data in total, nearly independent of how many GPUs take part, which is why it scales. Libraries such as NCCL choose between rings, trees and other patterns depending on the network<sup class="ref"><a href="#ref-2">2</a></sup>.</p>
+      <p class="note">Ring all-reduce has each GPU send and receive about 2·(n−1)/n of the data in total, so the bandwidth each GPU needs barely changes with how many take part, which is why it scales. Latency does grow with the number of steps, which is one reason libraries also use trees. NCCL chooses between rings, trees and other patterns depending on the network<sup class="ref"><a href="#ref-2">2</a></sup>.</p>
     </div>
   </div>
 
@@ -19,9 +19,9 @@
     <div class="inst-body">
       <p class="howto">The model's layers are split across GPUs like stations on an assembly line. A batch is cut into <b>micro-batches</b> (numbered blocks). Grey gaps are <b>bubbles</b>: GPUs waiting for work. Add micro-batches or change the schedule to shrink them.</p>
       <div class="ctrls row">
-        <div class="ctl"><div class="row"><span>Pipeline stages (GPUs)</span><output for="pp-p"></output></div><input type="range" id="pp-p" min="2" max="8" step="1" value="4"></div>
-        <div class="ctl"><div class="row"><span>Micro-batches</span><output for="pp-m"></output></div><input type="range" id="pp-m" min="1" max="16" step="1" value="4"></div>
-        <div class="ctl"><span>Schedule</span><div class="seg" id="pp-s"><button type="button" data-v="gpipe" aria-pressed="true">GPipe</button><button type="button" data-v="1f1b" aria-pressed="false">1F1B</button></div></div>
+        <div class="ctl"><div class="row"><label for="pp-p">Pipeline stages (GPUs)</label><output for="pp-p"></output></div><input type="range" id="pp-p" min="2" max="8" step="1" value="4"></div>
+        <div class="ctl"><div class="row"><label for="pp-m">Micro-batches</label><output for="pp-m"></output></div><input type="range" id="pp-m" min="1" max="16" step="1" value="8"></div>
+        <div class="ctl"><span id="pp-s-lbl">Schedule</span><div class="seg" id="pp-s" role="group" aria-labelledby="pp-s-lbl"><button type="button" data-v="gpipe" aria-pressed="true">GPipe</button><button type="button" data-v="1f1b" aria-pressed="false">1F1B</button></div></div>
         <button class="btn" type="button" id="pp-play">Animate</button>
       </div>
       <canvas class="cv" id="pp-cv" aria-label="Pipeline schedule timeline"></canvas>
@@ -42,7 +42,7 @@
       <div class="concept-head"><h3>Two networks: scale-up and scale-out</h3></div>
       <div class="level" data-l="1"><p>Chips in the same box talk over a super-fast private road. Boxes talk to each other over a big motorway. Jobs are arranged so the chattiest work stays on the private road.</p></div>
       <div class="level" data-l="2"><p>Every training step ends with chips swapping results, and the whole job waits for the slowest link. So clusters have a very fast network inside each server or rack and a fast but slower one connecting thousands of them.</p></div>
-      <div class="level" data-l="3"><p><b>Scale-up</b>: NVLink inside an 8-GPU server or a 72-GPU NVL72 rack (130 TB/s total)<sup class="ref"><a href="#ref-22">22</a></sup>, NeuronLink on Trainium, ICI on TPU pods. <b>Scale-out</b>: InfiniBand or RDMA over Ethernet (RoCE), or AWS's Elastic Fabric Adapter, in non-blocking fat-tree topologies. Meta built two 24,576-GPU clusters, one on each fabric, and tuned both to train without network bottlenecks; Llama 3 trained on the Ethernet one<sup class="ref"><a href="#ref-14">14</a></sup>.</p></div>
+      <div class="level" data-l="3"><p><b>Scale-up</b>: NVLink inside an 8-GPU server or a 72-GPU NVL72 rack (130 TB/s total)<sup class="ref"><a href="#ref-22">22</a></sup>, NeuronLink on Trainium, ICI on TPU pods. <b>Scale-out</b>: InfiniBand or RDMA over Ethernet (RoCE), or AWS's Elastic Fabric Adapter, in non-blocking fat-tree topologies. Meta built two 24,576-GPU clusters, one on each fabric, and tuned both to train without network bottlenecks; Llama 3 405B trained on the Ethernet (RoCE) cluster and the smaller Llama 3 models on InfiniBand<sup class="ref"><a href="#ref-14">14</a></sup><sup class="ref"><a href="#ref-9">9</a></sup>.</p></div>
     </article>
   </div>
 
@@ -55,13 +55,13 @@
     <div class="inst-cols">
       <div class="ctrls">
         <div class="ctl"><label for="mm-model">Model</label><select id="mm-model"><option value="8">Llama-style 8B</option><option value="70" selected>Llama-style 70B</option><option value="405">Llama-style 405B</option></select></div>
-        <div class="ctl"><label for="mm-gpu">GPU memory</label><select id="mm-gpu"><option value="80">80 GB (H100)</option><option value="141">141 GB (H200)</option><option value="192" selected>192 GB (B200)</option></select></div>
-        <div class="ctl"><span>ZeRO / FSDP stage</span><div class="seg" id="mm-zero"><button type="button" data-v="0" aria-pressed="false">0</button><button type="button" data-v="1" aria-pressed="true">1</button><button type="button" data-v="2" aria-pressed="false">2</button><button type="button" data-v="3" aria-pressed="false">3</button></div></div>
-        <div class="ctl"><div class="row"><span>Data parallel</span><output for="mm-dp"></output></div><input type="range" id="mm-dp" min="0" max="10" step="1" value="5"></div>
-        <div class="ctl"><div class="row"><span>Tensor parallel</span><output for="mm-tp"></output></div><input type="range" id="mm-tp" min="0" max="3" step="1" value="3"></div>
-        <div class="ctl"><div class="row"><span>Pipeline parallel</span><output for="mm-pp"></output></div><input type="range" id="mm-pp" min="0" max="5" step="1" value="2"></div>
-        <div class="ctl"><div class="row"><span>Sequence length</span><output for="mm-s"></output></div><input type="range" id="mm-s" min="10" max="15" step="1" value="13"></div>
-        <div class="ctl"><span>Activation recomputation</span><div class="seg" id="mm-rc"><button type="button" data-v="none" aria-pressed="false">None</button><button type="button" data-v="sel" aria-pressed="true">Selective</button><button type="button" data-v="full" aria-pressed="false">Full</button></div></div>
+        <div class="ctl"><label for="mm-gpu">GPU memory</label><select id="mm-gpu"><option value="80">80 GB (H100)</option><option value="141">141 GB (H200)</option><option value="180" selected>180 GB (B200)</option></select></div>
+        <div class="ctl"><span id="mm-zero-lbl">ZeRO / FSDP stage</span><div class="seg" id="mm-zero" role="group" aria-labelledby="mm-zero-lbl"><button type="button" data-v="0" aria-pressed="false">0</button><button type="button" data-v="1" aria-pressed="true">1</button><button type="button" data-v="2" aria-pressed="false">2</button><button type="button" data-v="3" aria-pressed="false">3</button></div></div>
+        <div class="ctl"><div class="row"><label for="mm-dp">Data parallel</label><output for="mm-dp"></output></div><input type="range" id="mm-dp" min="0" max="10" step="1" value="5"></div>
+        <div class="ctl"><div class="row"><label for="mm-tp">Tensor parallel</label><output for="mm-tp"></output></div><input type="range" id="mm-tp" min="0" max="3" step="1" value="3"></div>
+        <div class="ctl"><div class="row"><label for="mm-pp">Pipeline parallel</label><output for="mm-pp"></output></div><input type="range" id="mm-pp" min="0" max="5" step="1" value="2"></div>
+        <div class="ctl"><div class="row"><label for="mm-s">Sequence length</label><output for="mm-s"></output></div><input type="range" id="mm-s" min="10" max="15" step="1" value="13"></div>
+        <div class="ctl"><span id="mm-rc-lbl">Activation recomputation</span><div class="seg" id="mm-rc" role="group" aria-labelledby="mm-rc-lbl"><button type="button" data-v="none" aria-pressed="false">None</button><button type="button" data-v="sel" aria-pressed="true">Selective</button><button type="button" data-v="full" aria-pressed="false">Full</button></div></div>
       </div>
       <div style="display:grid;gap:0.8rem;align-content:start"><div class="readouts" id="mm-read"></div><canvas class="cv" id="mm-bar" aria-label="Memory breakdown per GPU"></canvas>
         <p class="note">Model state 16 bytes per parameter<sup class="ref"><a href="#ref-11">11</a></sup>; activations per Korthikanti et al.<sup class="ref"><a href="#ref-52">52</a></sup> with sequence parallelism, micro-batch of 1, 1F1B schedule. Real frameworks add buffers: keep 10–20% headroom.</p></div>
@@ -69,7 +69,7 @@
   </div></details>
 
   <div class="quiz"><div class="label">Check yourself</div>
-    <div class="q" data-answer="2"><p>Why is tensor parallelism usually kept within a single server or rack?</p><div class="opts"><button>It needs fewer GPUs</button><button>It doesn't need communication</button><button>It exchanges data inside every layer, so it needs the fastest links</button></div><div class="why">Splitting each matrix multiply means partial results are combined many times per step; only NVLink-class bandwidth keeps up.</div></div>
-    <div class="q" data-answer="0"><p>With 4 pipeline stages, how do you shrink the bubble?</p><div class="opts"><button>Use more micro-batches per batch</button><button>Use fewer micro-batches</button><button>Remove the backward pass</button></div><div class="why">Bubble fraction is (p−1)/(m+p−1), so more micro-batches m dilute the start-up and drain time.</div></div>
+    <div class="q" data-answer="2"><p>Why is tensor parallelism usually kept within a single server or rack?</p><div class="opts"><button>It only works with an even number of GPUs</button><button>It uses the most memory per GPU</button><button>It exchanges data inside every layer, so it needs the fastest links</button></div><div class="why">Splitting each matrix multiply means partial results are combined many times per step; only NVLink-class bandwidth keeps up.</div></div>
+    <div class="q" data-answer="0"><p>With 4 pipeline stages, how do you shrink the bubble?</p><div class="opts"><button>Use more micro-batches per batch</button><button>Use fewer micro-batches</button><button>Add more pipeline stages</button></div><div class="why">Bubble fraction is (p−1)/(m+p−1), so more micro-batches m dilute the start-up and drain time.</div></div>
   </div>
 </section>

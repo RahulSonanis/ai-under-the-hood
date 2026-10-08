@@ -85,7 +85,7 @@ chapter("predict", () => {
     // text
     $("#lm-text").innerHTML = words.map((w, i) => i === words.length - 1 && lastPick ? `<b style="color:var(--heat)">${esc(w)}</b>` : esc(w)).join(" ") + ' <span class="muted">▍</span>';
     // wheel
-    const wc = $("#lm-wheel"); const size = Math.min(wc.parentElement.clientWidth >= 460 ? (wc.parentElement.clientWidth - 16) / 2 : wc.parentElement.clientWidth, 280);
+    const wc = $("#lm-wheel"); const pw = innerW(wc.parentElement); const size = Math.min(pw >= 460 ? (pw - 16) / 2 : pw, 280);
     wc.style.width = size + "px"; const { ctx } = setupCanvas(wc, size); ctx.clearRect(0, 0, size, size);
     const cx = size / 2, cy = size / 2 + 6, R = size / 2 - 16; let a0 = angle; const P = pal();
     d.forEach((x, i) => { const a1 = a0 + x.p * Math.PI * 2; ctx.fillStyle = P[i % P.length]; ctx.globalAlpha = 0.25 + 0.75 * Math.min(1, x.p * 3 + 0.2); ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, a0, a1); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
@@ -139,7 +139,8 @@ chapter("predict", () => {
   function answer(w) {
     if (!cur) return; const { truth, d } = cur; const pt = (d.find(x => x[0] === truth) || [0, 1e-6])[1]; const top = d[0][0];
     qn++; if (w === truth) right++; if (top === truth) modelRight++; modelLoss += -Math.log(pt);
-    $$("#bt-opts button").forEach(b => { b.disabled = true; if (b.dataset.w === truth) { b.className = "btn"; } });
+    $$("#bt-opts button").forEach(b => { b.disabled = true; b.style.opacity = "1"; if (b.dataset.w === truth) { b.className = "btn"; b.style.background = "var(--ok)"; b.style.borderColor = "var(--ok)"; } else if (b.dataset.w === w) { b.style.borderColor = "var(--crit)"; b.style.color = "var(--crit)"; b.style.textDecoration = "line-through"; } });
+    $("#bt-q").innerHTML = esc(cur.ctx.join(" ")) + ` <b style="border-bottom:2px solid var(--ok);color:var(--ok)">${esc(truth)}</b>`;
     const shown = d.slice(0, 4).map(([x, p]) => `${esc(x)} ${(p * 100).toFixed(0)}%`).join(" · ");
     $("#bt-res").innerHTML = `${w === truth ? "<b>Correct.</b>" : `<b>It was "${esc(truth)}".</b>`} The model's top guesses: ${shown}. It gave "${esc(truth)}" ${(pt * 100).toFixed(1)}%, so its surprise was −ln(${pt.toFixed(3)}) = <b>${(-Math.log(pt)).toFixed(2)}</b>. <button class="btn ghost" type="button" id="bt-next">Next word →</button>`;
     $("#bt-next").addEventListener("click", newQ); cur = null; score();

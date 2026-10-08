@@ -1,5 +1,6 @@
+<a class="skip" href="#main">Skip to content</a>
 <header class="topbar">
-  <button class="icon-btn menu-btn" id="menu" type="button" aria-label="Open course outline">Chapters</button>
+  <button class="icon-btn menu-btn" id="menu" type="button" aria-controls="rail" aria-expanded="false">Chapters</button>
   <a class="brand" href="#start">AI Under the Hood</a>
   <span class="spacer"></span>
   <div class="depth-pick"><span class="lbl">Explain at</span>
@@ -9,7 +10,8 @@
   <button class="icon-btn" id="theme" type="button">Dark</button>
 </header>
 <div class="shell">
-<nav class="rail" aria-label="Course outline">
+<div class="backdrop" hidden></div>
+<nav class="rail" id="rail" aria-label="Course outline">
   <div class="part"><ol><li><a href="#start" data-ch="start"><span class="dot">★</span><span class="t">Start here</span></a></li></ol></div>
   <div class="part"><div class="part-title">Part 1 · Press send</div><div class="part-sub">The two seconds between your prompt and the reply</div><ol>
     <li><a href="#send" data-ch="send"><span class="dot">1</span><span class="t">What happens when you press send?</span></a></li>
@@ -40,4 +42,4 @@
   </ol></div>
   <div class="progress"></div>
 </nav>
-<main>
+<main id="main">

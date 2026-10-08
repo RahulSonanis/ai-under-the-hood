@@ -35,8 +35,9 @@ function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s ^= 
 function gauss(r) { const u = Math.max(1e-12, r()), v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
+function innerW(el) { const st = getComputedStyle(el); return Math.max(0, el.clientWidth - parseFloat(st.paddingLeft) - parseFloat(st.paddingRight)); }
 function setupCanvas(cv, h) {
-  const dpr = window.devicePixelRatio || 1; const w = cv.clientWidth || cv.parentElement.clientWidth || 600;
+  const dpr = window.devicePixelRatio || 1; const w = cv.clientWidth || innerW(cv.parentElement) || 600;
   cv.style.height = h + "px"; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
   const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return { ctx, w, h };
 }
@@ -51,7 +52,7 @@ function plot(cv, opt) {
   const px = v => m.l + (tx(v) - tx(X.min)) / (tx(X.max) - tx(X.min)) * (w - m.l - m.r);
   const py = v => h - m.b - (ty(v) - ty(Y.min)) / (ty(Y.max) - ty(Y.min)) * (h - m.t - m.b);
   ctx.clearRect(0, 0, w, h); font(ctx, 11, "--f-mono"); ctx.lineWidth = 1;
-  const ticks = (A) => { if (A.ticks) return A.ticks; if (A.log) { const r = []; for (let e = Math.ceil(Math.log10(A.min)); e <= Math.floor(Math.log10(A.max)); e++) r.push(10 ** e); return r; }
+  const ticks = (A) => { if (A.ticks) return A.ticks; if (A.log) { let r = []; for (let e = Math.ceil(Math.log10(A.min)); e <= Math.floor(Math.log10(A.max)); e++) r.push(10 ** e); if (r.length < 2) { r = []; for (let e = Math.floor(Math.log10(A.min)); e <= Math.ceil(Math.log10(A.max)); e++) [1, 2, 5].forEach(k => { const v = k * 10 ** e; if (v >= A.min && v <= A.max) r.push(v); }); } return r; }
     const span = A.max - A.min, st = 10 ** Math.floor(Math.log10(span / 5)); const k = [1, 2, 5, 10].find(k => span / (k * st) <= 6) * st; const r = []; for (let v = Math.ceil(A.min / k) * k; v <= A.max + 1e-9; v += k) r.push(+v.toFixed(10)); return r; };
   ctx.fillStyle = css("--muted"); ctx.strokeStyle = css("--grid");
   ticks(X).forEach(v => { const x = px(v); ctx.beginPath(); ctx.moveTo(x, m.t); ctx.lineTo(x, h - m.b); ctx.stroke(); ctx.textAlign = "center"; ctx.fillText((X.fmt || fmt)(v), x, h - m.b + 14); });
@@ -82,35 +83,44 @@ let rzT; window.addEventListener("resize", () => { clearTimeout(rzT); rzT = setT
 try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawCurrent); } catch (e) {}
 new MutationObserver(redrawCurrent).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
-/* ---------- Concept ladders ---------- */
+/* ---------- Concept ladders: one rung at a time ---------- */
 const LEVELS = ["Age 5", "Curious", "Engineer", "Mathematician"];
 function setupLadders(root) {
-  const start = store.get("depth", 1);
   $$(".concept", root).forEach(card => {
     if (card.dataset.ready) return; card.dataset.ready = 1;
     const levels = $$(".level", card); const max = levels.length;
-    levels.forEach(l => { const lv = document.createElement("div"); lv.className = "lv"; lv.textContent = LEVELS[+l.dataset.l - 1]; l.prepend(lv); });
-    const head = $(".concept-head", card); const lad = document.createElement("div"); lad.className = "ladder"; lad.setAttribute("role", "group"); lad.setAttribute("aria-label", "Explanation depth");
+    levels.forEach(l => { const lv = document.createElement("div"); lv.className = "lv"; lv.textContent = LEVELS[+l.dataset.l - 1]; l.prepend(lv); l.setAttribute("aria-live", "polite"); });
+    const head = $(".concept-head", card); const lad = document.createElement("div"); lad.className = "ladder"; lad.setAttribute("role", "group"); lad.setAttribute("aria-label", "Explanation depth for " + $("h3", card).textContent);
     levels.forEach(l => { const b = document.createElement("button"); b.type = "button"; b.dataset.l = l.dataset.l; b.textContent = LEVELS[+l.dataset.l - 1]; b.addEventListener("click", () => show(+l.dataset.l)); lad.appendChild(b); });
     head.appendChild(lad);
-    const deeper = document.createElement("button"); deeper.type = "button"; deeper.className = "deeper"; card.appendChild(deeper);
-    deeper.addEventListener("click", () => show(card._lvl + 1));
-    function show(n) {
+    const nav = document.createElement("div"); nav.className = "ladder-nav";
+    const simpler = document.createElement("button"); simpler.type = "button"; simpler.className = "deeper";
+    const deeper = document.createElement("button"); deeper.type = "button"; deeper.className = "deeper";
+    const capNote = document.createElement("span"); capNote.className = "note";
+    nav.append(simpler, deeper, capNote); card.appendChild(nav);
+    simpler.addEventListener("click", () => show(card._lvl - 1)); deeper.addEventListener("click", () => show(card._lvl + 1));
+    function show(n, fromGlobal) {
       card._lvl = Math.max(1, Math.min(max, n));
-      levels.forEach(l => l.hidden = +l.dataset.l > card._lvl);
-      $$("button", lad).forEach(b => { b.classList.toggle("on", +b.dataset.l <= card._lvl); b.setAttribute("aria-pressed", +b.dataset.l <= card._lvl); });
-      deeper.hidden = card._lvl >= max; deeper.textContent = `Go deeper: ${LEVELS[card._lvl]} →`;
+      levels.forEach(l => l.hidden = +l.dataset.l !== card._lvl);
+      $$("button", lad).forEach(b => { const on = +b.dataset.l === card._lvl; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
+      simpler.hidden = card._lvl <= 1; simpler.textContent = `← Simpler: ${LEVELS[card._lvl - 2] || ""}`;
+      deeper.hidden = card._lvl >= max; deeper.textContent = `Go deeper: ${LEVELS[card._lvl] || ""} →`;
+      capNote.textContent = fromGlobal && n > max ? `This idea stops at ${LEVELS[max - 1]} level.` : "";
     }
-    card._show = show; show(Math.min(start, max));
+    card._show = show; show(store.get("depth", 1), true);
   });
 }
-function setDepth(n) { store.set("depth", n); $$(".concept").forEach(c => c._show && c._show(n)); }
+function setDepth(n) {
+  store.set("depth", n); $$(".concept").forEach(c => c._show && c._show(n, true));
+  $$("#depth button, #start-depth button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === n ? "true" : "false"));
+}
 
 /* ---------- Quizzes ---------- */
 function setupQuizzes(root) {
   $$(".q", root).forEach(q => {
     if (q.dataset.ready) return; q.dataset.ready = 1;
     const ans = +q.dataset.answer, btns = $$(".opts button", q), why = $(".why", q);
+    why.setAttribute("role", "status");
     btns.forEach((b, i) => { b.type = "button"; b.addEventListener("click", () => {
       btns.forEach((x, j) => { x.classList.toggle("right", j === ans && i === ans); x.classList.toggle("wrong", j === i && i !== ans); });
       why.hidden = false; why.textContent = (i === ans ? "Right. " : "Not quite. ") + why.dataset.text;
@@ -121,30 +131,63 @@ function setupQuizzes(root) {
   });
 }
 
+/* ---------- Footnote popovers ---------- */
+let pop = null;
+function closePop() { if (pop) { pop.remove(); pop = null; } }
+function openPop(a) {
+  closePop(); const id = a.getAttribute("href").slice(1); const li = document.getElementById(id); if (!li) return;
+  pop = document.createElement("div"); pop.className = "refpop"; pop.setAttribute("role", "dialog"); pop.setAttribute("aria-label", "Source " + a.textContent);
+  pop.innerHTML = `<div class="label">Source [${esc(a.textContent)}]</div><div>${li.innerHTML}</div><div class="btn-row" style="margin-top:0.5rem"><a href="#${id}">All references</a><button type="button" class="deeper" data-close>Close</button></div>`;
+  document.body.appendChild(pop);
+  const r = a.getBoundingClientRect(), pw = Math.min(380, window.innerWidth - 24);
+  pop.style.width = pw + "px"; pop.style.left = Math.max(12, Math.min(window.innerWidth - pw - 12, r.left - pw / 2)) + "px";
+  const below = r.bottom + 8 + pop.offsetHeight < window.innerHeight; pop.style.top = (below ? r.bottom + 8 : Math.max(8, r.top - pop.offsetHeight - 8)) + "px";
+  $("[data-close]", pop).addEventListener("click", () => { closePop(); a.focus(); });
+  const first = $("a", pop); if (first) first.focus();
+}
+document.addEventListener("click", e => {
+  const a = e.target.closest("sup.ref a"); if (a && Chapters.current !== "refs") { e.preventDefault(); openPop(a); return; }
+  if (pop && !e.target.closest(".refpop")) closePop();
+});
+
 /* ---------- Progress + router ---------- */
+const scrollMemo = {};
 function markDone(id) { const d = store.get("done", {}); d[id] = 1; store.set("done", d); paintProgress(); }
 function paintProgress() {
-  const d = store.get("done", {}); const links = $$(".rail a[data-ch]");
-  links.forEach(a => a.classList.toggle("done", !!d[a.dataset.ch]));
+  const d = store.get("done", {}); const links = $$(".rail a[data-ch]").filter(a => { const s = document.getElementById(a.dataset.ch); return s && $(".q", s); });
+  $$(".rail a[data-ch]").forEach(a => a.classList.toggle("done", !!d[a.dataset.ch]));
   const n = links.filter(a => d[a.dataset.ch]).length; const p = $(".rail .progress");
-  if (p) p.innerHTML = `${n} of ${links.length} chapters checked<div class="bar"><i style="width:${n / links.length * 100}%"></i></div>`;
+  if (p) p.innerHTML = `${n} of ${links.length} chapter checks passed<div class="bar"><i style="width:${n / links.length * 100}%"></i></div>`;
+}
+const isDrawer = () => matchMedia("(max-width: 960px)").matches;
+function setDrawer(open) {
+  const rail = $(".rail"); rail.classList.toggle("open", open); $("#menu").setAttribute("aria-expanded", open ? "true" : "false");
+  if (isDrawer()) rail.inert = !open; else rail.inert = false;
+  $(".backdrop").hidden = !open;
+  if (open) { const cur = $(".rail a[aria-current]") || $(".rail a"); cur && cur.focus(); }
 }
 function route() {
+  if (Chapters.current) scrollMemo[Chapters.current] = window.scrollY;
   let h = location.hash.slice(1) || "start"; let target = null;
   if (h.startsWith("ref-")) { target = h; h = "refs"; }
   const sec = document.getElementById(h);
   if (!sec || !sec.classList.contains("chapter")) { h = "start"; }
+  closePop();
   $$(".chapter").forEach(s => s.hidden = s.id !== h);
   Chapters.current = h;
   $$(".rail a").forEach(a => { if (a.getAttribute("href") === "#" + h) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
-  $(".rail").classList.remove("open");
+  if ($(".rail").classList.contains("open")) setDrawer(false);
   const el = document.getElementById(h); setupLadders(el); setupQuizzes(el);
-  if (!$(".q", el) && el.querySelector("h2, h1")) markDone(h);
   if (Chapters.inits[h] && !Chapters.done[h]) { Chapters.done[h] = 1; Chapters.initing = h; try { Chapters.inits[h](); } catch (e) { console.error(e); } Chapters.initing = null; }
   else redrawCurrent();
-  if (target) { const t = document.getElementById(target); if (t) t.scrollIntoView({ block: "center" }); } else window.scrollTo(0, 0);
+  $$("canvas.cv", el).forEach(c => { if (!c.hasAttribute("role")) c.setAttribute("role", "img"); });
+  if (target) { const t = document.getElementById(target); if (t) t.scrollIntoView({ block: "center" }); }
+  else window.scrollTo(0, scrollMemo[h] || 0);
+  const hd = el.querySelector("h2, h1"); if (hd && Route.moved) { hd.tabIndex = -1; hd.focus({ preventScroll: true }); }
+  Route.moved = true;
   document.title = (el.dataset.title ? el.dataset.title + " · " : "") + "AI Under the Hood";
 }
+const Route = { moved: false };
 function buildPagers() {
   const chs = $$(".rail a[data-ch]").map(a => ({ id: a.dataset.ch, t: a.querySelector(".t").textContent }));
   chs.forEach((c, i) => {
@@ -155,11 +198,17 @@ function buildPagers() {
   });
 }
 document.addEventListener("DOMContentLoaded", () => {
+  const savedTheme = store.get("theme", null); if (savedTheme) document.documentElement.dataset.theme = savedTheme;
   buildPagers(); paintProgress();
-  const dp = $("#depth"); if (dp) { $$("button", dp).forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === store.get("depth", 1) ? "true" : "false")); seg(dp, v => setDepth(+v)); }
+  $$("#depth, #start-depth").forEach(dp => { $$("button", dp).forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === store.get("depth", 1) ? "true" : "false")); seg(dp, v => setDepth(+v)); });
   const tb = $("#theme"); const cur = () => document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   const lab = () => tb.textContent = cur() === "dark" ? "Light" : "Dark"; lab();
-  tb.addEventListener("click", () => { document.documentElement.dataset.theme = cur() === "dark" ? "light" : "dark"; lab(); });
-  $("#menu").addEventListener("click", () => $(".rail").classList.toggle("open"));
+  tb.addEventListener("click", () => { const t = cur() === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = t; store.set("theme", t); lab(); });
+  $("#menu").addEventListener("click", () => setDrawer(!$(".rail").classList.contains("open")));
+  $(".backdrop").addEventListener("click", () => setDrawer(false));
+  document.addEventListener("keydown", e => { if (e.key === "Escape") { if (pop) { closePop(); } else if ($(".rail").classList.contains("open")) { setDrawer(false); $("#menu").focus(); } } });
+  const syncRail = () => { if (!isDrawer()) { $(".rail").inert = false; $(".backdrop").hidden = true; $(".rail").classList.remove("open"); } else if (!$(".rail").classList.contains("open")) $(".rail").inert = true; };
+  window.addEventListener("resize", syncRail); syncRail();
+  $(".skip").addEventListener("click", e => { e.preventDefault(); const hd = $(`#${Chapters.current} h2, #${Chapters.current} h1`); if (hd) { hd.tabIndex = -1; hd.focus(); } });
   window.addEventListener("hashchange", route); route();
 });

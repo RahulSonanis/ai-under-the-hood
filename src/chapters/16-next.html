@@ -4,7 +4,7 @@
   <div class="answer"><span class="label">Short answer</span><p>The fastest way to make this stick is to build a small version of each stage and compare your numbers with the ones in this course.</p></div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Next episode</th><th>Hands-on project</th><th>Start with</th></tr></thead>
+      <thead><tr><th>Topic</th><th>Hands-on project</th><th>Start with</th></tr></thead>
       <tbody>
         <tr><td><b>Train a tiny GPT</b></td><td>Train a character-level transformer on a small corpus on a laptop or one cloud GPU; watch the loss fall and samples improve.</td><td>nanoGPT<sup class="ref"><a href="#ref-46">46</a></sup></td></tr>
         <tr><td><b>Data and tokenizers</b></td><td>Deduplicate a slice of web text with MinHash, then train a BPE tokenizer and measure characters per token across languages.</td><td>FineWeb write-up<sup class="ref"><a href="#ref-3">3</a></sup></td></tr>
@@ -17,9 +17,25 @@
       </tbody>
     </table>
   </div>
+  <h3 class="section-title">Where to go next: a learning path</h3>
+  <p class="prose">This course gives you the map. These are some of the best places to go deeper, roughly from beginner to expert.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Level</th><th>Resource</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Beginner</td><td><a href="https://www.3blue1brown.com/topics/neural-networks">3Blue1Brown: Neural networks and transformers</a></td><td>Beautiful visual intuition for neurons, gradient descent and attention.</td></tr>
+      <tr><td>Beginner</td><td><a href="https://www.youtube.com/watch?v=zjkBMFhNj_g">Andrej Karpathy: Intro to Large Language Models</a></td><td>A one-hour tour of what LLMs are and how they're made.</td></tr>
+      <tr><td>Intermediate</td><td><a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar: The Illustrated Transformer</a></td><td>The classic diagram-by-diagram walk through a transformer.</td></tr>
+      <tr><td>Intermediate</td><td><a href="https://huggingface.co/learn/llm-course">Hugging Face LLM Course</a></td><td>Hands-on with tokenizers, models and fine-tuning in code.</td></tr>
+      <tr><td>Engineer</td><td><a href="https://karpathy.ai/zero-to-hero.html">Andrej Karpathy: Neural Networks, Zero to Hero</a></td><td>Build backprop, a tokenizer and a GPT from scratch, line by line.</td></tr>
+      <tr><td>Engineer</td><td><a href="https://www.manning.com/books/build-a-large-language-model-from-scratch">Sebastian Raschka: Build a Large Language Model (From Scratch)</a></td><td>A book-length build of a GPT-style model, including fine-tuning.</td></tr>
+      <tr><td>Engineer</td><td><a href="https://huggingface.co/spaces/HuggingFaceTB/smol-training-playbook">Hugging Face: Smol Training Playbook</a> and <a href="https://huggingface.co/spaces/nanotron/ultrascale-playbook">Ultra-Scale Playbook</a></td><td>How real models are trained, and how training is spread across thousands of GPUs.</td></tr>
+      <tr><td>Expert</td><td><a href="https://stanford-cs336.github.io/">Stanford CS336: Language Modeling from Scratch</a></td><td>A full university course: data, architectures, systems, scaling, alignment.</td></tr>
+      <tr><td>Expert</td><td><a href="https://lilianweng.github.io/">Lilian Weng's blog</a></td><td>Deep, well-referenced surveys of attention, RLHF, hallucination and more.</td></tr>
+    </tbody>
+  </table></div>
   <h3 class="section-title">How to keep learning</h3>
   <div class="prose"><p>Keep a short journal per chapter: the one formula that matters, one number you computed yourself, and one question you couldn't answer. Revisit the datacenter chapter every few months, since that's the part of this field changing fastest. Whenever a lab publishes a technical report or postmortem, read it against these chapters; most of it will map onto something you've already played with.</p></div>
-  <div class="callout"><div class="label">Corrections welcome</div><p>Spotted an error or a better source? Open an issue or pull request on the course's GitHub repository with a link to the source.</p></div>
+  <div class="callout"><div class="label">Corrections welcome</div><p>Spotted an error or a better source? Open an issue or pull request on the <a href="https://github.com/RahulSonanis/ai-under-the-hood">course's GitHub repository</a> with a link to the source.</p></div>
 </section>
 
 <section class="chapter refs" id="refs" data-title="References">
@@ -79,7 +95,7 @@
     <li id="ref-50"><a href="https://arxiv.org/abs/2404.10102">Besiroglu et al., Chinchilla Scaling: A replication attempt</a>. Epoch AI, 2024.<span class="tag">Paper</span></li>
     <li id="ref-51"><a href="https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/MODEL_CARD.md">Llama 3.1 model card</a>. Meta.<span class="tag">Model card</span></li>
     <li id="ref-52"><a href="https://arxiv.org/abs/2205.05198">Korthikanti et al., Reducing Activation Recomputation in Large Transformer Models</a>. NVIDIA, 2022.<span class="tag">Paper</span></li>
-    <li id="ref-53"><a href="https://www.nextplatform.com/?p=145609">With "Ironwood" TPU, Google Pushes the AI Accelerator to the Floor</a>. The Next Platform, 2025.<span class="tag">Trade press</span></li>
+    <li id="ref-53"><a href="https://www.nextplatform.com/2025/04/09/with-ironwood-tpu-google-pushes-the-ai-accelerator-to-the-floor/">With "Ironwood" TPU, Google Pushes the AI Accelerator to the Floor</a>. The Next Platform, 2025.<span class="tag">Trade press</span></li>
     <li id="ref-54"><a href="https://github.com/vllm-project/vllm">vLLM</a>. GitHub.<span class="tag">Code</span></li>
     <li id="ref-55"><a href="https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events">Server-sent events</a>. MDN Web Docs.<span class="tag">Docs</span></li>
     <li id="ref-56"><a href="https://arxiv.org/abs/1301.3781">Mikolov et al., Efficient Estimation of Word Representations in Vector Space (word2vec)</a>. 2013.<span class="tag">Paper</span></li>
@@ -87,6 +103,14 @@
     <li id="ref-58"><a href="https://arxiv.org/abs/1412.6980">Kingma &amp; Ba, Adam: A Method for Stochastic Optimization</a>. 2014.<span class="tag">Paper</span></li>
     <li id="ref-59"><a href="https://www.datacenterdynamics.com/en/news/meta-report-details-hundreds-of-gpu-and-hbm3-related-interruptions-to-llama-3-training-run">Meta report details hundreds of GPU and HBM3-related interruptions to Llama 3 training run</a>. DatacenterDynamics, July 2024.<span class="tag">Trade press</span></li>
     <li id="ref-60"><a href="https://www.cudocompute.com/products/nvidia-gb200-nvl72">NVIDIA GB200 NVL72 rack specifications</a>. Cudo Compute product page.<span class="tag">Vendor spec</span></li>
+      <li id="ref-61"><a href="https://arxiv.org/abs/2309.17453">Xiao et al., Efficient Streaming Language Models with Attention Sinks</a>. 2023.<span class="tag">Paper</span></li>
+    <li id="ref-62"><a href="https://arxiv.org/abs/2405.04434">DeepSeek-AI, DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model</a>. 2024.<span class="tag">Paper</span></li>
+    <li id="ref-63"><a href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf">Radford et al., Language Models are Unsupervised Multitask Learners (GPT-2)</a>. OpenAI, 2019.<span class="tag">Paper</span></li>
+    <li id="ref-64"><a href="https://arxiv.org/abs/2506.20920">Penedo et al., FineWeb2: One Pipeline to Scale Them All</a>. 2025.<span class="tag">Paper</span></li>
+    <li id="ref-65"><a href="https://arxiv.org/abs/2505.09388">Qwen Team, Qwen3 Technical Report</a>. 2025.<span class="tag">Paper</span></li>
+    <li id="ref-66"><a href="https://github.com/meta-llama/llama-models/blob/main/models/llama4/MODEL_CARD.md">Llama 4 model card</a>. Meta, 2025.<span class="tag">Model card</span></li>
+    <li id="ref-67"><a href="https://www.nvidia.com/en-us/data-center/hgx/">NVIDIA HGX platform (B200 specifications)</a>. NVIDIA.<span class="tag">Vendor docs</span></li>
+    <li id="ref-68"><a href="https://arxiv.org/abs/1711.05101">Loshchilov &amp; Hutter, Decoupled Weight Decay Regularization (AdamW)</a>. 2017.<span class="tag">Paper</span></li>
   </ol>
   <div class="callout"><div class="label">About this course</div><p>Built with Claude for personal learning. The text is original and paraphrases its sources; figures, names and trademarks belong to their owners and are cited for educational use. Simulations are simplified models for intuition; panels that use illustrative inputs say so. Code is MIT-licensed and text is CC BY 4.0.</p></div>
 </section>

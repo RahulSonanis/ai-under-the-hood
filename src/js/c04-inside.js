@@ -1,15 +1,17 @@
 /* Chapter 4: attention explorer, drag-the-vectors attention, parameter counter */
 chapter("inside", () => {
   const base = ["The", "animal", "didn't", "cross", "the", "street", "because", "it", "was", "too", "tired", "."];
-  let sel = 7; const head = seg($("#ax-head"), draw), adj = seg($("#ax-adj"), draw);
+  let sel = 10; const head = seg($("#ax-head"), draw), adj = seg($("#ax-adj"), draw);
   function weights(i) {
     const h = head(), a = adj(), n = i + 1, w = new Array(n).fill(0.02);
     if (h === "prev") { w[Math.max(0, i - 1)] += 0.8; w[i] += 0.1; }
     else if (h === "sink") { w[0] += 0.75; w[i] += 0.15; }
     else {
-      const subj = a === "tired" ? 1 : 5, other = a === "tired" ? 5 : 1;
-      if (i === 7) { w[subj] += 0.72; if (other <= i) w[other] += 0.12; }
-      else if (i >= 8) { w[7] += 0.35; w[subj] += 0.45; }
+      const subj = a === "tired" ? 1 : 5;
+      if (i === 7) { w[1] += 0.4; w[5] += 0.36; }                 // "it": can't see the deciding word yet, so it's split
+      else if (i === 10) { w[7] += 0.3; w[subj] += 0.55; }        // "tired"/"wide": links "it" to the right noun
+      else if (i === 11) { w[subj] += 0.45; w[7] += 0.3; }
+      else if (i === 8 || i === 9) { w[7] += 0.6; }
       else if (i === 3 || i === 2) { w[1] += 0.7; }
       else if (i === 5 || i === 4) { w[3] += 0.4; w[1] += 0.3; }
       else if (i === 6) { w[3] += 0.4; w[5] += 0.3; }
@@ -18,26 +20,35 @@ chapter("inside", () => {
     const s = w.reduce((x, y) => x + y, 0); return w.map(x => x / s);
   }
   const cv = $("#ax-cv");
+  cv.tabIndex = 0; cv.style.cursor = "pointer";
+  cv.addEventListener("keydown", e => { if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return; e.preventDefault(); sel = Math.max(0, Math.min(base.length - 1, sel + (e.key === "ArrowRight" ? 1 : -1))); draw(); });
   function draw() {
     const toks = base.slice(); toks[10] = adj();
-    const W0 = Math.max(560, cv.parentElement.clientWidth); cv.style.width = W0 + "px";
-    const { ctx, w } = setupCanvas(cv, 230); ctx.clearRect(0, 0, w, 230);
-    font(ctx, 15, "--f-mono"); const gap = 10; const widths = toks.map(t => ctx.measureText(t).width + 14);
-    const total = widths.reduce((a, b) => a + b, 0) + gap * (toks.length - 1); let x = Math.max(6, (w - total) / 2); const pos = [];
-    toks.forEach((t, i) => { pos.push([x, widths[i]]); x += widths[i] + gap; });
-    const ww = weights(sel); const y = 176;
-    ww.forEach((v, j) => { if (j === sel || v < 0.03) return; const x1 = pos[sel][0] + pos[sel][1] / 2, x2 = pos[j][0] + pos[j][1] / 2; const hgt = Math.min(150, 30 + Math.abs(x1 - x2) * 0.45);
-      ctx.strokeStyle = css("--heat"); ctx.globalAlpha = 0.25 + 0.75 * v; ctx.lineWidth = 1 + v * 14; ctx.beginPath(); ctx.moveTo(x1, y - 16); ctx.bezierCurveTo(x1, y - 16 - hgt, x2, y - 16 - hgt, x2, y - 16); ctx.stroke(); ctx.globalAlpha = 1; });
-    toks.forEach((t, i) => { const [x0, wd] = pos[i]; const v = i <= sel ? ww[i] : 0;
+    const w0 = innerW(cv.parentElement);
+    const probe = setupCanvas(cv, 10).ctx; font(probe, 15, "--f-mono"); const gap = 8; const widths = toks.map(t => probe.measureText(t).width + 14);
+    // wrap into lines that fit
+    const lines = [[]]; let lw = 0; toks.forEach((t, i) => { if (lw + widths[i] > w0 - 12 && lines[lines.length - 1].length) { lines.push([]); lw = 0; } lines[lines.length - 1].push(i); lw += widths[i] + gap; });
+    const arcRoom = 110, lineH = 70, H = arcRoom + lines.length * lineH; const { ctx, w } = setupCanvas(cv, H); ctx.clearRect(0, 0, w, H);
+    const pos = []; lines.forEach((ln, li) => { const tot = ln.reduce((a, i) => a + widths[i] + gap, -gap); let x = Math.max(6, (w - tot) / 2); ln.forEach(i => { pos[i] = [x, widths[i], arcRoom + li * lineH + 16]; x += widths[i] + gap; }); });
+    const ww = weights(sel);
+    ww.forEach((v, j) => { if (j === sel || v < 0.03) return; const [xa, wa, ya] = pos[sel], [xb, wb, yb] = pos[j]; const x1 = xa + wa / 2, x2 = xb + wb / 2, y1 = ya - 16, y2 = yb - 16;
+      const top = Math.min(y1, y2) - Math.min(arcRoom - 10, 30 + Math.abs(x1 - x2) * 0.4);
+      ctx.strokeStyle = css("--heat"); ctx.globalAlpha = 0.25 + 0.75 * v; ctx.lineWidth = 1 + v * 14; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.bezierCurveTo(x1, top, x2, top, x2, y2); ctx.stroke(); ctx.globalAlpha = 1; });
+    toks.forEach((t, i) => { const [x0, wd, y] = pos[i]; const v = i <= sel ? ww[i] : 0;
       ctx.fillStyle = i === sel ? css("--accent") : i > sel ? css("--surface-2") : css("--heat-soft"); rr(ctx, x0, y - 14, wd, 30, 6); ctx.fill();
       ctx.strokeStyle = i > sel ? css("--grid") : css("--line"); ctx.lineWidth = 1; ctx.stroke();
       font(ctx, 15, "--f-mono", i === sel ? "600" : ""); ctx.fillStyle = i === sel ? css("--surface") : i > sel ? css("--muted") : css("--ink"); ctx.textAlign = "center"; ctx.fillText(t, x0 + wd / 2, y + 6);
-      if (i < sel && v >= 0.03) { font(ctx, 11, "--f-mono"); ctx.fillStyle = css("--heat"); ctx.fillText(Math.round(v * 100) + "%", x0 + wd / 2, y + 34); } });
+      if (i < sel && v >= 0.03) { font(ctx, 11, "--f-mono"); ctx.fillStyle = css("--heat"); ctx.fillText(Math.round(v * 100) + "%", x0 + wd / 2, y + 32); } });
     cv._pos = pos;
     const top = ww.map((v, j) => [v, j]).filter(([, j]) => j !== sel).sort((a, b) => b[0] - a[0])[0];
-    $("#ax-note").innerHTML = sel === 0 ? "The first word can only look at itself." : `<b>"${esc(toks[sel])}"</b> looks most at <b>"${esc(toks[top[1]])}"</b> (${Math.round(top[0] * 100)}%). Words to its right are greyed out: the model can't see the future.` + (sel === 7 && head() === "coref" ? ` With "${adj()}", "it" most likely means the ${adj() === "tired" ? "animal" : "street"}.` : "");
+    const noun = adj() === "tired" ? "animal" : "street";
+    let extra = "";
+    if (head() === "coref" && sel === 7) extra = ` At this point the deciding word ("${esc(adj())}") hasn't arrived yet, so "it" can't know which noun it means: attention is split between "animal" and "street".`;
+    if (head() === "coref" && sel === 10) extra = ` Now the model can settle the question: "${esc(adj())}" links back to "it" and to the <b>${noun}</b>, so the information that "it" means the ${noun} is gathered here, at the word that decides it. Swap tired ↔ wide to see it change.`;
+    $("#ax-note").innerHTML = sel === 0 ? "The first word can only look at itself." : `<b>"${esc(toks[sel])}"</b> looks most at <b>"${esc(toks[top[1]])}"</b> (${Math.round(top[0] * 100)}%). Words to its right are greyed out: the model can't see the future.` + extra;
+    cv.setAttribute("aria-label", `Attention from "${toks[sel]}". Use left and right arrow keys to pick another word.`);
   }
-  cv.addEventListener("click", e => { const r = cv.getBoundingClientRect(); const x = (e.clientX - r.left); const i = cv._pos.findIndex(([x0, wd]) => x >= x0 && x <= x0 + wd); if (i >= 0) { sel = i; draw(); } });
+  cv.addEventListener("click", e => { const r = cv.getBoundingClientRect(); const x = e.clientX - r.left, y = e.clientY - r.top; const i = cv._pos.findIndex(([x0, wd, yy]) => x >= x0 && x <= x0 + wd && y >= yy - 16 && y <= yy + 18); if (i >= 0) { sel = i; draw(); } });
   onRedraw(draw);
 
   /* ---- drag-the-vectors ---- */
@@ -45,7 +56,7 @@ chapter("inside", () => {
   const vcolors = () => [css("--crit"), css("--ok"), css("--accent")];
   let drag = null, geo = null;
   function vdraw() {
-    const size = Math.min(vc.parentElement.clientWidth, 340); vc.style.width = size + "px";
+    const size = Math.min(innerW(vc.parentElement), 340); vc.style.width = size + "px";
     const { ctx } = setupCanvas(vc, size); ctx.clearRect(0, 0, size, size); const c = size / 2, R = size / 2 - 22; geo = { c, R, size };
     ctx.strokeStyle = css("--grid"); ctx.beginPath(); ctx.arc(c, c, R, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.moveTo(c - R, c); ctx.lineTo(c + R, c); ctx.moveTo(c, c - R); ctx.lineTo(c, c + R); ctx.stroke();
     const arrow = (v, col, lab, wdt) => { const x = c + v[0] * R, y = c - v[1] * R; ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wdt; ctx.beginPath(); ctx.moveTo(c, c); ctx.lineTo(x, y); ctx.stroke(); ctx.beginPath(); ctx.arc(x, y, 8, 0, 7); ctx.fill(); font(ctx, 12, "--f-mono", "600"); ctx.fillStyle = css("--ink"); const left = x > c; ctx.textAlign = left ? "right" : "left"; ctx.fillText(lab, x + (left ? -12 : 12), y + (v[1] >= 0 ? -10 : 18)); ctx.lineWidth = 1; };

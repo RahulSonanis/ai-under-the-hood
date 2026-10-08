@@ -1,6 +1,6 @@
 /* Chapter 9: compute budget splitter + training cost calculator */
 chapter("scale", () => {
-  const E = 1.69, A = 406.4, B = 410.7, al = 0.34, be = 0.28, loss = (N, D) => E + A / N ** al + B / D ** be;
+  const E = 1.82, A = 482.0, B = 2085.4, al = 0.348, be = 0.366, loss = (N, D) => E + A / N ** al + B / D ** be;
   const Nlo = 7, Nhi = 12.5;
   const Nof = u => 10 ** (Nlo + u * (Nhi - Nlo));
   function best(C) { let b = [0, 9]; for (let u = 0; u <= 1; u += 0.002) { const N = Nof(u), D = C / 6 / N; if (D < 1e8) continue; const l = loss(N, D); if (l < b[1]) b = [u, l]; } return b; }

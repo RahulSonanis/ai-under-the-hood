@@ -24,7 +24,7 @@ chapter("failures", () => {
   }
   const fmtT = m => `day ${Math.floor(m / 1440)} ${String(Math.floor(m % 1440 / 60)).padStart(2, "0")}:${String(Math.floor(m % 60)).padStart(2, "0")}`;
   function draw() {
-    const cg = $("#fg-grid"); const w0 = cg.parentElement.clientWidth; const cols = 32, rows = 8; const cs = Math.min(18, Math.floor(w0 / cols)); const { ctx } = setupCanvas(cg, rows * cs + 4);
+    const cg = $("#fg-grid"); const w0 = innerW(cg.parentElement); const cols = 32, rows = 8; const cs = Math.min(18, Math.floor(w0 / cols)); const { ctx } = setupCanvas(cg, rows * cs + 4);
     ctx.clearRect(0, 0, w0, rows * cs + 4); const st = state;
     for (let i = 0; i < 256; i++) { const x = (i % cols) * cs, y = Math.floor(i / cols) * cs; ctx.fillStyle = i === failedTile ? css("--crit") : st === "restart" ? css("--muted") : st === "save" ? css("--l3") : css("--ok"); ctx.globalAlpha = i === failedTile ? 1 : st === "work" ? 0.75 : 0.45; ctx.fillRect(x + 1, y + 1, cs - 2, cs - 2); }
     ctx.globalAlpha = 1;
@@ -41,7 +41,7 @@ chapter("failures", () => {
       <div class="readout"><div class="k">Suggested save interval</div><div class="v">${Math.round(opt)} min</div><div class="s">√(2 × save time × MTBF)</div></div>`;
     $("#fg-log").innerHTML = log.slice(0, 30).map(esc).join("<br>") || "Event log: failures and restarts will appear here.";
   }
-  const loop = animLoop(dt => { advance(dt * 110); draw(); if (t >= SPAN) { $("#fg-run").textContent = "Run again"; return false; } });
+  const loop = animLoop(dt => { advance(dt * 200); draw(); if (t >= SPAN) { $("#fg-run").textContent = "Run again"; return false; } });
   $("#fg-run").addEventListener("click", () => { if (loop.running) { loop.stop(); $("#fg-run").textContent = "Resume"; return; } if (t >= SPAN) reset(); if (reduceMotion()) { advance(SPAN); draw(); return; } loop.start(); $("#fg-run").textContent = "Pause"; });
   $("#fg-save").addEventListener("click", () => { if (state === "work") { state = "save"; stateLeft = num("fg-d"); log.unshift(`${fmtT(t)}  Manual save started.`); draw(); } });
   $("#fg-reset").addEventListener("click", reset);

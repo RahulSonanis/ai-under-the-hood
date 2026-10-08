@@ -67,7 +67,7 @@ chapter("data", () => {
     const S = num("pk-seq"), med = num("pk-med"), mask = checked("pk-mask"), r = rng(seed); const segs = []; let used = 0;
     while (used < S) { let l = Math.max(16, Math.round(med * Math.exp(0.9 * gauss(r)))); l = Math.min(l, S - used); segs.push(l); used += l; }
     const causal = S * (S + 1) / 2, intra = segs.reduce((a, l) => a + l * (l + 1) / 2, 0);
-    const cv = $("#pk-cv"); const size = Math.min(cv.parentElement.clientWidth, 320); cv.style.width = size + "px"; const { ctx } = setupCanvas(cv, size); const n = 100, c = size / n;
+    const cv = $("#pk-cv"); const size = Math.min(innerW(cv.parentElement), 320); cv.style.width = size + "px"; const { ctx } = setupCanvas(cv, size); const n = 100, c = size / n;
     const bounds = []; let acc = 0; segs.forEach(l => { bounds.push([acc, acc + l]); acc += l; }); const docOf = t => bounds.findIndex(([a, b]) => t >= a && t < b);
     const pal = [css("--accent"), css("--heat"), css("--ok"), css("--l3")]; ctx.clearRect(0, 0, size, size);
     for (let i = 0; i < n; i++) for (let j = 0; j <= i; j++) { const di = docOf(Math.floor((i + 0.5) / n * S)), dj = docOf(Math.floor((j + 0.5) / n * S));

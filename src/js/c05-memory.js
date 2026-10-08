@@ -3,10 +3,10 @@ chapter("memory", () => {
   const COLS = 40, ROWS = 12, N = COLS * ROWS, CELL_TOK = 1270, WEIGHT_CELLS = 96, PREFIX_TOK = 2000;
   let cells, reqs, queue, tick, r, served, tokensOut, nextId;
   const getMode = seg($("#kv-mode"), () => reset());
-  function reset() { cells = new Array(N).fill(null); for (let i = 0; i < WEIGHT_CELLS; i++) cells[i] = "W"; reqs = []; queue = []; tick = 0; r = rng(17); served = 0; tokensOut = 0; nextId = 1; prefixCells = null; draw(); }
+  function reset(warm = true) { if (typeof loop !== "undefined" && loop.running) { loop.stop(); } $("#kv-run").textContent = "Run"; cells = new Array(N).fill(null); for (let i = 0; i < WEIGHT_CELLS; i++) cells[i] = "W"; reqs = []; queue = []; tick = 0; r = rng(17); served = 0; tokensOut = 0; nextId = 1; prefixCells = null; if (warm) for (let k = 0; k < 30; k++) step(); draw(); }
   let prefixCells = null;
   const cellsFor = t => Math.ceil(t / CELL_TOK);
-  function newReq() { const target = Math.min(num("kv-max"), Math.round(Math.exp(Math.log(2500) + 0.9 * gauss(r)))) ; return { id: nextId++, len: 0, target: Math.max(600, target), cells: [], hue: (nextId * 67) % 360 }; }
+  function newReq() { const target = Math.min(num("kv-max"), Math.round(Math.exp(Math.log(3500) + 0.9 * gauss(r)))) ; return { id: nextId++, len: 0, target: Math.max(600, target), cells: [], hue: (180 + (nextId * 67) % 230) % 360 }; }
   function admit(q) {
     const prefix = checked("kv-prefix"), mode = getMode();
     if (prefix && !prefixCells) { const free = []; for (let i = 0; i < N && free.length < cellsFor(PREFIX_TOK); i++) if (!cells[i]) free.push(i); if (free.length < cellsFor(PREFIX_TOK)) return false; free.forEach(i => cells[i] = "P"); prefixCells = free; }
@@ -23,8 +23,9 @@ chapter("memory", () => {
   function grow(q, toks) { const need = cellsFor(toks) - q.cells.length; for (let k = 0; k < need; k++) { const i = cells.indexOf(null); if (i < 0) return false; cells[i] = q.id; q.cells.push(i); } return true; }
   function step() {
     tick++; const prefix = checked("kv-prefix");
-    if (r() < 0.75) queue.push(newReq());
-    if (r() < 0.35) queue.push(newReq());
+    queue.push(newReq()); queue.push(newReq());
+    if (r() < 0.6) queue.push(newReq());
+    if (r() < 0.6) queue.push(newReq());
     // admit in order
     while (queue.length) { const q = queue[0]; if (q.len === 0) q.len = 400; if (admit(q)) { reqs.push(queue.shift()); } else { if (getMode() === "paged") { q.cells.forEach(i => cells[i] = null); q.cells = []; } break; } }
     // decode
@@ -38,7 +39,7 @@ chapter("memory", () => {
     draw();
   }
   function draw() {
-    const cv = $("#kv-cv"); const w0 = cv.parentElement.clientWidth; const cs = Math.max(6, Math.min(20, Math.floor((w0 - 4) / COLS))); const H = ROWS * cs + 2;
+    const cv = $("#kv-cv"); const w0 = innerW(cv.parentElement); const cs = Math.max(6, Math.min(20, Math.floor((w0 - 4) / COLS))); const H = ROWS * cs + 2;
     const { ctx, w } = setupCanvas(cv, H); ctx.clearRect(0, 0, w, H); const ox = Math.max(0, (w - COLS * cs) / 2);
     const dark = getComputedStyle(document.documentElement).colorScheme.includes("dark"); const byId = new Map(reqs.map(q => [q.id, q]));
     let used = 0, reservedEmpty = 0, prefixUsed = 0;
@@ -64,7 +65,7 @@ chapter("memory", () => {
   $("#kv-reset").addEventListener("click", reset);
   $("#kv-prefix").addEventListener("change", reset);
   bindCtl("kv-max", reset, e => (+e.value).toLocaleString() + " tokens");
-  reset(); for (let i = 0; i < 25; i++) step();
+  reset();
   onRedraw(draw);
 
   /* ---- KV calculator ---- */
@@ -73,7 +74,7 @@ chapter("memory", () => {
   function calc() {
     const m = M[$("#kc-m").value], ctxLen = Math.round(2 ** num("kc-c")), B = 2 ** num("kc-b"), b = +prec();
     setCtl("kc-c", num("kc-c"), () => ctxLen.toLocaleString() + " tokens"); setCtl("kc-b", num("kc-b"), () => B);
-    const per = m.mla ? m.L * m.mla * b : 2 * m.L * m.kv * m.hd * b, mha = 2 * m.L * m.q * m.hd * b;
+    const per = m.mla ? m.L * m.mla * b : 2 * m.L * m.kv * m.hd * b, mha = m.mla ? m.L * m.q * (192 + 128) * b : 2 * m.L * m.q * m.hd * b;
     const tot = per * ctxLen * B;
     $("#kc-read").innerHTML = `<div class="readout"><div class="k">Per token</div><div class="v">${bytes(per)}</div></div>
       <div class="readout hot"><div class="k">One conversation</div><div class="v">${bytes(per * ctxLen)}</div></div>

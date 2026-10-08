@@ -29,13 +29,13 @@ chapter("align", () => {
     const rm = cands.map(c => flaw && c.flaw !== undefined ? c.flaw : c.r), lg = cands.map((c, i) => Math.log(c.ref) + rm[i] / beta), mx = Math.max(...lg);
     const ex = lg.map(l => Math.exp(l - mx)), Z = ex.reduce((a, b) => a + b), pi = ex.map(e => e / Z);
     const kl = pi.reduce((a, p, i) => a + (p > 0 ? p * Math.log(p / cands[i].ref) : 0), 0), trueR = pi.reduce((a, p, i) => a + p * cands[i].r, 0), refR = cands.reduce((a, c) => a + c.ref * c.r, 0), proxy = pi.reduce((a, p, i) => a + p * rm[i], 0);
-    const cv = $("#kl-cv"); const W = cv.parentElement.clientWidth, narrow = W < 520, rowH = narrow ? 58 : 44, H = cands.length * rowH + 24; const { ctx, w } = setupCanvas(cv, H); ctx.clearRect(0, 0, w, H);
+    const cv = $("#kl-cv"); const W = innerW(cv.parentElement), narrow = W < 520, rowH = narrow ? 58 : 44, H = cands.length * rowH + 24; const { ctx, w } = setupCanvas(cv, H); ctx.clearRect(0, 0, w, H);
     const lw = narrow ? 0 : Math.min(250, w * 0.42), bx = lw + 8, bw = w - bx - 44;
     cands.forEach((c, i) => { const y = i * rowH + 4; font(ctx, 12); ctx.fillStyle = css("--ink"); ctx.textAlign = "left"; const lab = c.n.length > (narrow ? 64 : 40) ? c.n.slice(0, narrow ? 62 : 38) + "…" : c.n; ctx.fillText(lab, 0, narrow ? y + 10 : y + 18);
       const by = narrow ? y + 18 : y + 4; ctx.fillStyle = css("--grid"); ctx.fillRect(bx, by, bw, 12); ctx.fillRect(bx, by + 15, bw, 12);
       ctx.fillStyle = css("--muted"); ctx.fillRect(bx, by, bw * c.ref, 12); ctx.fillStyle = c.flaw !== undefined && flaw ? css("--crit") : css("--accent"); ctx.fillRect(bx, by + 15, bw * pi[i], 12);
       font(ctx, 11, "--f-mono"); ctx.fillStyle = css("--muted"); ctx.textAlign = "right"; ctx.fillText(Math.round(pi[i] * 100) + "%", w, by + 25); });
-    font(ctx, 11); ctx.fillStyle = css("--muted"); ctx.textAlign = "left"; ctx.fillText("grey = before training · blue = after", bx, H - 4);
+    font(ctx, 11); ctx.fillStyle = css("--muted"); ctx.textAlign = "left"; ctx.fillText(flaw ? "grey = before training · after: blue, red for the flattering reply" : "grey = before training · blue = after", bx, H - 4);
     $("#kl-read").innerHTML = `<div class="readout"><div class="k">Reward-model score</div><div class="v">${proxy.toFixed(2)}</div><div class="s">what training sees</div></div>
       <div class="readout ${trueR > refR ? "ok" : "bad"}"><div class="k">True quality</div><div class="v">${trueR.toFixed(2)}</div><div class="s">before training: ${refR.toFixed(2)}</div></div>
       <div class="readout"><div class="k">Drift (KL)</div><div class="v">${kl.toFixed(2)}</div></div>`;

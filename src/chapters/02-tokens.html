@@ -13,7 +13,7 @@
       <canvas class="cv" id="bp-cv" aria-label="Number of tokens as merges are learned"></canvas>
       <div class="ctl"><label for="bp-test">Try your own sentence with what it has learned so far</label><input type="text" id="bp-test" value="the transformer reads trillions of new tokens"></div>
       <div class="tokens" id="bp-tok2"></div>
-      <details class="tool"><summary>Change the training text <span class="label">Experiment</span></summary><div class="inst-body"><textarea id="bp-train" rows="5">the model reads the tokens. the tokens become numbers. the numbers flow through the transformer. the transformer predicts the next token. training repeats this for trillions of tokens. tokenizers learn the most frequent pairs first, so the common words become single tokens while rare words stay split into pieces.</textarea><p class="note">Changing the text restarts learning. Spaces are attached to the start of the following word and shown as ·, the convention GPT-2 introduced.</p></div></details>
+      <details class="tool"><summary>Change the training text <span class="label">Experiment</span></summary><div class="inst-body"><textarea id="bp-train" rows="5">the model reads the tokens. the tokens become numbers. the numbers flow through the transformer. the transformer predicts the next token. training repeats this for trillions of tokens. tokenizers learn the most frequent pairs first, so the common words become single tokens while rare words stay split into pieces.</textarea><p class="note">Changing the text restarts learning. Spaces are attached to the start of the following word and shown as ·, as GPT-2-style tokenizers do.</p></div></details>
     </div>
   </div>
 
@@ -26,6 +26,7 @@
         <div style="display:grid;gap:0.6rem">
           <div class="readouts" id="em-read"></div>
           <button class="btn ghost" type="button" id="em-reset">Clear</button>
+          <span class="kbd-hint" id="em-kb" aria-live="polite">Keyboard: focus the map, then arrow keys and Enter.</span>
           <p class="note">Positions are hand-placed to illustrate the idea. Real models learn embeddings with thousands of dimensions, and relations like these appeared in word2vec embeddings<sup class="ref"><a href="#ref-56">56</a></sup>; in large transformers they are messier, but the principle that direction can carry meaning still holds.</p>
         </div>
       </div>
@@ -37,8 +38,8 @@
       <div class="concept-head"><h3>What is a token?</h3></div>
       <div class="level" data-l="1"><p>Computers only understand numbers. So we break writing into small pieces, like LEGO bricks, and give every kind of brick a number. "playing" might be two bricks: "play" and "ing".</p></div>
       <div class="level" data-l="2"><p>A token is usually a common word or a piece of a word. Common words get one token; rare words are spelled out from smaller pieces. In English a token averages roughly four characters, so 1,000 words is around 1,300 tokens, though this depends on the tokenizer and the text.</p></div>
-      <div class="level" data-l="3"><p>Most tokenizers use byte-pair encoding (BPE)<sup class="ref"><a href="#ref-4">4</a></sup>, working on bytes so any input can be encoded. Vocabulary size is a trade-off: more tokens compress text better, but every token adds a row to the embedding and output matrices. Around 50k suits English-only models; multilingual models often use 100k+, and Llama 3 uses about 128k<sup class="ref"><a href="#ref-1">1</a></sup>. Pricing, rate limits and context windows are all counted in tokens, so a language your tokenizer splits finely costs more to use.</p></div>
-      <div class="level" data-l="4"><p>BPE training is greedy: from a base alphabet Σ, repeatedly pick the pair (a, b) maximising its count in the corpus and add the merged symbol, until |V| reaches the target. Encoding applies the merges in learned order. The objective it approximates is compression; tokenizer quality is often measured by <i>fertility</i>, the average tokens per word, which varies widely across languages<sup class="ref"><a href="#ref-3">3</a></sup>.</p></div>
+      <div class="level" data-l="3"><p>Most tokenizers use byte-pair encoding (BPE)<sup class="ref"><a href="#ref-4">4</a></sup>; since GPT-2, many run it on raw bytes rather than characters, so any input can be encoded<sup class="ref"><a href="#ref-63">63</a></sup>. Vocabulary size is a trade-off: more tokens compress text better, but every token adds a row to the embedding and output matrices. Around 50k suits English-only models; multilingual models often use 100k+, and Llama 3 uses about 128k<sup class="ref"><a href="#ref-1">1</a></sup>. Pricing, rate limits and context windows are all counted in tokens, so a language your tokenizer splits finely costs more to use.</p></div>
+      <div class="level" data-l="4"><p>BPE training is greedy: from a base alphabet Σ, repeatedly pick the pair (a, b) maximising its count in the corpus and add the merged symbol, until |V| reaches the target. Encoding applies the merges in learned order. The objective it approximates is compression; tokenizer quality is often measured by <i>fertility</i>, the average tokens per word, which varies widely across languages<sup class="ref"><a href="#ref-64">64</a></sup>.</p></div>
     </article>
     <article class="concept">
       <div class="concept-head"><h3>What is an embedding?</h3></div>
@@ -50,7 +51,7 @@
   </div>
 
   <div class="quiz"><div class="label">Check yourself</div>
-    <div class="q" data-answer="0"><p>A tokenizer trained mostly on English text meets a Thai sentence. What usually happens?</p><div class="opts"><button>It splits it into many small pieces, so it costs more tokens</button><button>It refuses to encode it</button><button>It translates it into English first</button></div><div class="why">Byte-level BPE can encode anything, but text unlike its training data falls back to small pieces, so the same meaning takes more tokens.</div></div>
-    <div class="q" data-answer="1"><p>What does an embedding table do?</p><div class="opts"><button>Stores the user's conversation</button><button>Turns each token ID into a learned list of numbers</button><button>Decides which token comes next</button></div><div class="why">It's a lookup table: one row of learned numbers per token in the vocabulary.</div></div>
+    <div class="q" data-answer="0"><p>A tokenizer trained mostly on English text meets a Thai sentence. What usually happens?</p><div class="opts"><button>It splits it into many small pieces, so it costs more tokens</button><button>It maps each Thai character to a single "unknown" token</button><button>It uses about as many tokens as the same sentence in English</button></div><div class="why">Byte-level BPE can encode anything, but text unlike its training data falls back to small pieces, so the same meaning takes more tokens.</div></div>
+    <div class="q" data-answer="1"><p>What does an embedding table do?</p><div class="opts"><button>Stores the attention keys and values for earlier tokens</button><button>Turns each token ID into a learned list of numbers</button><button>Decides which token comes next</button></div><div class="why">It's a lookup table: one row of learned numbers per token in the vocabulary.</div></div>
   </div>
 </section>

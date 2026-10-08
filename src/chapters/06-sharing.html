@@ -1,7 +1,7 @@
 <section class="chapter" id="sharing" data-title="Batching">
   <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 6</span><span class="label">Batching</span></div>
   <h2>How does one GPU serve many people?</h2>
-  <div class="answer"><span class="label">Short answer</span><p>To write one token, a GPU must read the entire model from its memory. Reading is the slow part, so it writes the next token for many conversations in one go. Each extra person barely slows the step, which is what makes AI affordable to serve.</p></div>
+  <div class="answer"><span class="label">Short answer</span><p>To write one token, a GPU must read all the model weights it uses from its memory. Reading is the slow part, so it writes the next token for many conversations in one go. Each extra person barely slows the step, which is what makes AI affordable to serve.</p></div>
 
   <div class="inst" id="ds">
     <div class="inst-head"><h4>One decode step, up close</h4><span class="label">Simulation · roofline arithmetic</span></div>
@@ -9,10 +9,10 @@
       <p class="howto">Every step, the weights (blue) stream from memory to the compute units, then the maths runs once for every person in the batch. Drag <b>People in the batch</b> and watch which part becomes the bottleneck.</p>
       <div class="inst-cols">
         <div class="ctrls">
-          <div class="ctl"><div class="row"><span>People in the batch</span><output for="ds-b"></output></div><input type="range" id="ds-b" min="0" max="10" step="1" value="0"></div>
+          <div class="ctl"><div class="row"><label for="ds-b">People in the batch</label><output for="ds-b"></output></div><input type="range" id="ds-b" min="0" max="10" step="1" value="0"></div>
           <div class="ctl"><label for="ds-m">Model</label><select id="ds-m"><option value="8">Llama 3 8B · 16 GB in BF16</option><option value="70">Llama 3 70B · 141 GB (2 GPUs)</option></select></div>
-          <div class="ctl"><div class="row"><span>Conversation length so far</span><output for="ds-c"></output></div><input type="range" id="ds-c" min="256" max="32768" step="256" value="2048"><small>Each person's KV cache must be read too.</small></div>
-          <div class="ctl"><div class="row"><span>GPU price per hour</span><output for="ds-p"></output></div><input type="range" id="ds-p" min="1" max="8" step="0.25" value="3"></div>
+          <div class="ctl"><div class="row"><label for="ds-c">Conversation length so far</label><output for="ds-c"></output></div><input type="range" id="ds-c" min="256" max="32768" step="256" value="256"><small>Each person's KV cache must be read too.</small></div>
+          <div class="ctl"><div class="row"><label for="ds-p">GPU price per hour</label><output for="ds-p"></output></div><input type="range" id="ds-p" min="1" max="8" step="0.25" value="3"></div>
           <button class="btn ghost" type="button" id="ds-play">Pause animation</button>
         </div>
         <div style="display:grid;gap:0.8rem;min-width:0">
@@ -55,16 +55,16 @@
   <details class="tool" id="rf"><summary>Roofline across accelerators <span class="label">Engineer tool</span></summary><div class="inst-body">
     <div class="inst-cols">
       <div class="ctrls">
-        <div class="ctl"><label for="rf-chip">Chip</label><select id="rf-chip"><option value="h100">NVIDIA H100 SXM · 989 TF BF16 · 3.35 TB/s</option><option value="b200">NVIDIA B200 · ~2,250 TF BF16 · ~8 TB/s</option><option value="tpu7">Google TPU7x · ~2,307 TF BF16 · 7.37 TB/s</option><option value="trn2">AWS Trainium2 · 1,300 TF FP8 · ~2.9 TB/s</option></select></div>
-        <div class="ctl"><div class="row"><span>Decode batch size</span><output for="rf-b"></output></div><input type="range" id="rf-b" min="0" max="10" step="1" value="3"></div>
+        <div class="ctl"><label for="rf-chip">Chip</label><select id="rf-chip"><option value="h100">NVIDIA H100 SXM · 989 TF BF16 · 3.35 TB/s</option><option value="b200">NVIDIA B200 · ~2,250 TF BF16 · ~8 TB/s</option><option value="tpu7">Google TPU7x · 2,307 TF BF16 · 7.37 TB/s</option><option value="trn2">AWS Trainium2 · 1,300 TF FP8 · ~2.9 TB/s</option></select></div>
+        <div class="ctl"><div class="row"><label for="rf-b">Decode batch size</label><output for="rf-b"></output></div><input type="range" id="rf-b" min="0" max="10" step="1" value="3"></div>
       </div>
       <div style="display:grid;gap:0.8rem"><canvas class="cv" id="rf-cv" aria-label="Roofline chart"></canvas><div class="readouts" id="rf-read"></div>
-      <p class="note">Sources: NVIDIA<sup class="ref"><a href="#ref-23">23</a></sup><sup class="ref"><a href="#ref-22">22</a></sup>, Google Cloud<sup class="ref"><a href="#ref-24">24</a></sup><sup class="ref"><a href="#ref-53">53</a></sup>, AWS<sup class="ref"><a href="#ref-25">25</a></sup>. B200 and TPU7x BF16 peaks are approximate; Trainium2 is shown at FP8 (20.8 PF per 16-chip instance ÷ 16).</p></div>
+      <p class="note">Sources: NVIDIA<sup class="ref"><a href="#ref-23">23</a></sup><sup class="ref"><a href="#ref-22">22</a></sup>, Google Cloud<sup class="ref"><a href="#ref-24">24</a></sup><sup class="ref"><a href="#ref-53">53</a></sup>, AWS<sup class="ref"><a href="#ref-25">25</a></sup>. B200 figures are from NVIDIA's HGX B200 specs<sup class="ref"><a href="#ref-67">67</a></sup> (dense = half the sparse figure); Trainium2 is shown at FP8 (20.8 PF per 16-chip instance ÷ 16).</p></div>
     </div>
   </div></details>
 
   <div class="quiz"><div class="label">Check yourself</div>
     <div class="q" data-answer="1"><p>Going from 1 to 16 people in a batch on the same GPU, what happens to each person's speed?</p><div class="opts"><button>It drops to one sixteenth</button><button>It barely changes, while total output rises roughly 16×</button><button>It speeds up</button></div><div class="why">At small batches the step time is set by reading the weights, which is shared across everyone in the batch.</div></div>
-    <div class="q" data-answer="0"><p>Why do long conversations make serving more expensive per token?</p><div class="opts"><button>Each step must also read every person's growing KV cache, and fewer people fit in memory</button><button>Long conversations use a bigger model</button><button>The tokenizer is slower on long text</button></div><div class="why">KV reads add bytes per step, and KV memory limits batch size, so the weight read is shared by fewer people.</div></div>
+    <div class="q" data-answer="0"><p>Why do long conversations make serving more expensive per token?</p><div class="opts"><button>Each step must also read every person's growing KV cache, and fewer people fit in memory</button><button>Long conversations use a bigger model</button><button>The model switches to higher precision for long inputs</button></div><div class="why">KV reads add bytes per step, and KV memory limits batch size, so the weight read is shared by fewer people.</div></div>
   </div>
 </section>

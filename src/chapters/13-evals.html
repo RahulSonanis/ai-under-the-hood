@@ -8,9 +8,9 @@
     <div class="inst-body">
       <p class="howto">Two models with the <b>true</b> skill you set take the same kind of test again and again, each time with fresh questions. Every dot is one test. Press <b>Run 200 tests</b> and see how often the worse model looks better.</p>
       <div class="ctrls row">
-        <div class="ctl"><div class="row"><span>Model A true accuracy</span><output for="nm-a"></output></div><input type="range" id="nm-a" min="0.3" max="0.95" step="0.005" value="0.62"></div>
-        <div class="ctl"><div class="row"><span>Model B true accuracy</span><output for="nm-b"></output></div><input type="range" id="nm-b" min="0.3" max="0.95" step="0.005" value="0.64"></div>
-        <div class="ctl"><div class="row"><span>Questions per test</span><output for="nm-n"></output></div><input type="range" id="nm-n" min="1.5" max="4.3" step="0.05" value="2.5"></div>
+        <div class="ctl"><div class="row"><label for="nm-a">Model A true accuracy</label><output for="nm-a"></output></div><input type="range" id="nm-a" min="0.3" max="0.95" step="0.005" value="0.62"></div>
+        <div class="ctl"><div class="row"><label for="nm-b">Model B true accuracy</label><output for="nm-b"></output></div><input type="range" id="nm-b" min="0.3" max="0.95" step="0.005" value="0.64"></div>
+        <div class="ctl"><div class="row"><label for="nm-n">Questions per test</label><output for="nm-n"></output></div><input type="range" id="nm-n" min="1.5" max="4.3" step="0.05" value="2.5"></div>
         <button class="btn" type="button" id="nm-run">Run 200 tests</button>
       </div>
       <canvas class="cv" id="nm-cv" aria-label="Distribution of observed score differences"></canvas>
@@ -38,9 +38,9 @@
   <details class="tool" id="ev"><summary>Is model B really better than model A? <span class="label">Engineer tool</span></summary><div class="inst-body">
     <div class="inst-cols">
       <div class="ctrls">
-        <div class="ctl"><div class="row"><span>Questions</span><output for="ev-n"></output></div><input type="range" id="ev-n" min="50" max="20000" step="50" value="1000"></div>
-        <div class="ctl"><div class="row"><span>Model A accuracy</span><output for="ev-a"></output></div><input type="range" id="ev-a" min="0.05" max="0.95" step="0.005" value="0.62"></div>
-        <div class="ctl"><div class="row"><span>Model B accuracy</span><output for="ev-b"></output></div><input type="range" id="ev-b" min="0.05" max="0.95" step="0.005" value="0.64"></div>
+        <div class="ctl"><div class="row"><label for="ev-n">Questions</label><output for="ev-n"></output></div><input type="range" id="ev-n" min="50" max="20000" step="50" value="1000"></div>
+        <div class="ctl"><div class="row"><label for="ev-a">Model A accuracy</label><output for="ev-a"></output></div><input type="range" id="ev-a" min="0.05" max="0.95" step="0.005" value="0.62"></div>
+        <div class="ctl"><div class="row"><label for="ev-b">Model B accuracy</label><output for="ev-b"></output></div><input type="range" id="ev-b" min="0.05" max="0.95" step="0.005" value="0.64"></div>
       </div>
       <div style="display:grid;gap:0.8rem"><canvas class="cv" id="ev-cv" aria-label="95% confidence intervals"></canvas><div class="readouts" id="ev-read"></div>
         <p class="note">95% Wilson score intervals and a two-proportion z-test treating answers as independent. A paired test on the same questions is usually somewhat more sensitive.</p></div>
@@ -49,6 +49,6 @@
 
   <div class="quiz"><div class="label">Check yourself</div>
     <div class="q" data-answer="1"><p>Model B beats model A by 1.5 points on a 300-question benchmark. What should you conclude?</p><div class="opts"><button>B is better</button><button>Probably nothing yet: that gap is well within the noise for 300 questions</button><button>A is better</button></div><div class="why">With 300 questions the standard error of each score is about 2.8 points, so a 1.5-point gap is easily chance.</div></div>
-    <div class="q" data-answer="0"><p>Why can a model score suspiciously well on an old, famous benchmark?</p><div class="opts"><button>Its questions may have leaked into the training data (contamination)</button><button>Old benchmarks are always easier</button><button>Because of the tokenizer</button></div><div class="why">Popular test sets get copied around the web, so they can end up in training data unless carefully removed.</div></div>
+    <div class="q" data-answer="0"><p>Why can a model score suspiciously well on an old, famous benchmark?</p><div class="opts"><button>Its questions may have leaked into the training data (contamination)</button><button>Old benchmarks are always easier</button><button>Because the benchmark's questions are in English</button></div><div class="why">Popular test sets get copied around the web, so they can end up in training data unless carefully removed.</div></div>
   </div>
 </section>
