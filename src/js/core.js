@@ -116,6 +116,15 @@ function setDepth(n) {
 }
 
 /* ---------- Quizzes ---------- */
+function setupPredicts(root) {
+  $$(".predict", root).forEach(pr => {
+    if (pr.dataset.ready) return; pr.dataset.ready = 1;
+    const btns = $$(".opts button", pr), after = $(".predict-after", pr), ans = +pr.dataset.answer, key = "pred:" +(pr.nextElementSibling ? pr.nextElementSibling.id : "");
+    const pick = i => { btns.forEach((b, j) => b.setAttribute("aria-pressed", j === i ? "true" : "false")); after.hidden = false; };
+    btns.forEach((b, i) => { b.setAttribute("aria-pressed", "false"); b.addEventListener("click", () => { pick(i); store.set(key, i); }); });
+    const prev = store.get(key); if (prev !== null && prev !== undefined && btns[+prev]) pick(+prev);
+  });
+}
 function setupQuizzes(root) {
   $$(".q", root).forEach(q => {
     if (q.dataset.ready) return; q.dataset.ready = 1;
@@ -177,7 +186,7 @@ function route() {
   Chapters.current = h;
   $$(".rail a").forEach(a => { if (a.getAttribute("href") === "#" + h) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   if ($(".rail").classList.contains("open")) setDrawer(false);
-  const el = document.getElementById(h); setupLadders(el); setupQuizzes(el);
+  const el = document.getElementById(h); setupLadders(el); setupQuizzes(el); setupPredicts(el);
   if (Chapters.inits[h] && !Chapters.done[h]) { Chapters.done[h] = 1; Chapters.initing = h; try { Chapters.inits[h](); } catch (e) { console.error(e); } Chapters.initing = null; }
   else redrawCurrent();
   $$("canvas.cv", el).forEach(c => { if (!c.hasAttribute("role")) c.setAttribute("role", "img"); });

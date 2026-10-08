@@ -21,7 +21,7 @@ chapter("evals", () => {
       <div class="readout"><div class="k">Typical wobble</div><div class="v">±${(1.96 * se).toFixed(1)} pts</div><div class="s">95% of tests fall within this of the true gap</div></div>`;
   }
   const loop = animLoop(() => { for (let k = 0; k < 4 && pending > 0; k++, pending--) diffs.push(one()); draw(); if (pending <= 0) return false; });
-  $("#nm-run").addEventListener("click", () => { diffs = []; pending = 200; if (reduceMotion()) { while (pending-- > 0) diffs.push(one()); draw(); return; } loop.start(); });
+  $("#nm-run").addEventListener("click", () => { diffs = []; pending = 200; r = rng(3); if (reduceMotion()) { while (pending-- > 0) diffs.push(one()); draw(); return; } loop.start(); });
   const reset = () => { diffs = []; pending = 0; draw(); };
   bindCtl("nm-a", reset, e => (e.value * 100).toFixed(1) + "%"); bindCtl("nm-b", reset, e => (e.value * 100).toFixed(1) + "%"); bindCtl("nm-n", reset, e => Math.round(10 ** +e.value).toLocaleString());
   onRedraw(draw);

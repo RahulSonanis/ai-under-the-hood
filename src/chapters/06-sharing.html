@@ -1,8 +1,10 @@
 <section class="chapter" id="sharing" data-title="Batching">
   <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 6</span><span class="label">Batching</span></div>
   <h2>How does one GPU serve many people?</h2>
-  <div class="answer"><span class="label">Short answer</span><p>To write one token, a GPU must read all the model weights it uses from its memory. Reading is the slow part, so it writes the next token for many conversations in one go. Each extra person barely slows the step, which is what makes AI affordable to serve.</p></div>
+  <div class="answer"><span class="label">Short answer</span><p>To write one token, a GPU must read all the model weights it uses from its memory. Reading is the slow part, so it writes the next token for many conversations in one go. When conversations are short and memory is free, each extra person barely slows the step, which is what makes AI affordable to serve. Long conversations and very large batches change that.</p></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min · 3 interactives</span></div><ul><li>Explain why generating text is limited by memory reads</li><li>Say when batching stops being nearly free</li><li>Compare static and continuous batching</li></ul></div>
 
+  <div class="predict" data-answer="1"><span class="label">Predict first</span><p>Raise the batch from 1 to 64 people with short conversations. What happens?</p><div class="opts"><button type="button">Each person gets much slower; total output stays the same</button><button type="button">Each person's speed barely changes; total output rises a lot</button><button type="button">Everyone gets faster</button></div><div class="predict-after" hidden><p>Locked in. Now try it below and check.</p><details><summary>Show the answer</summary><p>The step is dominated by reading the weights once, so it is shared. Then raise the conversation length and watch the KV reads take over.</p></details></div></div>
   <div class="inst" id="ds">
     <div class="inst-head"><h4>One decode step, up close</h4><span class="label">Simulation · roofline arithmetic</span></div>
     <div class="inst-body">
@@ -64,7 +66,7 @@
   </div></details>
 
   <div class="quiz"><div class="label">Check yourself</div>
-    <div class="q" data-answer="1"><p>Going from 1 to 16 people in a batch on the same GPU, what happens to each person's speed?</p><div class="opts"><button>It drops to one sixteenth</button><button>It barely changes, while total output rises roughly 16×</button><button>It speeds up</button></div><div class="why">At small batches the step time is set by reading the weights, which is shared across everyone in the batch.</div></div>
+    <div class="q" data-answer="1"><p>A dense model is decoding short conversations on a GPU with memory to spare. Going from 1 to 16 people in a batch, what happens to each person's speed?</p><div class="opts"><button>It drops to one sixteenth</button><button>It barely changes, while total output rises roughly 16×</button><button>It speeds up</button></div><div class="why">At small batches the step time is set by reading the weights, which is shared across everyone in the batch. This holds while the step stays memory-bound: long contexts add KV reads, and very large batches become compute-bound.</div></div>
     <div class="q" data-answer="0"><p>Why do long conversations make serving more expensive per token?</p><div class="opts"><button>Each step must also read every person's growing KV cache, and fewer people fit in memory</button><button>Long conversations use a bigger model</button><button>The model switches to higher precision for long inputs</button></div><div class="why">KV reads add bytes per step, and KV memory limits batch size, so the weight read is shared by fewer people.</div></div>
   </div>
 </section>

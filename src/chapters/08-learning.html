@@ -2,6 +2,7 @@
   <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 8</span><span class="label">Rewind · training</span></div>
   <h2>How does a model learn?</h2>
   <div class="answer"><span class="label">Short answer</span><p>It starts with random numbers and makes terrible guesses. After each batch of text, calculus works out which direction to nudge every number to make the guesses a little less wrong. Repeat millions of times.</p></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min · 2 interactives</span></div><ul><li>Explain gradient descent and backpropagation</li><li>Recognise a learning rate that is too high or too low</li><li>Name common optimisers and schedules</li></ul></div>
 
   <div class="inst" id="gd">
     <div class="inst-head"><h4>Roll downhill on a loss landscape</h4><span class="label">Simulation · gradient descent</span></div>
@@ -43,7 +44,7 @@
       <div class="concept-head"><h3>Gradient descent</h3></div>
       <div class="level" data-l="1"><p>You're on a foggy hill and want to reach the bottom. You can't see far, but you can feel which way the ground slopes. So you take a small step downhill, feel again, and repeat.</p></div>
       <div class="level" data-l="2"><p>The "hill" is the model's error. The "ground" is all its numbers. The slope tells each number whether to go up or down to make the error smaller. Steps that are too small take forever; steps that are too big overshoot and bounce around or fly off.</p></div>
-      <div class="level" data-l="3"><p>LLMs use mini-batch stochastic gradient descent: each step uses a batch of a few million tokens, so the slope is a noisy estimate. The optimiser is usually AdamW<sup class="ref"><a href="#ref-68">68</a></sup>, a variant of Adam<sup class="ref"><a href="#ref-58">58</a></sup> that keeps running averages of the gradient and its square for every parameter. The learning rate follows a schedule: a short warm-up, then a decay, either cosine or warmup–stable–decay (WSD), which SmolLM3 and Kimi K2 used<sup class="ref"><a href="#ref-1">1</a></sup>.</p></div>
+      <div class="level" data-l="3"><p>LLMs use mini-batch stochastic gradient descent: each step uses a batch of a few million tokens, so the slope is a noisy estimate. The most widely used optimiser is AdamW<sup class="ref"><a href="#ref-68">68</a></sup>, a variant of Adam<sup class="ref"><a href="#ref-58">58</a></sup> that keeps running averages of the gradient and its square for every parameter. Alternatives are appearing: Kimi K2 was trained with MuonClip, a variant of the Muon optimiser<sup class="ref"><a href="#ref-69">69</a></sup>. The learning rate follows a schedule: a short warm-up, then a decay, either cosine or warmup–stable–decay (WSD), which SmolLM3 and Kimi K2 used<sup class="ref"><a href="#ref-1">1</a></sup>.</p></div>
       <div class="level" data-l="4"><div class="eq">θ ← θ − η · ∇_θ L(θ)    (plain SGD)</div><div class="eq">m ← β₁m + (1−β₁)g ;  v ← β₂v + (1−β₂)g² ;  θ ← θ − η·( m̂ / (√v̂ + ε) + λθ )</div><p>(AdamW, with bias-corrected m̂, v̂ and decoupled weight decay λ.) Typical LLM settings: β₁ = 0.9, β₂ = 0.95, peak η around 10⁻⁴ to 10⁻³, gradient-norm clipping at 1.0<sup class="ref"><a href="#ref-1">1</a></sup>.</p></div>
     </article>
     <article class="concept">

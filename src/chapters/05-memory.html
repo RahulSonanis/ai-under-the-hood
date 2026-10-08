@@ -1,8 +1,10 @@
 <section class="chapter" id="memory" data-title="KV cache">
   <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 5</span><span class="label">KV cache</span></div>
   <h2>How does it remember the conversation?</h2>
-  <div class="answer"><span class="label">Short answer</span><p>While writing a reply, the model keeps notes on every earlier token (their attention keys and values) so it never has to re-read them. Those notes, the <b>KV cache</b>, fill up GPU memory fast, and managing that memory decides how many people one GPU can serve.</p></div>
+  <div class="answer"><span class="label">Short answer</span><p>Between messages, it doesn't: the app sends the whole conversation again with every request. While writing a reply, the model keeps notes on every earlier token (their attention keys and values) so it never recomputes them. Those notes, the <b>KV cache</b>, fill up GPU memory fast, and managing that memory decides how many people one GPU can serve.</p></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 9 min · 2 interactives</span></div><ul><li>Tell apart chat history, KV cache, prefix caching and app memory</li><li>Compute KV cache size per token</li><li>Explain why paging fits more people on a GPU</li></ul></div>
 
+  <div class="predict" data-answer="1"><span class="label">Predict first</span><p>Switch from <b>Reserve max</b> to <b>Paged</b> on the same GPU. How many more conversations run at once?</p><div class="opts"><button type="button">About the same</button><button type="button">Roughly twice as many</button><button type="button">Ten times as many</button></div><div class="predict-after" hidden><p>Locked in. Now try it below and check.</p><details><summary>Show the answer</summary><p>Roughly twice as many in this setup (about 26 to 55). Reserving the maximum length leaves most of each reservation empty; paging allocates memory only as tokens are written.</p></details></div></div>
   <div class="inst" id="kv">
     <div class="inst-head"><h4>Fit conversations into GPU memory</h4><span class="label">Simulation · H100 80 GB serving Llama 3 8B</span></div>
     <div class="inst-body">
@@ -20,6 +22,13 @@
   </div>
 
   <div class="concepts">
+    <article class="concept">
+      <div class="concept-head"><h3>Four different kinds of "memory"</h3></div>
+      <div class="level" data-l="1"><p>The model forgets everything after each reply. The app keeps your chat and hands the whole thing back every time you send a message, like re-reading a letter thread before answering.</p></div>
+      <div class="level" data-l="2"><p><b>Conversation history:</b> the app stores your messages and resends them. <b>KV cache:</b> the model's scratch notes while writing one reply. <b>Prefix caching:</b> the server keeps notes for text many requests share, such as a system prompt, so it skips recomputing it. <b>App memory:</b> facts some apps save about you and paste into future prompts.</p></div>
+      <div class="level" data-l="3"><p>Chat APIs are stateless: every request carries the full message list<sup class="ref"><a href="#ref-70">70</a></sup>. Providers reuse the KV cache for a repeated prompt prefix for a few minutes and bill those tokens at a discount<sup class="ref"><a href="#ref-71">71</a></sup><sup class="ref"><a href="#ref-72">72</a></sup>. Persistent "memory" features are retrieval: saved text is inserted into the context window. None of the four changes the model's weights.</p></div>
+      <div class="level" data-l="4"><div class="eq">p(y_t | x, y_&lt;t ; θ)</div><p>Each output depends only on the tokens in the window and the fixed weights θ. The KV cache memoises K = XW_K and V = XW_V for tokens already processed; a prefix cache shares those tensors across requests whose token prefix is identical (vLLM matches it by hashing fixed-size blocks<sup class="ref"><a href="#ref-34">34</a></sup>). Only training changes θ.</p></div>
+    </article>
     <article class="concept">
       <div class="concept-head"><h3>The KV cache</h3></div>
       <div class="level" data-l="1"><p>Imagine writing a story and, for each new word, re-reading the whole story from the start. Slow! Instead you keep sticky notes about each word you've already read. The model does the same.</p></div>
