@@ -22,33 +22,52 @@ const ICON = {
   again: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5a5.5 5.5 0 1 0 5.4 6.5h-2A3.5 3.5 0 1 1 8 4.5c1 0 1.9.4 2.5 1.1L8.5 7.5H14V2l-2 2A5.5 5.5 0 0 0 8 2.5z"/></svg>'
 };
 
+/* makeFilm(root, cfg): playback for a figure.scene.
+   cfg.draw(t, i, segs)      draw the frame for playhead t (seconds of story time), step i
+   cfg.caption(seg, depth)   HTML for the caption; depth 1-2 = plain, 3-4 = technical
+   cfg.realSpeed             show the "Real speed" switch (segments then need rdur, real ms)
+   Each segment: { key, title, short?, dur, rdur? } */
 function makeFilm(root, cfg) {
-  const cv = $("canvas", root), cap = $(".scene-cap", root), bar = $(".scene-bar", root);
-  let segs = [], T = 1, t = 0, stopAt = null, real = false, lastSeg = -1;
-  bar.innerHTML = `<button class="tbtn" type="button" data-a="prev" aria-label="Previous step">${ICON.prev}</button>
-    <button class="tbtn play" type="button" data-a="play">${ICON.play}<span class="t">Play</span></button>
-    <button class="tbtn" type="button" data-a="next" aria-label="Next step">${ICON.next}</button>
-    <div class="scrub"><div class="track"><i></i></div><input type="range" min="0" max="1000" step="1" value="0" aria-label="Position in the animation"></div>
-    <div class="seg" role="group" aria-label="Playback speed"><button type="button" data-v="story" aria-pressed="true">Slow motion</button><button type="button" data-v="real" aria-pressed="false">Real speed</button></div>
-    <span class="clock" aria-hidden="true"></span>`;
-  const playBtn = $('[data-a="play"]', bar), scrub = $("input", bar), fill = $(".track i", bar), track = $(".track", bar), clock = $(".clock", bar);
-  seg($(".seg", bar), v => { real = v === "real"; });
+  const cv = $("canvas", root), cap = $(".scene-cap", root), bar = $(".scene-bar", root), start = $(".scene-start", root);
+  let segs = [], T = 1, t = 0, stopAt = null, real = false, lastSeg = -1, touched = false;
+  bar.className = "scene-bar film-controls";
+  bar.innerHTML = `<button class="fbtn" type="button" data-a="prev">${ICON.prev}<span>Back</span></button>
+    <button class="fbtn primary" type="button" data-a="play">${ICON.play}<span>Play</span></button>
+    <button class="fbtn" type="button" data-a="next"><span>Next</span>${ICON.next}</button>
+    ${cfg.realSpeed ? `<label class="fswitch"><input type="checkbox" data-a="real"><span class="sw" aria-hidden="true"></span><span>Real speed</span></label><span class="fclock" aria-hidden="true"></span>` : ""}`;
+  const strip = document.createElement("ol"); strip.className = "film-steps"; strip.setAttribute("aria-label", "Steps"); bar.after(strip);
+  const playBtn = $('[data-a="play"]', bar), clock = $(".fclock", bar);
+  if (cfg.realSpeed) $('[data-a="real"]', bar).addEventListener("change", e => { real = e.target.checked; touch(); if (real) { t = 0; api.play(); } });
   const segAt = x => { for (let i = 0; i < segs.length; i++) if (x < segs[i].t1) return i; return segs.length - 1; };
   const realAt = x => { const s = segs[segAt(x)]; return s.r0 + clamp01((x - s.t0) / s.dur) * s.rdur; };
   const playing = () => loop.running;
+  function touch() { touched = true; if (start) start.hidden = true; }
   function setPlayUI() {
     const p = playing(), end = t >= T - 1e-6;
-    playBtn.innerHTML = (p ? ICON.pause : end ? ICON.again : ICON.play) + `<span class="t">${p ? "Pause" : end ? "Replay" : "Play"}</span>`;
-    playBtn.setAttribute("aria-label", p ? "Pause" : end ? "Replay" : "Play");
+    playBtn.innerHTML = (p ? ICON.pause : end ? ICON.again : ICON.play) + `<span>${p ? "Pause" : end ? "Replay" : t > 0 ? "Resume" : "Play"}</span>`;
+    $('[data-a="prev"]', bar).disabled = t <= 0.05 && !p;
+    $('[data-a="next"]', bar).disabled = end;
+  }
+  function buildStrip() {
+    strip.innerHTML = segs.map((s, i) => `<li><button type="button" data-i="${i}"><i class="fill"></i><span class="n">${i + 1}</span><span class="nm">${esc(s.short || s.title)}</span></button></li>`).join("");
+    $$("button", strip).forEach(b => b.addEventListener("click", () => { touch(); api.playSeg(+b.dataset.i); }));
+  }
+  function paintStrip(i) {
+    $$("button", strip).forEach((b, j) => {
+      const s = segs[j], k = j < i ? 1 : j > i ? 0 : clamp01((t - s.t0) / s.dur);
+      b.querySelector(".fill").style.transform = `scaleX(${k})`;
+      if (j === i) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+      b.classList.toggle("done", j < i);
+    });
+    if (i !== strip._i) { strip._i = i; const b = $$("button", strip)[i]; if (b) { const L = b.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft, R = L + b.offsetWidth; if (L < strip.scrollLeft || R > strip.scrollLeft + strip.clientWidth) strip.scrollTo({ left: L - 24, behavior: reduceMotion() ? "auto" : "smooth" }); } }
   }
   function frame() {
-    const i = segAt(t), s = segs[i];
+    const i = segAt(t);
     cfg.draw(t, i, segs);
-    fill.style.width = (t / T * 100) + "%"; scrub.value = Math.round(t / T * 1000);
-    const rt = realAt(t); clock.textContent = (rt < 1000 ? Math.round(rt) + " ms" : (rt / 1000).toFixed(2) + " s") + " real";
-    scrub.setAttribute("aria-valuetext", `Step ${i + 1} of ${segs.length}: ${s.title}`);
+    paintStrip(i);
+    if (clock) { const rt = realAt(t); clock.textContent = rt < 1000 ? Math.round(rt) + " ms" : (rt / 1000).toFixed(2) + " s"; }
     if (i !== lastSeg) { lastSeg = i; caption(i); }
-    if (cfg.onFrame) cfg.onFrame(t, i, rt);
+    if (cfg.onFrame) cfg.onFrame(t, i, segs.length ? realAt(t) : 0);
   }
   function caption(i) {
     if (!cap) return; const s = segs[i], c = cfg.caption(s, store.get("depth", 1));
@@ -62,32 +81,29 @@ function makeFilm(root, cfg) {
     frame();
   });
   const api = {
-    get t() { return t; }, get segs() { return segs; },
+    get t() { return t; }, get segs() { return segs; }, get playing() { return playing(); },
     setSegs(list) {
-      segs = list; let a = 0, r = 0; segs.forEach(s => { s.t0 = a; a += s.dur; s.t1 = a; s.r0 = r; r += s.rdur || 0; s.rdur = s.rdur || 0; }); T = a;
-      track.querySelectorAll("b").forEach(b => b.remove());
-      segs.slice(1).forEach(s => { const b = document.createElement("b"); b.style.left = (s.t0 / T * 100) + "%"; track.appendChild(b); });
-      lastSeg = -1; t = Math.min(t, T); frame(); setPlayUI();
+      segs = list; let a = 0, r = 0; segs.forEach(s => { s.t0 = a; a += s.dur; s.t1 = a; s.r0 = r; s.rdur = s.rdur || 0; r += s.rdur; }); T = a;
+      buildStrip(); lastSeg = -1; strip._i = -1; t = Math.min(t, T); frame(); setPlayUI();
     },
     seek(x) { t = Math.max(0, Math.min(T, x)); frame(); setPlayUI(); },
-    play() { if (t >= T - 1e-6) t = 0; stopAt = null; loop.start(); setPlayUI(); },
+    play() { touch(); if (t >= T - 1e-6) t = 0; stopAt = null; if (reduceMotion() && !real) { api.step(1); return; } loop.start(); setPlayUI(); },
     pause() { loop.stop(); stopAt = null; setPlayUI(); },
     toggle() { playing() ? api.pause() : api.play(); },
     step(d) {
-      const i = segAt(t), atStart = t - segs[i].t0 < 0.25;
-      let j = d > 0 ? Math.min(segs.length - 1, (t >= segs[i].t1 - 1e-6 ? i + 1 : (t - segs[i].t0 < 0.05 && !playing() ? i : i + 1))) : Math.max(0, atStart ? i - 1 : i);
-      if (d > 0 && i === segs.length - 1 && t >= T - 1e-6) return;
-      if (reduceMotion()) { loop.stop(); t = segs[j].t1 - 1e-4; frame(); setPlayUI(); return; }
-      t = segs[j].t0; stopAt = segs[j].t1 - 1e-4; frame(); loop.start(); setPlayUI();
+      touch(); const i = segAt(t), s = segs[i], atStart = t - s.t0 < 0.3, atEnd = t >= s.t1 - 1e-3;
+      const j = d > 0 ? (atEnd || (!atStart || playing()) ? i + 1 : i) : (atStart && !atEnd ? i - 1 : i - (atEnd ? 0 : 0));
+      api.playSeg(d < 0 && !atStart && !atEnd ? i : j);
     },
+    playSeg(j) { touch(); j = Math.max(0, Math.min(segs.length - 1, j)); if (reduceMotion()) { loop.stop(); stopAt = null; t = segs[j].t1 - 1e-4; frame(); setPlayUI(); return; } t = segs[j].t0; stopAt = segs[j].t1 - 1e-4; frame(); loop.start(); setPlayUI(); },
+    replay(key) { const j = segs.findIndex(s => s.key === key); if (j >= 0) api.playSeg(j); else frame(); },
     refresh() { lastSeg = -1; frame(); },
-    playSeg(j) { j = Math.max(0, Math.min(segs.length - 1, j)); if (reduceMotion()) { loop.stop(); t = segs[j].t1 - 1e-4; frame(); setPlayUI(); return; } t = segs[j].t0; stopAt = segs[j].t1 - 1e-4; frame(); loop.start(); setPlayUI(); },
-    segAt, realAt
+    segAt, realAt, touch
   };
   playBtn.addEventListener("click", () => api.toggle());
   $('[data-a="prev"]', bar).addEventListener("click", () => api.step(-1));
   $('[data-a="next"]', bar).addEventListener("click", () => api.step(1));
-  scrub.addEventListener("input", () => { loop.stop(); stopAt = null; t = scrub.value / 1000 * T; frame(); setPlayUI(); });
+  if (start) start.addEventListener("click", () => { touch(); api.seek(segs.length > 1 && cfg.skipIntro ? segs[1].t0 : 0); api.play(); });
   cv.tabIndex = 0;
   cv.addEventListener("keydown", e => {
     if (e.key === " " || e.key === "k") { e.preventDefault(); api.toggle(); }
@@ -95,7 +111,95 @@ function makeFilm(root, cfg) {
     else if (e.key === "ArrowLeft") { e.preventDefault(); api.step(-1); }
   });
   document.addEventListener("depthchange", () => { if (segs.length) caption(segAt(t)); });
+  root._film = api;
   return api;
+}
+
+/* ---------- Scene kit: drawing in "world" coordinates with a moving camera ----------
+   k.begin(h, cam)    size the canvas to h px tall, clear to the stage colour, fit the camera
+                      rect {x,y,w,h} (world units) into the canvas; draws a faint dot grid.
+   Shapes take world coordinates; k.label() draws fixed-size screen text at a world point.
+   Colours: k.C.bg, bg2, line, ink, muted, sig (teal = data), amb (amber = compute/energy). */
+function sceneKit(cv) {
+  const k = { C: null, scale: 1, ox: 0, oy: 0, W: 0, H: 0, ctx: null };
+  const dpr = () => window.devicePixelRatio || 1;
+  k.begin = (h, cam, opt = {}) => {
+    const d = dpr(), cw = cv.clientWidth || innerW(cv.parentElement) || 600;
+    if (cv._cw !== cw || cv._ch !== h || cv._dpr !== d) { cv.style.height = h + "px"; cv.width = Math.round(cw * d); cv.height = Math.round(h * d); cv._cw = cw; cv._ch = h; cv._dpr = d; }
+    const ctx = k.ctx = cv.getContext("2d"); k.W = cw; k.H = h; k.C = stageColors();
+    const pad = opt.pad == null ? 12 : opt.pad, s = Math.min((cw - pad * 2) / cam.w, (h - pad * 2) / cam.h);
+    k.scale = s; k.ox = (cw - cam.w * s) / 2 - cam.x * s; k.oy = (h - cam.h * s) / 2 - cam.y * s; k.cam = cam;
+    ctx.setTransform(d, 0, 0, d, 0, 0); ctx.globalAlpha = 1; ctx.fillStyle = k.C.bg; ctx.fillRect(0, 0, cw, h);
+    k.world();
+    if (opt.grid !== false) { const g = opt.grid || 40; ctx.fillStyle = k.C.line; const x0 = Math.floor((-k.ox / s) / g) * g, y0 = Math.floor((-k.oy / s) / g) * g, x1 = (cw - k.ox) / s, y1 = (h - k.oy) / s, r = 1 / s; for (let x = x0; x < x1; x += g) for (let y = y0; y < y1; y += g) ctx.fillRect(x - r, y - r, 2 * r, 2 * r); }
+    return k;
+  };
+  k.world = () => { const d = dpr(); k.ctx.setTransform(d * k.scale, 0, 0, d * k.scale, d * k.ox, d * k.oy); };
+  k.screen = () => { const d = dpr(); k.ctx.setTransform(d, 0, 0, d, 0, 0); };
+  k.toScreen = (x, y) => [k.ox + x * k.scale, k.oy + y * k.scale];
+  k.toWorld = (sx, sy) => [(sx - k.ox) / k.scale, (sy - k.oy) / k.scale];
+  k.px = n => n / k.scale; // world units for n screen pixels
+  k.box = (x, y, w, h, o = {}) => { const c = k.ctx; c.save(); c.globalAlpha = o.alpha == null ? 1 : o.alpha; if (o.glow) { c.shadowColor = o.glowCol || o.fill || o.stroke; c.shadowBlur = o.glow; } rr(c, x, y, w, h, Math.min(o.r == null ? 8 : o.r, w / 2, h / 2)); if (o.fill) { c.fillStyle = o.fill; c.fill(); } if (o.stroke) { c.shadowBlur = 0; c.strokeStyle = o.stroke; c.lineWidth = k.px(o.lw || 1.5); if (o.dash) c.setLineDash(o.dash.map(k.px)); c.stroke(); } c.restore(); };
+  k.pill = (cx, cy, w, h, col, o = {}) => k.box(cx - w / 2, cy - h / 2, w, h, { fill: col, r: h / 2, glow: o.glow, alpha: o.alpha });
+  k.dot = (x, y, r, col, o = {}) => { const c = k.ctx; c.save(); c.globalAlpha = o.alpha == null ? 1 : o.alpha; if (o.glow) { c.shadowColor = col; c.shadowBlur = o.glow; } c.fillStyle = col; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); c.restore(); };
+  k.line = (x1, y1, x2, y2, o = {}) => { const c = k.ctx; c.save(); c.globalAlpha = o.alpha == null ? 1 : o.alpha; c.strokeStyle = o.col || k.C.line; c.lineWidth = k.px(o.lw || 1.5); if (o.dash) c.setLineDash(o.dash.map(k.px)); if (o.glow) { c.shadowColor = o.col; c.shadowBlur = o.glow; } c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.restore(); };
+  k.curve = (p, o = {}) => { const c = k.ctx; c.save(); c.globalAlpha = o.alpha == null ? 1 : o.alpha; c.strokeStyle = o.col || k.C.line; c.lineWidth = k.px(o.lw || 1.5); if (o.dash) c.setLineDash(o.dash.map(k.px)); c.beginPath(); c.moveTo(...p[0]); c.bezierCurveTo(...p[1], ...p[2], ...p[3]); c.stroke(); c.restore(); };
+  k.text = (x, y, s, o = {}) => { const c = k.ctx; c.save(); c.globalAlpha = o.alpha == null ? 1 : o.alpha; font(c, o.size || 14, o.mono ? "--f-mono" : o.serif ? "--f-body" : "--f-display", o.weight || "500"); c.fillStyle = o.col || k.C.ink; c.textAlign = o.align || "center"; c.textBaseline = o.baseline || "middle"; c.fillText(s, x, y); c.restore(); };
+  k.label = (x, y, s, o = {}) => { const [sx, sy] = k.toScreen(x, y); if (sx < -80 || sx > k.W + 80 || sy < -20 || sy > k.H + 20) return; const c = k.ctx; c.save(); k.screen(); c.globalAlpha = o.alpha == null ? 1 : o.alpha; font(c, o.size || 12, o.mono ? "--f-mono" : "--f-display", o.weight || "500"); c.fillStyle = o.col || k.C.muted; c.textAlign = o.align || "center"; c.textBaseline = "middle"; c.fillText(s, sx + (o.dx || 0), sy + (o.dy || 0)); c.restore(); };
+  /* A line that fades from transparent (tail) to solid (head); pts = [[x,y], ...] in world units. */
+  k.trail = (pts, col, o = {}) => { const c = k.ctx; if (pts.length < 2) return; c.save(); c.strokeStyle = col; c.lineCap = "round"; c.lineWidth = k.px(o.w || 2.5); if (o.glow) { c.shadowColor = col; c.shadowBlur = o.glow; }
+    for (let i = 1; i < pts.length; i++) { c.globalAlpha = (o.alpha == null ? 1 : o.alpha) * Math.pow(i / (pts.length - 1), 1.6); c.beginPath(); c.moveTo(...pts[i - 1]); c.lineTo(...pts[i]); c.stroke(); } c.restore(); };
+  /* n particles flowing along path(u) -> [x,y], u in 0..1, each with a short glowing trail. phase shifts them over time. */
+  k.flow = (path, n, phase, col, o = {}) => { const len = o.len || 0.08, sz = o.size || 3; for (let j = 0; j < n; j++) { const u = ((j / n) + phase) % 1; const pts = []; for (let s = 6; s >= 0; s--) { const uu = u - len * s / 6; if (uu >= 0) pts.push(path(uu)); } if (pts.length > 1) k.trail(pts, col, { w: sz * 0.9, alpha: o.alpha == null ? 0.8 : o.alpha }); const [x, y] = path(u); k.dot(x, y, k.px(sz), col, { glow: o.glow == null ? 8 : o.glow, alpha: o.alpha }); } };
+  /* Glass readout panel in screen space. corner: "tl" | "tr" | "bl" | "br". rows: [[key, value], ...] */
+  k.hud = (corner, title, rows, o = {}) => {
+    const c = k.ctx; c.save(); k.screen(); const pad = 10, lh = 17, w = o.w || 190, h = pad * 2 + (title ? 18 : 0) + rows.length * lh;
+    const m = 12, x = corner[1] === "l" ? m : k.W - w - m, y = corner[0] === "t" ? m : k.H - h - m;
+    c.globalAlpha = 0.82; c.fillStyle = k.C.bg2; rr(c, x, y, w, h, 10); c.fill(); c.globalAlpha = 1; c.strokeStyle = k.C.line; c.lineWidth = 1; c.stroke();
+    let yy = y + pad + 6; if (title) { font(c, 11, "--f-display", "650"); c.fillStyle = k.C.ink; c.textAlign = "left"; c.textBaseline = "middle"; c.fillText(title, x + pad, yy); yy += 18; }
+    rows.forEach(([kk, v, col]) => { font(c, 11, "--f-display"); c.fillStyle = k.C.muted; c.textAlign = "left"; c.fillText(kk, x + pad, yy); font(c, 11.5, "--f-mono", "600"); c.fillStyle = col || k.C.ink; c.textAlign = "right"; c.fillText(v, x + w - pad, yy); yy += lh; });
+    c.restore(); k.world();
+  };
+  return k;
+}
+/* Camera that eases from the previous step's framing to this step's over the first part of the step. */
+function filmCam(cams, segs, i, t, keyOf = s => s.key) {
+  const s = segs[i], p = segs[Math.max(0, i - 1)], a = cams[keyOf(p)] || cams.default, b = cams[keyOf(s)] || cams.default;
+  const e = easeIO((t - s.t0) / Math.min(1.0, s.dur * 0.45)); return { x: lerp(a.x, b.x, e), y: lerp(a.y, b.y, e), w: lerp(a.w, b.w, e), h: lerp(a.h, b.h, e) };
+}
+/* Progress (0..1) through the step with this key; 0 before it, 1 after it. */
+function stepK(segs, t, key) { const g = segs.find(x => x.key === key); if (!g) return 0; return clamp01((t - g.t0) / g.dur); }
+/* Stage height for a figure: wide screens get a 2:1 stage, phones a near-square one. */
+function stageH(el, wide = 0.5, narrow = 0.9) { const w = innerW(el); return w < 640 ? Math.round(Math.max(280, w * narrow)) : Math.round(Math.min(560, Math.max(360, w * wide))); }
+/* storyFilm(figure, spec): the one-call way to build a chapter film.
+   spec.steps  [{ key, title, short, dur, text: [plain, technical], link: "#chapter" (optional) }]
+   spec.cams   { default: {x,y,w,h}, <stepKey>: {x,y,w,h}, ... }  world-space framing per step
+   spec.draw(k, f)  k = scene kit (camera already applied); f = { t, i, key, p (0..1 in step),
+                    at(key) (0..1 progress of any step), segs, C (colours) }
+   spec.height(el) optional; spec.label optional aria label for the canvas. */
+function storyFilm(fig, spec) {
+  if (spec.label) fig.dataset.label = spec.label;
+  filmMarkup(fig);
+  const cv = $("canvas", fig), k = sceneKit(cv), stage = $(".scene-stage", fig);
+  const hgt = spec.height || (() => stageH(stage));
+  const film = makeFilm(fig, {
+    draw: (t, i, segs) => {
+      const s = segs[i]; k.begin(hgt(), filmCam(spec.cams, segs, i, t), { grid: spec.grid });
+      spec.draw(k, { t, i, key: s.key, p: clamp01((t - s.t0) / s.dur), at: key => stepK(segs, t, key), segs, C: k.C });
+    },
+    caption: (s, depth) => { const tx = s.text || ["", ""]; return (depth >= 3 ? tx[1] || tx[0] : tx[0]) + (s.link ? ` <a href="${s.link}">Read more →</a>` : ""); }
+  });
+  film.setSegs(spec.steps.map(s => ({ ...s })));
+  onRedraw(() => film.refresh());
+  return { film, kit: k };
+}
+/* Standard markup for a film; call inside the chapter's HTML via <figure class="scene" id="x" data-start="Play the story"></figure> */
+function filmMarkup(fig) {
+  if ($(".scene-stage", fig)) return;
+  const setup = $(".scene-setup", fig), note = $("figcaption", fig);
+  const lab = fig.dataset.start || "Play";
+  fig.insertAdjacentHTML("afterbegin", `<div class="scene-stage"><canvas aria-label="${esc(fig.dataset.label || "Animated explanation")}. Space plays or pauses; left and right arrows step back and forward."></canvas><button class="scene-start" type="button">${ICON.play}<span>${esc(lab)}</span></button><div class="scene-cap" aria-live="polite"></div></div><div class="scene-bar"></div>`);
+  if (setup) fig.appendChild(setup); if (note) fig.appendChild(note);
 }
 
 /* ---------- The journey of one prompt (chapter 1, and the landing page's hero) ---------- */

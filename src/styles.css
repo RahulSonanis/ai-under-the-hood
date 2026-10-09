@@ -400,3 +400,44 @@ ol.path a span:last-child { font-size: 0.88rem; color: var(--muted); line-height
 .scene-start svg { width: 16px; height: 16px; fill: currentColor; }
 .scene-start[hidden] { display: none; }
 .scene-start:focus-visible { outline: 3px solid var(--stage-ink); outline-offset: 4px; }
+/* v3.1 film controls: labelled buttons + named, clickable steps */
+.film-controls { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.8rem; }
+.fbtn { font: inherit; font-family: var(--f-display); font-size: 0.92rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.45rem; height: 2.6rem; padding: 0 1.05rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.fbtn svg { width: 13px; height: 13px; fill: currentColor; flex: none; }
+.fbtn:hover:not(:disabled) { border-color: var(--ink); }
+.fbtn:disabled { opacity: 0.4; cursor: default; }
+.fbtn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); min-width: 7.4rem; justify-content: center; }
+.fswitch { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: auto; font-family: var(--f-display); font-size: 0.88rem; cursor: pointer; user-select: none; }
+.fswitch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.fswitch .sw { width: 2.3rem; height: 1.35rem; border-radius: 999px; background: var(--grid); border: 1px solid var(--line); position: relative; transition: background 0.15s; }
+.fswitch .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: calc(1.35rem - 6px); height: calc(1.35rem - 6px); border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,0.25); transition: transform 0.15s; }
+.fswitch input:checked + .sw { background: var(--accent); border-color: var(--accent); }
+.fswitch input:checked + .sw::after { transform: translateX(0.95rem); }
+.fswitch input:focus-visible + .sw { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fclock { font-family: var(--f-mono); font-size: 0.82rem; color: var(--muted); min-width: 4.6rem; font-variant-numeric: tabular-nums; }
+.film-steps { list-style: none; margin: 0.7rem 0 0; padding: 0 0 0.3rem; display: flex; gap: 0.35rem; overflow-x: auto; scrollbar-width: thin; }
+.film-steps li { flex: none; }
+.film-steps button { position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 0.4rem; font: inherit; font-family: var(--f-display); font-size: 0.82rem; height: 2.1rem; padding: 0 0.75rem 0 0.45rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; white-space: nowrap; }
+.film-steps button .fill { position: absolute; inset: 0; background: var(--accent-soft); transform-origin: left; transform: scaleX(0); }
+.film-steps button .n, .film-steps button .nm { position: relative; }
+.film-steps button .n { display: inline-grid; place-items: center; width: 1.35rem; height: 1.35rem; border-radius: 50%; background: var(--grid); color: var(--ink); font-size: 0.72rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.film-steps button.done { color: var(--ink); }
+.film-steps button.done .fill { background: var(--surface-2); }
+.film-steps button[aria-current="step"] { color: var(--ink); border-color: var(--accent); font-weight: 600; }
+.film-steps button[aria-current="step"] .n { background: var(--accent); color: var(--surface); }
+.film-steps button:hover { border-color: var(--ink); }
+@media (max-width: 640px) {
+  .fbtn { padding: 0 0.8rem; height: 2.5rem; }
+  .fbtn.primary { flex: 1; }
+  .fswitch { margin-left: 0; }
+}
+/* v3.1 one column grid: every block in a chapter shares the same left and right edges */
+.chapter { max-width: 960px; }
+.concept, .quiz, .predict, .pager, .sources, .callout, .level-pick, .outcomes, .scene, .inst, details.tool { max-width: none; }
+.concept p, .quiz p, .predict p, .prose, .chapter > p { max-width: 70ch; }
+.level { border-left: 0; padding-left: 0; }
+.level .lv { display: inline-flex; align-items: center; gap: 0.4rem; }
+.level .lv::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.callout { border-left: 0; border-radius: var(--radius); }
+.howto { max-width: 75ch; }
+.film-steps { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 28px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 28px), transparent 100%); padding-inline: 4px 24px; }

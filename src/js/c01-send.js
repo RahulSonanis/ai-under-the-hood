@@ -17,11 +17,11 @@ chapter("send", () => {
 
   const cv = $("#tr-cv"), J = createJourney(cv), stage = cv.parentElement;
   let sc = null;
-  const getClient = seg($("#tr-client"), () => rebuild());
-  bindCtl("tr-load", () => rebuild(), e => Math.round(e.value * 100) + "%");
-  $("#tr-think").addEventListener("change", () => rebuild());
-  $$("#tr-presets button").forEach(b => b.addEventListener("click", () => { $$("#tr-presets button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); $("#tr-prompt").value = b.dataset.p === "__long__" ? LONG.trim() : b.dataset.p; rebuild(); }));
-  $("#tr-prompt").addEventListener("change", () => { $$("#tr-presets button").forEach(x => x.setAttribute("aria-pressed", "false")); rebuild(); });
+  const getClient = seg($("#tr-client"), () => rebuild("tok"));
+  bindCtl("tr-load", () => rebuild("queue"), e => Math.round(e.value * 100) + "%");
+  $("#tr-think").addEventListener("change", () => rebuild(checked("tr-think") ? "think" : "decode"));
+  $$("#tr-presets button").forEach(b => b.addEventListener("click", () => { $$("#tr-presets button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); $("#tr-prompt").value = b.dataset.p === "__long__" ? LONG.trim() : b.dataset.p; rebuild("tok"); }));
+  $("#tr-prompt").addEventListener("change", () => { $$("#tr-presets button").forEach(x => x.setAttribute("aria-pressed", "false")); rebuild("tok"); });
 
   function scenario() {
     const prompt = $("#tr-prompt").value.trim() || "Hello";
@@ -78,7 +78,7 @@ chapter("send", () => {
   const capH = () => 0;
   const film = makeFilm($("#tr"), {
     draw: (t, i, segs) => J.draw(t, i, segs, { h: hgt(), capH: capH() }),
-    caption, onFrame: (t, i, rt) => timebar(rt)
+    caption, realSpeed: true, skipIntro: true, onFrame: (t, i, rt) => timebar(rt)
   });
   const bars = [["Network", s => s.durs.net * 2, "--muted"], ["Checks and line", s => s.durs.gw + s.durs.safe + s.durs.queue + s.durs.route + s.durs.tok, "--ink"], ["Reading the prompt", s => s.durs.prefill, "--heat"], ["Thinking", s => s.durs.think, "--l3"], ["Writing the reply", s => s.durs.decode, "--accent"]];
   function timebar(rt) {
@@ -94,15 +94,14 @@ chapter("send", () => {
       <div><span class="v">${Math.round(1000 / TPOT)}/s</span><span class="k">tokens while writing</span></div>
       <div><span class="v">${ms(s.total)}</span><span class="k">for the whole reply</span></div>`;
   }
-  function rebuild() {
-    sc = scenario(); J.setup(sc); film.pause(); film.setSegs(segments(sc)); film.seek(0); stats(); timebar(0);
+  let ready = false;
+  function rebuild(key) {
+    sc = scenario(); J.setup(sc); film.pause(); film.setSegs(segments(sc)); stats();
+    if (ready && key) film.replay(key); else film.seek(0);
+    timebar(film.realAt(film.t)); ready = true;
   }
   rebuild();
-  $("#tr-start").addEventListener("click", () => { $("#tr-start").hidden = true; film.seek(film.segs[1].t0); film.play(); });
-  stage.addEventListener("click", e => { if (e.target !== cv) return; $("#tr-start").hidden = true; const r = cv.getBoundingClientRect(), k = J.hitKey(e.clientX - r.left, e.clientY - r.top); if (!k) return; const j = film.segs.findIndex(s => s.key === k); if (j >= 0) film.playSeg(j); });
-  cv.addEventListener("focus", () => { $("#tr-start").hidden = true; });
-  $(".scene-bar", $("#tr")).addEventListener("click", () => { $("#tr-start").hidden = true; });
-  $(".scene-bar", $("#tr")).addEventListener("input", () => { $("#tr-start").hidden = true; });
+  stage.addEventListener("click", e => { if (e.target !== cv) return; film.touch(); const r = cv.getBoundingClientRect(), k = J.hitKey(e.clientX - r.left, e.clientY - r.top); if (!k) return; const j = film.segs.findIndex(s => s.key === k); if (j >= 0) film.playSeg(j); });
   onRedraw(() => { film.refresh(); });
 
   /* ---- rewind ---- */

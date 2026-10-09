@@ -18,16 +18,19 @@ def build():
     css = (SRC / "styles.css").read_text()
     top = (SRC / "shell-top.html").read_text()
     chapters = "\n".join(p.read_text() for p in sorted((SRC / "chapters").glob("*.html")))
-    js = "\n".join(p.read_text() for p in [SRC / "js" / "core.js"] + sorted((SRC / "js").glob("c[0-9]*.js")))
+    # one <script> per file, so a mistake in one chapter's script can't take down the others
+    js = "\n</script>\n<script>\n".join(p.read_text() for p in [SRC / "js" / "core.js"] + sorted((SRC / "js").glob("c[0-9]*.js")))
     head = f"<title>AI Under the Hood</title>\n{META}\n{FONTS}\n<style>\n{css}\n</style>"
     body = f"{top}\n{chapters}\n</main>\n</div>\n<script>\n{js}\n</script>"
     for d in ("dist", "docs"):
         (ROOT / d).mkdir(exist_ok=True)
-    (ROOT / "dist" / "artifact.html").write_text(head + "\n" + body + "\n")
+    def put(path, text):  # atomic write, so a reader never sees a half-written file
+        tmp = path.with_suffix(path.suffix + ".tmp"); tmp.write_text(text); tmp.replace(path)
+    put(ROOT / "dist" / "artifact.html", head + "\n" + body + "\n")
     full = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
             f"{head}\n</head>\n<body>\n{body}\n</body>\n</html>\n")
-    (ROOT / "docs" / "index.html").write_text(full)
+    put(ROOT / "docs" / "index.html", full)
     print(f"built docs/index.html: {len(full) / 1024:.0f} KB")
 
 

@@ -409,6 +409,47 @@ ol.path a span:last-child { font-size: 0.88rem; color: var(--muted); line-height
 .scene-start svg { width: 16px; height: 16px; fill: currentColor; }
 .scene-start[hidden] { display: none; }
 .scene-start:focus-visible { outline: 3px solid var(--stage-ink); outline-offset: 4px; }
+/* v3.1 film controls: labelled buttons + named, clickable steps */
+.film-controls { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.8rem; }
+.fbtn { font: inherit; font-family: var(--f-display); font-size: 0.92rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.45rem; height: 2.6rem; padding: 0 1.05rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.fbtn svg { width: 13px; height: 13px; fill: currentColor; flex: none; }
+.fbtn:hover:not(:disabled) { border-color: var(--ink); }
+.fbtn:disabled { opacity: 0.4; cursor: default; }
+.fbtn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); min-width: 7.4rem; justify-content: center; }
+.fswitch { display: inline-flex; align-items: center; gap: 0.5rem; margin-left: auto; font-family: var(--f-display); font-size: 0.88rem; cursor: pointer; user-select: none; }
+.fswitch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.fswitch .sw { width: 2.3rem; height: 1.35rem; border-radius: 999px; background: var(--grid); border: 1px solid var(--line); position: relative; transition: background 0.15s; }
+.fswitch .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: calc(1.35rem - 6px); height: calc(1.35rem - 6px); border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,0.25); transition: transform 0.15s; }
+.fswitch input:checked + .sw { background: var(--accent); border-color: var(--accent); }
+.fswitch input:checked + .sw::after { transform: translateX(0.95rem); }
+.fswitch input:focus-visible + .sw { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fclock { font-family: var(--f-mono); font-size: 0.82rem; color: var(--muted); min-width: 4.6rem; font-variant-numeric: tabular-nums; }
+.film-steps { list-style: none; margin: 0.7rem 0 0; padding: 0 0 0.3rem; display: flex; gap: 0.35rem; overflow-x: auto; scrollbar-width: thin; }
+.film-steps li { flex: none; }
+.film-steps button { position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 0.4rem; font: inherit; font-family: var(--f-display); font-size: 0.82rem; height: 2.1rem; padding: 0 0.75rem 0 0.45rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; white-space: nowrap; }
+.film-steps button .fill { position: absolute; inset: 0; background: var(--accent-soft); transform-origin: left; transform: scaleX(0); }
+.film-steps button .n, .film-steps button .nm { position: relative; }
+.film-steps button .n { display: inline-grid; place-items: center; width: 1.35rem; height: 1.35rem; border-radius: 50%; background: var(--grid); color: var(--ink); font-size: 0.72rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.film-steps button.done { color: var(--ink); }
+.film-steps button.done .fill { background: var(--surface-2); }
+.film-steps button[aria-current="step"] { color: var(--ink); border-color: var(--accent); font-weight: 600; }
+.film-steps button[aria-current="step"] .n { background: var(--accent); color: var(--surface); }
+.film-steps button:hover { border-color: var(--ink); }
+@media (max-width: 640px) {
+  .fbtn { padding: 0 0.8rem; height: 2.5rem; }
+  .fbtn.primary { flex: 1; }
+  .fswitch { margin-left: 0; }
+}
+/* v3.1 one column grid: every block in a chapter shares the same left and right edges */
+.chapter { max-width: 960px; }
+.concept, .quiz, .predict, .pager, .sources, .callout, .level-pick, .outcomes, .scene, .inst, details.tool { max-width: none; }
+.concept p, .quiz p, .predict p, .prose, .chapter > p { max-width: 70ch; }
+.level { border-left: 0; padding-left: 0; }
+.level .lv { display: inline-flex; align-items: center; gap: 0.4rem; }
+.level .lv::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.callout { border-left: 0; border-radius: var(--radius); }
+.howto { max-width: 75ch; }
+.film-steps { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 28px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 28px), transparent 100%); padding-inline: 4px 24px; }
 
 </style>
 </head>
@@ -788,6 +829,8 @@ ol.path a span:last-child { font-size: 0.88rem; color: var(--muted); line-height
   <h2>How does it remember the conversation?</h2>
   <div class="answer"><span class="label">Short answer</span><p>The model itself keeps nothing between messages. The conversation is stored outside it and fed back in with every request. While writing a reply, the model keeps notes on every earlier token (their attention keys and values) so it never recomputes them. Those notes, the <b>KV cache</b>, fill up GPU memory fast, and managing that memory decides how many people one GPU can serve.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 9 min read · 2 interactives</span></div><ul><li>Tell apart chat history, KV cache, prefix caching and app memory</li><li>Compute KV cache size per token</li><li>Explain why paging fits more people on a GPU</li></ul></div>
+
+  <figure class="scene" id="kv-film" data-start="Play: why the model keeps notes"></figure>
 
   <div class="predict" data-answer="1"><span class="label">Predict first</span><p>Switch from <b>Reserve max</b> to <b>Paged</b> on the same GPU. How many more conversations run at once?</p><div class="opts"><button type="button">About the same</button><button type="button">Roughly twice as many</button><button type="button">Ten times as many</button></div><div class="predict-after" hidden><p>Locked in. Now try it below and check.</p><details><summary>Show the answer</summary><p>Roughly twice as many in this setup (about 26 to 55). Reserving the maximum length leaves most of each reservation empty; paging allocates memory only as tokens are written.</p></details></div></div>
   <div class="inst" id="kv">
@@ -1696,7 +1739,7 @@ function plot(cv, opt) {
 
 /* ---------- Chapter registry: lazy init, visibility-aware redraw and animation ---------- */
 const Chapters = { inits: {}, done: {}, redraw: {}, current: null };
-function chapter(id, init) { Chapters.inits[id] = init; }
+function chapter(id, init) { (Chapters.inits[id] = Chapters.inits[id] || []).push(init); }
 function onRedraw(fn) { const id = Chapters.initing; (Chapters.redraw[id] = Chapters.redraw[id] || []).push(fn); fn(); }
 function redrawCurrent() { (Chapters.redraw[Chapters.current] || []).forEach(f => f()); }
 /* Animation loop that only runs while its chapter is on screen and the tab is visible. */
@@ -1814,7 +1857,7 @@ function route() {
   $$(".rail a").forEach(a => { if (a.getAttribute("href") === "#" + h) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   if ($(".rail").classList.contains("open")) setDrawer(false);
   const el = document.getElementById(h); setupLadders(el); setupQuizzes(el); setupPredicts(el);
-  if (Chapters.inits[h] && !Chapters.done[h]) { Chapters.done[h] = 1; Chapters.initing = h; try { Chapters.inits[h](); } catch (e) { console.error(e); } Chapters.initing = null; }
+  if (Chapters.inits[h] && !Chapters.done[h]) { Chapters.done[h] = 1; Chapters.initing = h; Chapters.inits[h].forEach(fn => { try { fn(); } catch (e) { console.error(e); } }); Chapters.initing = null; }
   else redrawCurrent();
   $$("canvas.cv", el).forEach(c => { if (!c.hasAttribute("role")) c.setAttribute("role", "img"); });
   if (target) { const t = document.getElementById(target); if (t) t.scrollIntoView({ block: "center" }); }
@@ -1849,6 +1892,8 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("hashchange", route); route();
 });
 
+</script>
+<script>
 /* Scene engine: deterministic, scrubbable "films" drawn on canvas.
    A film is a list of segments (each with a story duration and, optionally, the real duration it
    stands for). draw(t) is a pure function of the playhead, so play, pause, scrub, back and next
@@ -1873,33 +1918,52 @@ const ICON = {
   again: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5a5.5 5.5 0 1 0 5.4 6.5h-2A3.5 3.5 0 1 1 8 4.5c1 0 1.9.4 2.5 1.1L8.5 7.5H14V2l-2 2A5.5 5.5 0 0 0 8 2.5z"/></svg>'
 };
 
+/* makeFilm(root, cfg): playback for a figure.scene.
+   cfg.draw(t, i, segs)      draw the frame for playhead t (seconds of story time), step i
+   cfg.caption(seg, depth)   HTML for the caption; depth 1-2 = plain, 3-4 = technical
+   cfg.realSpeed             show the "Real speed" switch (segments then need rdur, real ms)
+   Each segment: { key, title, short?, dur, rdur? } */
 function makeFilm(root, cfg) {
-  const cv = $("canvas", root), cap = $(".scene-cap", root), bar = $(".scene-bar", root);
-  let segs = [], T = 1, t = 0, stopAt = null, real = false, lastSeg = -1;
-  bar.innerHTML = `<button class="tbtn" type="button" data-a="prev" aria-label="Previous step">${ICON.prev}</button>
-    <button class="tbtn play" type="button" data-a="play">${ICON.play}<span class="t">Play</span></button>
-    <button class="tbtn" type="button" data-a="next" aria-label="Next step">${ICON.next}</button>
-    <div class="scrub"><div class="track"><i></i></div><input type="range" min="0" max="1000" step="1" value="0" aria-label="Position in the animation"></div>
-    <div class="seg" role="group" aria-label="Playback speed"><button type="button" data-v="story" aria-pressed="true">Slow motion</button><button type="button" data-v="real" aria-pressed="false">Real speed</button></div>
-    <span class="clock" aria-hidden="true"></span>`;
-  const playBtn = $('[data-a="play"]', bar), scrub = $("input", bar), fill = $(".track i", bar), track = $(".track", bar), clock = $(".clock", bar);
-  seg($(".seg", bar), v => { real = v === "real"; });
+  const cv = $("canvas", root), cap = $(".scene-cap", root), bar = $(".scene-bar", root), start = $(".scene-start", root);
+  let segs = [], T = 1, t = 0, stopAt = null, real = false, lastSeg = -1, touched = false;
+  bar.className = "scene-bar film-controls";
+  bar.innerHTML = `<button class="fbtn" type="button" data-a="prev">${ICON.prev}<span>Back</span></button>
+    <button class="fbtn primary" type="button" data-a="play">${ICON.play}<span>Play</span></button>
+    <button class="fbtn" type="button" data-a="next"><span>Next</span>${ICON.next}</button>
+    ${cfg.realSpeed ? `<label class="fswitch"><input type="checkbox" data-a="real"><span class="sw" aria-hidden="true"></span><span>Real speed</span></label><span class="fclock" aria-hidden="true"></span>` : ""}`;
+  const strip = document.createElement("ol"); strip.className = "film-steps"; strip.setAttribute("aria-label", "Steps"); bar.after(strip);
+  const playBtn = $('[data-a="play"]', bar), clock = $(".fclock", bar);
+  if (cfg.realSpeed) $('[data-a="real"]', bar).addEventListener("change", e => { real = e.target.checked; touch(); if (real) { t = 0; api.play(); } });
   const segAt = x => { for (let i = 0; i < segs.length; i++) if (x < segs[i].t1) return i; return segs.length - 1; };
   const realAt = x => { const s = segs[segAt(x)]; return s.r0 + clamp01((x - s.t0) / s.dur) * s.rdur; };
   const playing = () => loop.running;
+  function touch() { touched = true; if (start) start.hidden = true; }
   function setPlayUI() {
     const p = playing(), end = t >= T - 1e-6;
-    playBtn.innerHTML = (p ? ICON.pause : end ? ICON.again : ICON.play) + `<span class="t">${p ? "Pause" : end ? "Replay" : "Play"}</span>`;
-    playBtn.setAttribute("aria-label", p ? "Pause" : end ? "Replay" : "Play");
+    playBtn.innerHTML = (p ? ICON.pause : end ? ICON.again : ICON.play) + `<span>${p ? "Pause" : end ? "Replay" : t > 0 ? "Resume" : "Play"}</span>`;
+    $('[data-a="prev"]', bar).disabled = t <= 0.05 && !p;
+    $('[data-a="next"]', bar).disabled = end;
+  }
+  function buildStrip() {
+    strip.innerHTML = segs.map((s, i) => `<li><button type="button" data-i="${i}"><i class="fill"></i><span class="n">${i + 1}</span><span class="nm">${esc(s.short || s.title)}</span></button></li>`).join("");
+    $$("button", strip).forEach(b => b.addEventListener("click", () => { touch(); api.playSeg(+b.dataset.i); }));
+  }
+  function paintStrip(i) {
+    $$("button", strip).forEach((b, j) => {
+      const s = segs[j], k = j < i ? 1 : j > i ? 0 : clamp01((t - s.t0) / s.dur);
+      b.querySelector(".fill").style.transform = `scaleX(${k})`;
+      if (j === i) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+      b.classList.toggle("done", j < i);
+    });
+    if (i !== strip._i) { strip._i = i; const b = $$("button", strip)[i]; if (b) { const L = b.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft, R = L + b.offsetWidth; if (L < strip.scrollLeft || R > strip.scrollLeft + strip.clientWidth) strip.scrollTo({ left: L - 24, behavior: reduceMotion() ? "auto" : "smooth" }); } }
   }
   function frame() {
-    const i = segAt(t), s = segs[i];
+    const i = segAt(t);
     cfg.draw(t, i, segs);
-    fill.style.width = (t / T * 100) + "%"; scrub.value = Math.round(t / T * 1000);
-    const rt = realAt(t); clock.textContent = (rt < 1000 ? Math.round(rt) + " ms" : (rt / 1000).toFixed(2) + " s") + " real";
-    scrub.setAttribute("aria-valuetext", `Step ${i + 1} of ${segs.length}: ${s.title}`);
+    paintStrip(i);
+    if (clock) { const rt = realAt(t); clock.textContent = rt < 1000 ? Math.round(rt) + " ms" : (rt / 1000).toFixed(2) + " s"; }
     if (i !== lastSeg) { lastSeg = i; caption(i); }
-    if (cfg.onFrame) cfg.onFrame(t, i, rt);
+    if (cfg.onFrame) cfg.onFrame(t, i, segs.length ? realAt(t) : 0);
   }
   function caption(i) {
     if (!cap) return; const s = segs[i], c = cfg.caption(s, store.get("depth", 1));
@@ -1913,32 +1977,29 @@ function makeFilm(root, cfg) {
     frame();
   });
   const api = {
-    get t() { return t; }, get segs() { return segs; },
+    get t() { return t; }, get segs() { return segs; }, get playing() { return playing(); },
     setSegs(list) {
-      segs = list; let a = 0, r = 0; segs.forEach(s => { s.t0 = a; a += s.dur; s.t1 = a; s.r0 = r; r += s.rdur || 0; s.rdur = s.rdur || 0; }); T = a;
-      track.querySelectorAll("b").forEach(b => b.remove());
-      segs.slice(1).forEach(s => { const b = document.createElement("b"); b.style.left = (s.t0 / T * 100) + "%"; track.appendChild(b); });
-      lastSeg = -1; t = Math.min(t, T); frame(); setPlayUI();
+      segs = list; let a = 0, r = 0; segs.forEach(s => { s.t0 = a; a += s.dur; s.t1 = a; s.r0 = r; s.rdur = s.rdur || 0; r += s.rdur; }); T = a;
+      buildStrip(); lastSeg = -1; strip._i = -1; t = Math.min(t, T); frame(); setPlayUI();
     },
     seek(x) { t = Math.max(0, Math.min(T, x)); frame(); setPlayUI(); },
-    play() { if (t >= T - 1e-6) t = 0; stopAt = null; loop.start(); setPlayUI(); },
+    play() { touch(); if (t >= T - 1e-6) t = 0; stopAt = null; if (reduceMotion() && !real) { api.step(1); return; } loop.start(); setPlayUI(); },
     pause() { loop.stop(); stopAt = null; setPlayUI(); },
     toggle() { playing() ? api.pause() : api.play(); },
     step(d) {
-      const i = segAt(t), atStart = t - segs[i].t0 < 0.25;
-      let j = d > 0 ? Math.min(segs.length - 1, (t >= segs[i].t1 - 1e-6 ? i + 1 : (t - segs[i].t0 < 0.05 && !playing() ? i : i + 1))) : Math.max(0, atStart ? i - 1 : i);
-      if (d > 0 && i === segs.length - 1 && t >= T - 1e-6) return;
-      if (reduceMotion()) { loop.stop(); t = segs[j].t1 - 1e-4; frame(); setPlayUI(); return; }
-      t = segs[j].t0; stopAt = segs[j].t1 - 1e-4; frame(); loop.start(); setPlayUI();
+      touch(); const i = segAt(t), s = segs[i], atStart = t - s.t0 < 0.3, atEnd = t >= s.t1 - 1e-3;
+      const j = d > 0 ? (atEnd || (!atStart || playing()) ? i + 1 : i) : (atStart && !atEnd ? i - 1 : i - (atEnd ? 0 : 0));
+      api.playSeg(d < 0 && !atStart && !atEnd ? i : j);
     },
+    playSeg(j) { touch(); j = Math.max(0, Math.min(segs.length - 1, j)); if (reduceMotion()) { loop.stop(); stopAt = null; t = segs[j].t1 - 1e-4; frame(); setPlayUI(); return; } t = segs[j].t0; stopAt = segs[j].t1 - 1e-4; frame(); loop.start(); setPlayUI(); },
+    replay(key) { const j = segs.findIndex(s => s.key === key); if (j >= 0) api.playSeg(j); else frame(); },
     refresh() { lastSeg = -1; frame(); },
-    playSeg(j) { j = Math.max(0, Math.min(segs.length - 1, j)); if (reduceMotion()) { loop.stop(); t = segs[j].t1 - 1e-4; frame(); setPlayUI(); return; } t = segs[j].t0; stopAt = segs[j].t1 - 1e-4; frame(); loop.start(); setPlayUI(); },
-    segAt, realAt
+    segAt, realAt, touch
   };
   playBtn.addEventListener("click", () => api.toggle());
   $('[data-a="prev"]', bar).addEventListener("click", () => api.step(-1));
   $('[data-a="next"]', bar).addEventListener("click", () => api.step(1));
-  scrub.addEventListener("input", () => { loop.stop(); stopAt = null; t = scrub.value / 1000 * T; frame(); setPlayUI(); });
+  if (start) start.addEventListener("click", () => { touch(); api.seek(segs.length > 1 && cfg.skipIntro ? segs[1].t0 : 0); api.play(); });
   cv.tabIndex = 0;
   cv.addEventListener("keydown", e => {
     if (e.key === " " || e.key === "k") { e.preventDefault(); api.toggle(); }
@@ -1946,7 +2007,95 @@ function makeFilm(root, cfg) {
     else if (e.key === "ArrowLeft") { e.preventDefault(); api.step(-1); }
   });
   document.addEventListener("depthchange", () => { if (segs.length) caption(segAt(t)); });
+  root._film = api;
   return api;
+}
+
+/* ---------- Scene kit: drawing in "world" coordinates with a moving camera ----------
+   k.begin(h, cam)    size the canvas to h px tall, clear to the stage colour, fit the camera
+                      rect {x,y,w,h} (world units) into the canvas; draws a faint dot grid.
+   Shapes take world coordinates; k.label() draws fixed-size screen text at a world point.
+   Colours: k.C.bg, bg2, line, ink, muted, sig (teal = data), amb (amber = compute/energy). */
+function sceneKit(cv) {
+  const k = { C: null, scale: 1, ox: 0, oy: 0, W: 0, H: 0, ctx: null };
+  const dpr = () => window.devicePixelRatio || 1;
+  k.begin = (h, cam, opt = {}) => {
+    const d = dpr(), cw = cv.clientWidth || innerW(cv.parentElement) || 600;
+    if (cv._cw !== cw || cv._ch !== h || cv._dpr !== d) { cv.style.height = h + "px"; cv.width = Math.round(cw * d); cv.height = Math.round(h * d); cv._cw = cw; cv._ch = h; cv._dpr = d; }
+    const ctx = k.ctx = cv.getContext("2d"); k.W = cw; k.H = h; k.C = stageColors();
+    const pad = opt.pad == null ? 12 : opt.pad, s = Math.min((cw - pad * 2) / cam.w, (h - pad * 2) / cam.h);
+    k.scale = s; k.ox = (cw - cam.w * s) / 2 - cam.x * s; k.oy = (h - cam.h * s) / 2 - cam.y * s; k.cam = cam;
+    ctx.setTransform(d, 0, 0, d, 0, 0); ctx.globalAlpha = 1; ctx.fillStyle = k.C.bg; ctx.fillRect(0, 0, cw, h);
+    k.world();
+    if (opt.grid !== false) { const g = opt.grid || 40; ctx.fillStyle = k.C.line; const x0 = Math.floor((-k.ox / s) / g) * g, y0 = Math.floor((-k.oy / s) / g) * g, x1 = (cw - k.ox) / s, y1 = (h - k.oy) / s, r = 1 / s; for (let x = x0; x < x1; x += g) for (let y = y0; y < y1; y += g) ctx.fillRect(x - r, y - r, 2 * r, 2 * r); }
+    return k;
+  };
+  k.world = () => { const d = dpr(); k.ctx.setTransform(d * k.scale, 0, 0, d * k.scale, d * k.ox, d * k.oy); };
+  k.screen = () => { const d = dpr(); k.ctx.setTransform(d, 0, 0, d, 0, 0); };
+  k.toScreen = (x, y) => [k.ox + x * k.scale, k.oy + y * k.scale];
+  k.toWorld = (sx, sy) => [(sx - k.ox) / k.scale, (sy - k.oy) / k.scale];
+  k.px = n => n / k.scale; // world units for n screen pixels
+  k.box = (x, y, w, h, o = {}) => { const c = k.ctx; c.save(); c.globalAlpha = o.alpha == null ? 1 : o.alpha; if (o.glow) { c.shadowColor = o.glowCol || o.fill || o.stroke; c.shadowBlur = o.glow; } rr(c, x, y, w, h, Math.min(o.r == null ? 8 : o.r, w / 2, h / 2)); if (o.fill) { c.fillStyle = o.fill; c.fill(); } if (o.stroke) { c.shadowBlur = 0; c.strokeStyle = o.stroke; c.lineWidth = k.px(o.lw || 1.5); if (o.dash) c.setLineDash(o.dash.map(k.px)); c.stroke(); } c.restore(); };
+  k.pill = (cx, cy, w, h, col, o = {}) => k.box(cx - w / 2, cy - h / 2, w, h, { fill: col, r: h / 2, glow: o.glow, alpha: o.alpha });
+  k.dot = (x, y, r, col, o = {}) => { const c = k.ctx; c.save(); c.globalAlpha = o.alpha == null ? 1 : o.alpha; if (o.glow) { c.shadowColor = col; c.shadowBlur = o.glow; } c.fillStyle = col; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); c.restore(); };
+  k.line = (x1, y1, x2, y2, o = {}) => { const c = k.ctx; c.save(); c.globalAlpha = o.alpha == null ? 1 : o.alpha; c.strokeStyle = o.col || k.C.line; c.lineWidth = k.px(o.lw || 1.5); if (o.dash) c.setLineDash(o.dash.map(k.px)); if (o.glow) { c.shadowColor = o.col; c.shadowBlur = o.glow; } c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.restore(); };
+  k.curve = (p, o = {}) => { const c = k.ctx; c.save(); c.globalAlpha = o.alpha == null ? 1 : o.alpha; c.strokeStyle = o.col || k.C.line; c.lineWidth = k.px(o.lw || 1.5); if (o.dash) c.setLineDash(o.dash.map(k.px)); c.beginPath(); c.moveTo(...p[0]); c.bezierCurveTo(...p[1], ...p[2], ...p[3]); c.stroke(); c.restore(); };
+  k.text = (x, y, s, o = {}) => { const c = k.ctx; c.save(); c.globalAlpha = o.alpha == null ? 1 : o.alpha; font(c, o.size || 14, o.mono ? "--f-mono" : o.serif ? "--f-body" : "--f-display", o.weight || "500"); c.fillStyle = o.col || k.C.ink; c.textAlign = o.align || "center"; c.textBaseline = o.baseline || "middle"; c.fillText(s, x, y); c.restore(); };
+  k.label = (x, y, s, o = {}) => { const [sx, sy] = k.toScreen(x, y); if (sx < -80 || sx > k.W + 80 || sy < -20 || sy > k.H + 20) return; const c = k.ctx; c.save(); k.screen(); c.globalAlpha = o.alpha == null ? 1 : o.alpha; font(c, o.size || 12, o.mono ? "--f-mono" : "--f-display", o.weight || "500"); c.fillStyle = o.col || k.C.muted; c.textAlign = o.align || "center"; c.textBaseline = "middle"; c.fillText(s, sx + (o.dx || 0), sy + (o.dy || 0)); c.restore(); };
+  /* A line that fades from transparent (tail) to solid (head); pts = [[x,y], ...] in world units. */
+  k.trail = (pts, col, o = {}) => { const c = k.ctx; if (pts.length < 2) return; c.save(); c.strokeStyle = col; c.lineCap = "round"; c.lineWidth = k.px(o.w || 2.5); if (o.glow) { c.shadowColor = col; c.shadowBlur = o.glow; }
+    for (let i = 1; i < pts.length; i++) { c.globalAlpha = (o.alpha == null ? 1 : o.alpha) * Math.pow(i / (pts.length - 1), 1.6); c.beginPath(); c.moveTo(...pts[i - 1]); c.lineTo(...pts[i]); c.stroke(); } c.restore(); };
+  /* n particles flowing along path(u) -> [x,y], u in 0..1, each with a short glowing trail. phase shifts them over time. */
+  k.flow = (path, n, phase, col, o = {}) => { const len = o.len || 0.08, sz = o.size || 3; for (let j = 0; j < n; j++) { const u = ((j / n) + phase) % 1; const pts = []; for (let s = 6; s >= 0; s--) { const uu = u - len * s / 6; if (uu >= 0) pts.push(path(uu)); } if (pts.length > 1) k.trail(pts, col, { w: sz * 0.9, alpha: o.alpha == null ? 0.8 : o.alpha }); const [x, y] = path(u); k.dot(x, y, k.px(sz), col, { glow: o.glow == null ? 8 : o.glow, alpha: o.alpha }); } };
+  /* Glass readout panel in screen space. corner: "tl" | "tr" | "bl" | "br". rows: [[key, value], ...] */
+  k.hud = (corner, title, rows, o = {}) => {
+    const c = k.ctx; c.save(); k.screen(); const pad = 10, lh = 17, w = o.w || 190, h = pad * 2 + (title ? 18 : 0) + rows.length * lh;
+    const m = 12, x = corner[1] === "l" ? m : k.W - w - m, y = corner[0] === "t" ? m : k.H - h - m;
+    c.globalAlpha = 0.82; c.fillStyle = k.C.bg2; rr(c, x, y, w, h, 10); c.fill(); c.globalAlpha = 1; c.strokeStyle = k.C.line; c.lineWidth = 1; c.stroke();
+    let yy = y + pad + 6; if (title) { font(c, 11, "--f-display", "650"); c.fillStyle = k.C.ink; c.textAlign = "left"; c.textBaseline = "middle"; c.fillText(title, x + pad, yy); yy += 18; }
+    rows.forEach(([kk, v, col]) => { font(c, 11, "--f-display"); c.fillStyle = k.C.muted; c.textAlign = "left"; c.fillText(kk, x + pad, yy); font(c, 11.5, "--f-mono", "600"); c.fillStyle = col || k.C.ink; c.textAlign = "right"; c.fillText(v, x + w - pad, yy); yy += lh; });
+    c.restore(); k.world();
+  };
+  return k;
+}
+/* Camera that eases from the previous step's framing to this step's over the first part of the step. */
+function filmCam(cams, segs, i, t, keyOf = s => s.key) {
+  const s = segs[i], p = segs[Math.max(0, i - 1)], a = cams[keyOf(p)] || cams.default, b = cams[keyOf(s)] || cams.default;
+  const e = easeIO((t - s.t0) / Math.min(1.0, s.dur * 0.45)); return { x: lerp(a.x, b.x, e), y: lerp(a.y, b.y, e), w: lerp(a.w, b.w, e), h: lerp(a.h, b.h, e) };
+}
+/* Progress (0..1) through the step with this key; 0 before it, 1 after it. */
+function stepK(segs, t, key) { const g = segs.find(x => x.key === key); if (!g) return 0; return clamp01((t - g.t0) / g.dur); }
+/* Stage height for a figure: wide screens get a 2:1 stage, phones a near-square one. */
+function stageH(el, wide = 0.5, narrow = 0.9) { const w = innerW(el); return w < 640 ? Math.round(Math.max(280, w * narrow)) : Math.round(Math.min(560, Math.max(360, w * wide))); }
+/* storyFilm(figure, spec): the one-call way to build a chapter film.
+   spec.steps  [{ key, title, short, dur, text: [plain, technical], link: "#chapter" (optional) }]
+   spec.cams   { default: {x,y,w,h}, <stepKey>: {x,y,w,h}, ... }  world-space framing per step
+   spec.draw(k, f)  k = scene kit (camera already applied); f = { t, i, key, p (0..1 in step),
+                    at(key) (0..1 progress of any step), segs, C (colours) }
+   spec.height(el) optional; spec.label optional aria label for the canvas. */
+function storyFilm(fig, spec) {
+  if (spec.label) fig.dataset.label = spec.label;
+  filmMarkup(fig);
+  const cv = $("canvas", fig), k = sceneKit(cv), stage = $(".scene-stage", fig);
+  const hgt = spec.height || (() => stageH(stage));
+  const film = makeFilm(fig, {
+    draw: (t, i, segs) => {
+      const s = segs[i]; k.begin(hgt(), filmCam(spec.cams, segs, i, t), { grid: spec.grid });
+      spec.draw(k, { t, i, key: s.key, p: clamp01((t - s.t0) / s.dur), at: key => stepK(segs, t, key), segs, C: k.C });
+    },
+    caption: (s, depth) => { const tx = s.text || ["", ""]; return (depth >= 3 ? tx[1] || tx[0] : tx[0]) + (s.link ? ` <a href="${s.link}">Read more →</a>` : ""); }
+  });
+  film.setSegs(spec.steps.map(s => ({ ...s })));
+  onRedraw(() => film.refresh());
+  return { film, kit: k };
+}
+/* Standard markup for a film; call inside the chapter's HTML via <figure class="scene" id="x" data-start="Play the story"></figure> */
+function filmMarkup(fig) {
+  if ($(".scene-stage", fig)) return;
+  const setup = $(".scene-setup", fig), note = $("figcaption", fig);
+  const lab = fig.dataset.start || "Play";
+  fig.insertAdjacentHTML("afterbegin", `<div class="scene-stage"><canvas aria-label="${esc(fig.dataset.label || "Animated explanation")}. Space plays or pauses; left and right arrows step back and forward."></canvas><button class="scene-start" type="button">${ICON.play}<span>${esc(lab)}</span></button><div class="scene-cap" aria-live="polite"></div></div><div class="scene-bar"></div>`);
+  if (setup) fig.appendChild(setup); if (note) fig.appendChild(note);
 }
 
 /* ---------- The journey of one prompt (chapter 1, and the landing page's hero) ---------- */
@@ -2251,6 +2400,8 @@ chapter("start", () => {
   cv.setAttribute("role", "img"); cv.setAttribute("aria-label", "Animation: a prompt travels from a laptop over the internet into a datacenter, through a gateway, a safety check, a queue and a router to a GPU server, and the reply streams back token by token.");
 });
 
+</script>
+<script>
 /* Chapter 1: trace of one request + rewind timeline */
 chapter("send", () => {
   const replies = {
@@ -2270,11 +2421,11 @@ chapter("send", () => {
 
   const cv = $("#tr-cv"), J = createJourney(cv), stage = cv.parentElement;
   let sc = null;
-  const getClient = seg($("#tr-client"), () => rebuild());
-  bindCtl("tr-load", () => rebuild(), e => Math.round(e.value * 100) + "%");
-  $("#tr-think").addEventListener("change", () => rebuild());
-  $$("#tr-presets button").forEach(b => b.addEventListener("click", () => { $$("#tr-presets button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); $("#tr-prompt").value = b.dataset.p === "__long__" ? LONG.trim() : b.dataset.p; rebuild(); }));
-  $("#tr-prompt").addEventListener("change", () => { $$("#tr-presets button").forEach(x => x.setAttribute("aria-pressed", "false")); rebuild(); });
+  const getClient = seg($("#tr-client"), () => rebuild("tok"));
+  bindCtl("tr-load", () => rebuild("queue"), e => Math.round(e.value * 100) + "%");
+  $("#tr-think").addEventListener("change", () => rebuild(checked("tr-think") ? "think" : "decode"));
+  $$("#tr-presets button").forEach(b => b.addEventListener("click", () => { $$("#tr-presets button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); $("#tr-prompt").value = b.dataset.p === "__long__" ? LONG.trim() : b.dataset.p; rebuild("tok"); }));
+  $("#tr-prompt").addEventListener("change", () => { $$("#tr-presets button").forEach(x => x.setAttribute("aria-pressed", "false")); rebuild("tok"); });
 
   function scenario() {
     const prompt = $("#tr-prompt").value.trim() || "Hello";
@@ -2331,7 +2482,7 @@ chapter("send", () => {
   const capH = () => 0;
   const film = makeFilm($("#tr"), {
     draw: (t, i, segs) => J.draw(t, i, segs, { h: hgt(), capH: capH() }),
-    caption, onFrame: (t, i, rt) => timebar(rt)
+    caption, realSpeed: true, skipIntro: true, onFrame: (t, i, rt) => timebar(rt)
   });
   const bars = [["Network", s => s.durs.net * 2, "--muted"], ["Checks and line", s => s.durs.gw + s.durs.safe + s.durs.queue + s.durs.route + s.durs.tok, "--ink"], ["Reading the prompt", s => s.durs.prefill, "--heat"], ["Thinking", s => s.durs.think, "--l3"], ["Writing the reply", s => s.durs.decode, "--accent"]];
   function timebar(rt) {
@@ -2347,15 +2498,14 @@ chapter("send", () => {
       <div><span class="v">${Math.round(1000 / TPOT)}/s</span><span class="k">tokens while writing</span></div>
       <div><span class="v">${ms(s.total)}</span><span class="k">for the whole reply</span></div>`;
   }
-  function rebuild() {
-    sc = scenario(); J.setup(sc); film.pause(); film.setSegs(segments(sc)); film.seek(0); stats(); timebar(0);
+  let ready = false;
+  function rebuild(key) {
+    sc = scenario(); J.setup(sc); film.pause(); film.setSegs(segments(sc)); stats();
+    if (ready && key) film.replay(key); else film.seek(0);
+    timebar(film.realAt(film.t)); ready = true;
   }
   rebuild();
-  $("#tr-start").addEventListener("click", () => { $("#tr-start").hidden = true; film.seek(film.segs[1].t0); film.play(); });
-  stage.addEventListener("click", e => { if (e.target !== cv) return; $("#tr-start").hidden = true; const r = cv.getBoundingClientRect(), k = J.hitKey(e.clientX - r.left, e.clientY - r.top); if (!k) return; const j = film.segs.findIndex(s => s.key === k); if (j >= 0) film.playSeg(j); });
-  cv.addEventListener("focus", () => { $("#tr-start").hidden = true; });
-  $(".scene-bar", $("#tr")).addEventListener("click", () => { $("#tr-start").hidden = true; });
-  $(".scene-bar", $("#tr")).addEventListener("input", () => { $("#tr-start").hidden = true; });
+  stage.addEventListener("click", e => { if (e.target !== cv) return; film.touch(); const r = cv.getBoundingClientRect(), k = J.hitKey(e.clientX - r.left, e.clientY - r.top); if (!k) return; const j = film.segs.findIndex(s => s.key === k); if (j >= 0) film.playSeg(j); });
   onRedraw(() => { film.refresh(); });
 
   /* ---- rewind ---- */
@@ -2392,6 +2542,8 @@ chapter("send", () => {
   onRedraw(rdraw);
 });
 
+</script>
+<script>
 /* Chapter 2: step-through BPE + embedding map */
 chapter("tokens", () => {
   const SP = "·";
@@ -2486,6 +2638,8 @@ chapter("tokens", () => {
   onRedraw(edraw);
 });
 
+</script>
+<script>
 /* Chapter 3: trigram language model, sampling wheel, "be the model" game */
 const TinyLM = (() => {
   const text = `the model reads the prompt and predicts the next word .
@@ -2641,6 +2795,8 @@ chapter("predict", () => {
   newQ(); score();
 });
 
+</script>
+<script>
 /* Chapter 4: attention explorer, drag-the-vectors attention, parameter counter */
 chapter("inside", () => {
   const base = ["The", "animal", "didn't", "cross", "the", "street", "because", "it", "was", "too", "tired", "."];
@@ -2752,6 +2908,8 @@ chapter("inside", () => {
   onRedraw(count);
 });
 
+</script>
+<script>
 /* Chapter 5: GPU memory map (reserve vs paged, prefix sharing) + KV calculator */
 chapter("memory", () => {
   const COLS = 40, ROWS = 12, N = COLS * ROWS, CELL_TOK = 1270, WEIGHT_CELLS = 96, PREFIX_TOK = 2000;
@@ -2841,6 +2999,168 @@ chapter("memory", () => {
   $("#kc").addEventListener("toggle", calc); onRedraw(calc);
 });
 
+</script>
+<script>
+/* Chapter 5 film: why the KV cache exists, and how serving systems manage it.
+   Reference implementation of storyFilm(): world units, one camera per step, every frame a pure function of t. */
+chapter("memory", () => {
+  const fig = $("#kv-film"); if (!fig) return;
+  const words = ["The", "cat", "sat", "on", "the", "mat", "and", "slept"];
+  const CH = { x0: 70, dx: 104, y: 70, w: 88, h: 34 };
+  const chipX = j => CH.x0 + j * CH.dx;
+  // memory panel (HBM of one 80 GB GPU): 16 x 20 cells, 0.25 GB each
+  const M = { x: 1120, y: 70, cols: 20, rows: 16, cell: 34, gap: 4 };
+  const cellXY = c => [M.x + (c % M.cols) * (M.cell + M.gap), M.y + Math.floor(c / M.cols) * (M.cell + M.gap)];
+  const W_CELLS = 64; // 16 GB of Llama 3 8B weights in BF16
+  const convCol = ["#5ce1c6", "#ffb547", "#8fb3ff", "#d59cff", "#ff8fa3", "#9be37a", "#7fdcff", "#ffd27a"];
+
+  const steps = [
+    { key: "redo", short: "Without notes", title: "Without notes, every step re-reads everything", dur: 6,
+      text: [`To write each new word, attention needs a "label" and "message" (key and value) for every earlier word. Without notes, the model would recompute them all, every single step. Watch the work pile up.`,
+             `Without caching, step t recomputes K = XW_K and V = XW_V for all t earlier tokens: Θ(t) projection work per step and Θ(T²) over a T-token reply.`] },
+    { key: "cache", short: "Keep notes", title: "Keep notes instead: the KV cache", dur: 6,
+      text: [`So the model keeps a note card for each word the first time it reads it. Each new word computes only its own card, then looks at the saved ones. The work per step stays flat.`,
+             `Keys and values don't change once computed, so the server stores them. Each step computes K and V for one new token and attends over the cached ones.`] },
+    { key: "grow", short: "Notes need memory", title: "The notes live in GPU memory", dur: 5.5,
+      text: [`Those notes aren't free. They sit in the GPU's memory next to the model itself, and they grow with every word.`,
+             `Llama 3 8B: 2 × 32 layers × 8 KV heads × 128 dims × 2 bytes = 128 KiB per token. A 32k-token conversation needs 4 GiB, on top of 16 GB of weights.`], link: "#ref-9" },
+    { key: "many", short: "Many people", title: "Every conversation brings its own notes", dur: 5.5,
+      text: [`One GPU serves many people at once, and each conversation keeps its own notes. When memory is full, the next person has to wait.`,
+             `Batch size is capped by free KV memory: (80 GB − weights) ÷ (KV bytes per token × tokens per conversation).`] },
+    { key: "reserve", short: "Reserving the max", title: "The old way: reserve the maximum up front", dur: 5.5,
+      text: [`Older servers didn't know how long a reply would be, so they reserved room for the longest possible conversation. Most of that reserved space sat empty (striped).`,
+             `Contiguous pre-allocation for the maximum sequence length wasted 60–80% of KV memory in earlier systems, according to the vLLM authors.`], link: "#ref-34" },
+    { key: "paged", short: "Paging", title: "Paging: hand out small blocks as needed", dur: 6,
+      text: [`Paged memory hands each conversation small blocks only as it grows, from anywhere in memory. Far less waste, so many more people fit.`,
+             `PagedAttention stores KV in fixed-size blocks (typically 16 tokens) tracked by a per-request block table, like virtual memory pages; waste drops below 4%.`], link: "#ref-34" },
+    { key: "prefix", short: "Sharing a prefix", title: "Shared beginnings are stored once", dur: 5.5,
+      text: [`Many conversations start with the same hidden instructions. Their notes can be stored once and shared, so nobody recomputes them.`,
+             `Prefix caching hashes full blocks of the token prefix; requests whose prompts start identically point their block tables at the same physical blocks.`] }
+  ];
+  const cams = {
+    default: { x: 30, y: 20, w: 900, h: 470 },
+    redo: { x: 30, y: 20, w: 900, h: 470 }, cache: { x: 30, y: 20, w: 900, h: 470 },
+    grow: { x: 960, y: 20, w: 1000, h: 660 }, many: { x: 960, y: 20, w: 1000, h: 660 },
+    reserve: { x: 960, y: 20, w: 1000, h: 660 }, paged: { x: 960, y: 20, w: 1000, h: 660 }, prefix: { x: 960, y: 20, w: 1000, h: 660 }
+  };
+
+  function tokensRow(k, f, gen, mode) {
+    const C = k.C;
+    for (let j = 0; j < words.length; j++) {
+      const x = chipX(j), live = j < gen, isNew = j === gen;
+      if (!live && !isNew) { k.box(x, CH.y, CH.w, CH.h, { stroke: C.line, r: 8, dash: [4, 4] }); continue; }
+      k.box(x, CH.y, CH.w, CH.h, { fill: isNew ? C.sig : C.bg2, stroke: isNew ? C.sig : C.line, r: 8, glow: isNew ? 14 : 0 });
+      k.text(x + CH.w / 2, CH.y + CH.h / 2 + 1, words[j], { col: isNew ? C.bg : C.ink, size: 15, weight: "600" });
+    }
+  }
+  function cards(k, j, a, flash) { // K and V note cards under token j
+    const C = k.C, x = chipX(j), y = 250;
+    k.box(x + 4, y, 38, 46, { fill: C.bg2, stroke: flash ? C.amb : C.sig, r: 6, alpha: a, glow: flash ? 12 : 0, glowCol: C.amb });
+    k.box(x + 46, y, 38, 46, { fill: C.bg2, stroke: flash ? C.amb : C.sig, r: 6, alpha: a, glow: flash ? 12 : 0, glowCol: C.amb });
+    k.text(x + 23, y + 24, "K", { col: flash ? C.amb : C.sig, size: 14, mono: true, weight: "600", alpha: a });
+    k.text(x + 65, y + 24, "V", { col: flash ? C.amb : C.sig, size: 14, mono: true, weight: "600", alpha: a });
+  }
+  function workBars(k, gen, mode) {
+    const C = k.C, bx = 70, by = 450, bw = 30;
+    k.label(bx, by + 22, "Work per step", { align: "left", col: C.muted });
+    for (let g = 1; g <= 7; g++) {
+      const redo = g, h = 14 * redo;
+      if (mode === "cache") k.box(bx + (g - 1) * (bw + 8), by - h, bw, h, { stroke: C.line, r: 3, dash: [3, 3] });
+      if (g > gen) continue;
+      const hh = mode === "redo" ? h : 14;
+      k.box(bx + (g - 1) * (bw + 8), by - hh, bw, hh, { fill: mode === "redo" ? C.amb : C.sig, r: 3, alpha: 0.9 });
+    }
+  }
+  function memoryGrid(k, fillFn) {
+    const N = M.cols * M.rows;
+    for (let c = 0; c < N; c++) { const [x, y] = cellXY(c); const st = fillFn(c); k.box(x, y, M.cell, M.cell, st || { fill: k.C.line, r: 5, alpha: 0.35 }); }
+  }
+  function hatch(k, x, y, w, h, col) { const c = k.ctx; c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip(); c.strokeStyle = col; c.globalAlpha = 0.55; c.lineWidth = k.px(1.2); for (let d = -h; d < w; d += 8) { c.beginPath(); c.moveTo(x + d, y + h); c.lineTo(x + d + h, y); c.stroke(); } c.restore(); }
+
+  storyFilm(fig, {
+    label: "Animated explanation of the KV cache and paged memory",
+    steps, cams,
+    draw(k, f) {
+      const C = k.C;
+      if (f.key === "redo" || f.key === "cache") {
+        const mode = f.key, gen = 1 + Math.min(6, Math.floor(f.p * 7.2)), sub = (f.p * 7.2) % 1;
+        tokensRow(k, f, gen, mode);
+        k.box(CH.x0 - 20, 150, chipX(7) + CH.w - CH.x0 + 40, 60, { stroke: C.line, r: 12 });
+        k.label(CH.x0 - 6, 140, "Attention layer", { align: "left", col: C.muted });
+        // which tokens compute K,V this step
+        for (let j = 0; j < gen; j++) {
+          const computing = mode === "redo" ? true : j === gen - 1;
+          const flash = computing && sub < 0.55;
+          const x = chipX(j) + CH.w / 2;
+          if (flash) k.box(chipX(j) + 6, 160, CH.w - 12, 40, { fill: C.amb, r: 8, alpha: 0.25 + 0.6 * (1 - sub / 0.55), glow: 16, glowCol: C.amb });
+          if (mode === "cache") cards(k, j, j === gen - 1 ? clamp01(sub / 0.4) : 1, flash);
+          // reading lines from earlier tokens' K/V to the new token
+          if (sub > 0.35) { const nx = chipX(gen) + CH.w / 2; k.curve([[x, mode === "cache" ? 250 : 200], [x, 225], [nx, 225], [nx, CH.y + CH.h]], { col: C.sig, lw: 1.2, alpha: 0.55 }); }
+        }
+        k.label(chipX(gen) + CH.w / 2, CH.y - 18, "next word", { col: C.sig, size: 11 });
+        workBars(k, gen, mode);
+        k.hud("br", mode === "redo" ? "Recomputing everything" : "With a KV cache", [["tokens written", String(gen)], ["K,V computed this step", mode === "redo" ? String(gen) : "1", mode === "redo" ? C.amb : C.sig], ["total so far", mode === "redo" ? String(gen * (gen + 1) / 2) : String(gen)]], { w: 210 });
+        return;
+      }
+      // ---- memory panel steps ----
+      k.label(M.x, M.y - 24, "One GPU's memory (80 GB) · each square ≈ 0.25 GB", { align: "left", col: C.ink, weight: "600" });
+      const N = M.cols * M.rows, free = N - W_CELLS;
+      const weights = c => c < W_CELLS ? { fill: C.muted, r: 5, alpha: 0.8 } : null;
+      if (f.key === "grow") {
+        const tok = Math.round(32768 * easeIO(f.p)), cells = Math.ceil(tok * 128 / 1024 / 1024 / 0.25); // KiB -> GB
+        memoryGrid(k, c => weights(c) || (c - W_CELLS < cells ? { fill: C.sig, r: 5, glow: c - W_CELLS === cells - 1 ? 14 : 0 } : null));
+        k.label(M.x, cellXY(W_CELLS - 1)[1] + M.cell + 18, "Model weights · 16 GB", { align: "left", col: C.muted });
+        k.hud("tl", "One conversation", [["tokens", tok.toLocaleString()], ["KV per token", "128 KiB"], ["KV cache", (tok * 128 / 1048576).toFixed(2) + " GiB", C.sig]], { w: 200 });
+        return;
+      }
+      if (f.key === "many") {
+        const sizes = [14, 9, 20, 6, 16, 11, 24, 8, 18, 12, 22, 10, 15, 19, 13, 17, 21, 9, 14, 12];
+        const shown = Math.floor(easeIO(f.p) * sizes.length * 1.05);
+        let c0 = W_CELLS; const owner = new Map(); let fitted = 0;
+        sizes.slice(0, shown).forEach((s, j) => { if (c0 + s > N) return; for (let q = 0; q < s; q++) owner.set(c0 + q, j); c0 += s; fitted++; });
+        memoryGrid(k, c => weights(c) || (owner.has(c) ? { fill: convCol[owner.get(c) % 8], r: 5, alpha: 0.9 } : null));
+        const waiting = Math.max(0, shown - fitted);
+        k.hud("tl", "Conversations", [["fitting in memory", String(fitted), C.sig], ["waiting for space", String(waiting), waiting ? C.amb : C.muted], ["free memory", ((N - c0) * 0.25).toFixed(1) + " GB"]], { w: 210 });
+        return;
+      }
+      if (f.key === "reserve") {
+        const RES = 32, used = [6, 3, 9, 4, 7, 2, 5, 8];
+        const fits = Math.floor(free / RES); let c0 = W_CELLS;
+        const reveal = Math.ceil(easeIO(f.p / 0.7) * fits);
+        memoryGrid(k, c => weights(c) || null);
+        for (let j = 0; j < Math.min(reveal, fits); j++) {
+          for (let q = 0; q < RES; q++) { const c = c0 + q, [x, y] = cellXY(c), u = q < used[j % 8]; if (u) k.box(x, y, M.cell, M.cell, { fill: convCol[j % 8], r: 5 }); else { k.box(x, y, M.cell, M.cell, { stroke: convCol[j % 8], r: 5, alpha: 0.7 }); hatch(k, x, y, M.cell, M.cell, convCol[j % 8]); } }
+          c0 += RES;
+        }
+        const usedCells = used.slice(0, fits).reduce((a, b) => a + b, 0);
+        k.hud("tl", "Reserve the maximum", [["conversations", String(fits)], ["memory reserved", (fits * RES * 0.25).toFixed(0) + " GB"], ["actually used", (usedCells * 0.25).toFixed(1) + " GB", C.amb], ["wasted", Math.round((1 - usedCells / (fits * RES)) * 100) + "%", C.amb]], { w: 210 });
+        return;
+      }
+      if (f.key === "paged" || f.key === "prefix") {
+        // deterministic scatter: conversation j owns the cells where a hash picks j
+        const used = [6, 3, 9, 4, 7, 2, 5, 8], nConv = f.key === "paged" ? Math.min(40, Math.max(8, Math.round(8 + easeIO(f.p / 0.8) * 32))) : 24;
+        const order = []; for (let c = W_CELLS; c < N; c++) order.push(c);
+        let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+        for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+        const owner = new Map(); let p = 0; const PRE = 6; const shared = f.key === "prefix";
+        if (shared) for (let q = 0; q < PRE; q++) owner.set(order[p++], -1);
+        const myCells = [];
+        for (let j = 0; j < nConv && p < order.length; j++) { const need = used[j % 8] + (shared ? 0 : 0); const mine = []; for (let q = 0; q < need && p < order.length; q++) { owner.set(order[p], j); mine.push(order[p]); p++; } myCells.push(mine); }
+        memoryGrid(k, c => weights(c) || (owner.has(c) ? (owner.get(c) === -1 ? { fill: C.ink, r: 5, glow: 10, glowCol: C.ink } : { fill: convCol[owner.get(c) % 8], r: 5, alpha: 0.9 }) : null));
+        // block table for conversation 0: lines from a small table to its blocks
+        const tx = M.x - 40, ty = M.y + 420;
+        if (!shared) { k.box(tx - 70, ty, 60, 26 * Math.min(5, myCells[0].length) + 10, { fill: C.bg2, stroke: convCol[0], r: 6 }); k.label(tx - 40, ty - 14, "block table", { col: C.muted, size: 11 });
+          myCells[0].slice(0, 5).forEach((c, q) => { const [x, y] = cellXY(c); k.line(tx - 12, ty + 18 + q * 26, x, y + M.cell / 2, { col: convCol[0], lw: 1, alpha: 0.6 }); k.dot(tx - 40, ty + 18 + q * 26, 4, convCol[0]); }); }
+        else { const sharedCells = [...owner.entries()].filter(([, o]) => o === -1).map(([c]) => c); [0, 1, 2, 3].forEach(j => { const mc = myCells[j][0]; if (mc == null) return; const [x1, y1] = cellXY(mc); sharedCells.slice(0, 2).forEach(sc => { const [x2, y2] = cellXY(sc); k.line(x1 + M.cell / 2, y1 + M.cell / 2, x2 + M.cell / 2, y2 + M.cell / 2, { col: convCol[j % 8], lw: 1.2, alpha: 0.5 }); }); }); }
+        const usedCells = myCells.reduce((a, m) => a + m.length, 0);
+        k.hud("tl", shared ? "Prefix caching" : "Paged memory", shared ? [["conversations", String(nConv)], ["shared instructions", "stored once", C.ink], ["recomputed", "never", C.sig]] : [["conversations", String(myCells.length), C.sig], ["reserved but empty", "almost none", C.sig], ["free memory", ((N - W_CELLS - usedCells) * 0.25).toFixed(1) + " GB"]], { w: 210 });
+      }
+    }
+  });
+});
+
+</script>
+<script>
 /* Chapter 6: decode step animation, static vs continuous batching, roofline tool */
 chapter("sharing", () => {
   const BW = 3.35e12 * 0.7, F = 989e12 * 0.5;
@@ -2958,6 +3278,8 @@ chapter("sharing", () => {
   $("#rf-chip").addEventListener("change", roof); $("#rf-b").addEventListener("input", roof); $("#rf").addEventListener("toggle", roof); onRedraw(roof);
 });
 
+</script>
+<script>
 /* Chapter 7: cleaning pipeline funnel + packing tool */
 chapter("data", () => {
   const docs = [
@@ -3040,6 +3362,8 @@ chapter("data", () => {
   $("#pk-new").addEventListener("click", () => { seed = (seed * 48271) % 2147483647; pack(); }); $("#pk").addEventListener("toggle", pack); onRedraw(pack);
 });
 
+</script>
+<script>
 /* Chapter 8: loss landscape + tiny neural network trained with backprop/Adam */
 chapter("learning", () => {
   /* ---- landscape ---- */
@@ -3128,6 +3452,8 @@ chapter("learning", () => {
   init(); onRedraw(ndraw);
 });
 
+</script>
+<script>
 /* Chapter 9: compute budget splitter + training cost calculator */
 chapter("scale", () => {
   const E = 1.82, A = 482.0, B = 2085.4, al = 0.348, be = 0.366, loss = (N, D) => E + A / N ** al + B / D ** be;
@@ -3190,6 +3516,8 @@ chapter("scale", () => {
   $("#tc-preset").dispatchEvent(new Event("change")); onRedraw(cost);
 });
 
+</script>
+<script>
 /* Chapter 10: ring all-reduce, pipeline schedules, memory calculator */
 chapter("cluster", () => {
   /* ---- ring all-reduce ---- */
@@ -3282,6 +3610,8 @@ chapter("cluster", () => {
   $("#mm").addEventListener("toggle", mem); onRedraw(mem);
 });
 
+</script>
+<script>
 /* Chapter 11: keep-the-cluster-alive game */
 chapter("failures", () => {
   const causes = [["Faulty GPU", 148], ["GPU HBM3 memory", 72], ["Network switch or cable", 35], ["GPU SRAM", 19], ["GPU system processor", 17], ["CPU", 2], ["Software bug, host maintenance or other", 126]];
@@ -3334,6 +3664,8 @@ chapter("failures", () => {
   reset(); onRedraw(draw);
 });
 
+</script>
+<script>
 /* Chapter 12: training stages + KL-regularised optimum */
 chapter("align", () => {
   const P = [
@@ -3379,6 +3711,8 @@ chapter("align", () => {
   bindCtl("kl-b", run, e => (10 ** +e.value).toFixed(2)); $("#kl-flaw").addEventListener("change", run); onRedraw(run);
 });
 
+</script>
+<script>
 /* Chapter 13: noise machine + significance calculator */
 chapter("evals", () => {
   let diffs = [], pending = 0, r = rng(3);
@@ -3422,6 +3756,8 @@ chapter("evals", () => {
   $("#ev").addEventListener("toggle", calc); onRedraw(calc);
 });
 
+</script>
+<script>
 /* Chapter 14: chip-to-campus zoom + power calculator */
 chapter("datacenter", () => {
   const L = [
@@ -3494,6 +3830,8 @@ chapter("datacenter", () => {
   $("#pw-preset").dispatchEvent(new Event("change")); onRedraw(power);
 });
 
+</script>
+<script>
 /* Chapter 15: agent loop terminal with context accounting */
 chapter("harness", () => {
   const script = [
