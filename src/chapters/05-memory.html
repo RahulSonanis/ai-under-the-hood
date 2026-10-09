@@ -1,5 +1,5 @@
 <section class="chapter" id="memory" data-title="KV cache">
-  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 5</span><span class="label">KV cache</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 5</span><span class="label">KV cache</span></div>
   <h2>How does it remember the conversation?</h2>
   <div class="answer"><span class="label">Short answer</span><p>The model itself keeps nothing between messages. The conversation is stored outside it and fed back in with every request. While writing a reply, the model keeps notes on every earlier token (their attention keys and values) so it never recomputes them. Those notes, the <b>KV cache</b>, fill up GPU memory fast, and managing that memory decides how many people one GPU can serve.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 9 min read · 2 interactives</span></div><ul><li>Tell apart chat history, KV cache, prefix caching and app memory</li><li>Compute KV cache size per token</li><li>Explain why paging fits more people on a GPU</li></ul></div>

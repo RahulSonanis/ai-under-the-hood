@@ -5,92 +5,105 @@ chapter("send", () => {
     "Write a haiku about servers.": "Fans hum through the night / a thousand racks hold their breath / your answer, then dawn",
     "What is 17 × 24?": "17 × 24 = 408. One way: 17 × 20 = 340 and 17 × 4 = 68, and 340 + 68 = 408."
   };
-  const clients = { app: "Chat app", cli: "Terminal (CLI)", api: "Your code (API call)" };
-  const spans = [
-    { k: "net", name: "Network to datacenter", dev: "net", ch: "send", d: "Your encrypted request travels over the internet to the provider's nearest entry point, then on to a region that runs the model." },
-    { k: "gw", name: "API gateway", dev: "cpu", ch: "send", d: "Checks your API key or login, applies rate limits, and records usage for billing." },
-    { k: "safe", name: "Policy checks", dev: "cpu", ch: "evals", d: "Many providers run lightweight classifiers on inputs and outputs to catch abuse. Exact checks differ by provider." },
-    { k: "queue", name: "Queue", dev: "cpu", ch: "sharing", d: "If every model replica is full, your request waits for a free slot. This grows quickly as the service gets busy." },
-    { k: "route", name: "Router", dev: "cpu", ch: "memory", d: "Picks a model replica, ideally one that already has the start of your conversation in its cache." },
-    { k: "tok", name: "Tokenize", dev: "cpu", ch: "tokens", d: "Your text is split into tokens, the integer IDs the model works with." },
-    { k: "prefill", name: "Prefill: read the whole prompt", dev: "gpu", ch: "inside", d: "All prompt tokens pass through the model together. This fills the attention cache and produces the first output token." },
-    { k: "decode", name: "Decode: write one token at a time", dev: "gpu", ch: "predict", d: "Each step reads the model's weights (for mixture-of-experts models, only the experts it uses) to produce the next token, which is sampled, sent back and appended to the input." },
-    { k: "stream", name: "Stream back", dev: "net", ch: "send", d: "Each token is turned back into text and sent to you as soon as it exists, over the same open connection." }
-  ];
-  const thinkSpan = { k: "think", name: "Thinking: hidden reasoning", dev: "gpu", ch: "align", d: "Reasoning models first generate tokens you may not see (or see only as a summary), working through the problem before writing the answer. These are decoded exactly like normal tokens, so they add time and cost before the first visible word." };
-  const sysTok = { app: 400, cli: 3000, api: 0 };
-  const sysNote = { app: "incl. ~400 hidden system-prompt tokens", cli: "incl. ~3,000 tokens of instructions and tool definitions", api: "only what your code sends" };
   const LONG = "Summarise this incident report for an executive audience. " + "At 09:14 UTC the payments service began returning elevated 5xx errors after a configuration change to the connection pool. Retries amplified load on the primary database, which hit its connection limit; the on-call engineer rolled back the change at 09:41 and error rates returned to normal by 09:52. ".repeat(30);
-  const cv = $("#tr-cv"); let trace = null, t0 = 0, playing = false, chosen = null;
-  const getClient = seg($("#tr-client"), v => { $("#tr-client-label").textContent = clients[v]; if (!playing) { trace = build(); draw(null); readouts(trace, null); } });
-  const getSpeed = seg($("#tr-speed"), () => {});
-  bindCtl("tr-load", () => {}, e => Math.round(e.value * 100) + "%");
-  $$("#tr-presets button").forEach(b => b.addEventListener("click", () => { $("#tr-prompt").value = b.dataset.p === "__long__" ? LONG.trim() : b.dataset.p; if (!playing) { trace = build(); draw(null); readouts(trace, null); } }));
-  $("#tr-think").addEventListener("change", () => { if (!playing) { trace = build(); draw(null); readouts(trace, null); } });
+  const LONG_REPLY = "Summary: a configuration change to the payments service's connection pool caused 38 minutes of elevated errors. Retries overloaded the database. Rolling back fixed it; follow-ups are safer config rollout and retry limits.";
+  const sysTok = { app: 400, cli: 3000, api: 0 };
+  const sysWhat = { app: "about 400 hidden system-prompt tokens", cli: "about 3,000 tokens of hidden instructions and tool definitions", api: "no hidden tokens: your code sends only what you write" };
   const approxTokens = s => Math.max(1, Math.ceil(s.length / 4));
+  const TPOT = 22;
+  const chapterOf = { map: "send", send: "send", net: "send", gw: "send", safe: "evals", queue: "sharing", route: "memory", tok: "tokens", prefill: "inside", think: "align", decode: "predict", stream: "send", done: "tokens" };
+  const chName = { send: "this chapter", evals: "Chapter 13", sharing: "Chapter 6", memory: "Chapter 5", tokens: "Chapter 2", inside: "Chapter 4", align: "Chapter 12", predict: "Chapter 3" };
+  const titles = { map: "The whole trip", send: "You press send", net: "Across the internet", gw: "The front door", safe: "A quick safety check", queue: "Waiting in line", route: "Picking a copy of the model", tok: "Chopping text into tokens", prefill: "Reading the whole prompt at once", think: "Thinking before answering", decode: "Writing one token at a time", stream: "Streaming back to you", done: "Done" };
 
-  function build() {
+  const cv = $("#tr-cv"), J = createJourney(cv), stage = cv.parentElement;
+  let sc = null;
+  const getClient = seg($("#tr-client"), () => rebuild());
+  bindCtl("tr-load", () => rebuild(), e => Math.round(e.value * 100) + "%");
+  $("#tr-think").addEventListener("change", () => rebuild());
+  $$("#tr-presets button").forEach(b => b.addEventListener("click", () => { $$("#tr-presets button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); $("#tr-prompt").value = b.dataset.p === "__long__" ? LONG.trim() : b.dataset.p; rebuild(); }));
+  $("#tr-prompt").addEventListener("change", () => { $$("#tr-presets button").forEach(x => x.setAttribute("aria-pressed", "false")); rebuild(); });
+
+  function scenario() {
     const prompt = $("#tr-prompt").value.trim() || "Hello";
-    const reply = prompt.startsWith("Summarise this incident") ? "Summary: a configuration change to the payments service's connection pool caused 38 minutes of elevated errors. Retries overloaded the database. Rolling back fixed it; follow-ups are safer config rollout and retry limits." : replies[prompt] || "(Illustrative reply.) I'd start by breaking the question into parts, then answer each one clearly, and finish with a short summary you can act on.";
-    const sys = sysTok[getClient()], inTok = approxTokens(prompt) + sys, rho = num("tr-load"), think = checked("tr-think") ? 300 : 0;
-    const words = reply.match(/\S+\s*/g) || [reply];
-    const outTok = approxTokens(reply);
-    const durs = { net: 40, gw: 12, safe: 25, queue: Math.round(60 * rho / (1 - rho)), route: 4, tok: 2, prefill: Math.round(30 + inTok * 0.08), think: think * 22, decode: outTok * 22, stream: 40 };
-    const list = think ? [...spans.slice(0, 7), thinkSpan, ...spans.slice(7)] : spans;
-    let t = 0; const out = list.map(s => { const sp = { ...s, start: t, dur: durs[s.k] }; if (s.k === "decode") { sp.start = t; } if (s.k === "stream") { sp.start = durs.net + durs.gw + durs.safe + durs.queue + durs.route + durs.tok + durs.prefill + durs.think; sp.dur = durs.decode + durs.stream; } else t += durs[s.k]; return sp; });
-    const ttft = durs.net + durs.gw + durs.safe + durs.queue + durs.route + durs.tok + durs.prefill + durs.think + durs.stream;
-    const total = out[out.length - 1].start + out[out.length - 1].dur;
-    return { spans: out, words, inTok, outTok, ttft, total, prompt: prompt.length > 160 ? prompt.slice(0, 160) + "… (" + inTok.toLocaleString() + " tokens)" : prompt, reply, tpot: 22, think, client: getClient() };
+    const reply = prompt.startsWith("Summarise this incident") ? LONG_REPLY : replies[prompt] || "Here's a short, clear answer to your question, with the key idea first and a one-line summary at the end.";
+    const client = getClient(), sys = sysTok[client], inTok = approxTokens(prompt) + sys, rho = num("tr-load"), think = checked("tr-think") ? 300 : 0;
+    const cached = sys > 0, outTok = approxTokens(reply);
+    const durs = { net: 40, gw: 12, safe: 25, queue: Math.round(60 * rho / (1 - rho)), route: 4, tok: 2, prefill: Math.round(30 + (inTok - (cached ? sys : 0)) * 0.08), think: think * TPOT, decode: outTok * TPOT, stream: 40 };
+    const ttft = durs.net + durs.gw + durs.safe + durs.queue + durs.route + durs.tok + durs.prefill + durs.think + TPOT + durs.stream;
+    const total = ttft + (outTok - 1) * TPOT;
+    const promptShort = prompt.length > 90 ? prompt.slice(0, 86) + "…" : prompt;
+    return { prompt, promptShort, reply, client, sys, inTok, think, cached, outTok, durs, ttft, total, busy: rho };
   }
-  function draw(now) {
-    const W = innerW(cv.parentElement); const narrow = W < 560; const labW = narrow ? 0 : 230;
-    const tr0 = trace || build(); const rowH = narrow ? 34 : 24; const H = tr0.spans.length * rowH + 36;
-    const { ctx, w } = setupCanvas(cv, H); ctx.clearRect(0, 0, w, H);
-    const tr = tr0; const T = tr.total * 1.04; const sx = v => labW + v / T * (w - labW - 6);
-    font(ctx, 10, "--f-mono"); ctx.fillStyle = css("--muted"); ctx.strokeStyle = css("--grid");
-    const maxTicks = Math.max(3, Math.floor((w - labW) / 70)); const stepMs = [100, 200, 250, 500, 1000, 2000, 5000].find(s => T / s <= maxTicks) || 10000;
-    for (let v = 0; v <= T; v += stepMs) { const x = sx(v); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H - 18); ctx.stroke(); ctx.textAlign = "center"; ctx.fillText(v >= 1000 ? (v / 1000).toFixed(v % 1000 ? 1 : 0) + " s" : v + " ms", Math.max(14, Math.min(w - 16, x)), H - 5); }
-    tr.spans.forEach((s, i) => {
-      const y = i * rowH + 4; const col = s.dev === "gpu" ? css("--accent") : s.dev === "net" ? css("--muted") : css("--ink");
-      font(ctx, 12, "--f-display", chosen === i ? "700" : ""); ctx.fillStyle = chosen === i ? css("--accent") : css("--ink"); ctx.textAlign = "left";
-      if (narrow) ctx.fillText(s.name, 2, y + 10); else ctx.fillText(s.name, 2, y + 13);
-      const by = narrow ? y + 15 : y + 3, bh = narrow ? 12 : 14;
-      ctx.fillStyle = css("--grid"); ctx.fillRect(sx(s.start), by, Math.max(2, sx(s.start + s.dur) - sx(s.start)), bh);
-      const prog = now == null ? s.dur : Math.max(0, Math.min(s.dur, now - s.start));
-      if (prog > 0) { ctx.fillStyle = col; ctx.globalAlpha = s.dev === "cpu" ? 0.55 : 0.9; ctx.fillRect(sx(s.start), by, Math.max(2, sx(s.start + prog) - sx(s.start)), bh); ctx.globalAlpha = 1; }
-      if (s.k === "decode" && prog > 0) { ctx.fillStyle = css("--surface"); const n = Math.floor(prog / tr.tpot); for (let j = 1; j <= n; j++) { const x = sx(s.start + j * tr.tpot); if (x - sx(s.start) > 3) ctx.fillRect(x, by, 1, bh); } }
-    });
-    if (now != null) { const x = sx(Math.min(now, tr.total)); ctx.strokeStyle = css("--heat"); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H - 18); ctx.stroke(); ctx.lineWidth = 1; }
-    cv._hit = { rowH, n: tr.spans.length };
+  function segments(s) {
+    const L = [["map", 2.4, 0], ["send", 2.2, 5], ["net", 2.6, s.durs.net], ["gw", 2.2, s.durs.gw], ["safe", 2.2, s.durs.safe], ["queue", 2.0 + J.S.others * 0.35, s.durs.queue], ["route", 2.4, s.durs.route], ["tok", 2.8, s.durs.tok], ["prefill", 3.4, s.durs.prefill]];
+    if (s.think) L.push(["think", 3.6, s.durs.think]);
+    L.push(["decode", 7, s.durs.decode], ["stream", 2.6, s.durs.stream], ["done", 2.4, 0]);
+    return L.map(([key, dur, rdur]) => ({ key, dur, rdur, title: titles[key] }));
   }
-  function readouts(tr, now) {
-    const done = now == null || now >= tr.total;
-    $("#tr-read").innerHTML = `
-      <div class="readout"><div class="k">Prompt tokens</div><div class="v">≈${tr.inTok}</div><div class="s">${sysNote[tr.client]}</div></div>
-      <div class="readout hot"><div class="k">Time to first token</div><div class="v">${(tr.ttft / 1000).toFixed(2)} s</div></div>
-      <div class="readout"><div class="k">Output speed</div><div class="v">${(1000 / tr.tpot).toFixed(0)} tok/s</div><div class="s">${tr.think ? tr.think + " hidden thinking tokens first" : "visible tokens only"}</div></div>
-      <div class="readout ${done ? "ok" : ""}"><div class="k">Total</div><div class="v">${done ? (tr.total / 1000).toFixed(2) + " s" : "…"}</div><div class="s">${tr.outTok} output tokens</div></div>`;
+  const ms = v => v < 1000 ? Math.round(v) + " ms" : (v / 1000).toFixed(2) + " s";
+  function caption(seg, depth) {
+    const s = sc, k = seg.key, deep = depth >= 3, ch = chapterOf[k];
+    const more = ch && ch !== "send" ? ` <a href="#${ch}">${chName[ch]} goes deeper →</a>` : "";
+    const C = {
+      map: [`Your prompt's trip: from your screen, across the internet, through a datacenter's front door to a GPU that writes the reply. Press play, or step through with the arrows.`,
+            `One request, end to end: client → network → API gateway → safety classifier → queue → router → a model replica on GPUs, then tokens stream back. Press play, or step with ← →.`],
+      send: [`You press send. Your words, and the conversation so far, are packed into a request.`,
+             `The client POSTs JSON over HTTPS: the message list, model name, max tokens and "stream": true. It carries ${sysWhat[s.client]}.`],
+      net: [`The request races through fibre-optic cable to the provider's datacenter. Light covers 1,000 km of fibre in about 5 ms.`,
+            `TLS-encrypted, routed to the provider's nearest entry point, then over its network to a region that serves this model. Expect tens of milliseconds.`],
+      gw: [`At the front door, a gatekeeper checks who you are and that you haven't sent too many requests.`,
+           `The API gateway authenticates the key or session, applies rate limits and records usage for billing.`],
+      safe: [`A quick check looks for clearly harmful requests. Many providers check replies too.`,
+             `Lightweight classifiers screen inputs (and often outputs) for abuse. What is checked, and where, differs by provider.`],
+      queue: [s.busy > 0.05 ? `Every copy of the model is busy, so your request waits its turn. ${J.S.others} ${J.S.others === 1 ? "request is" : "requests are"} ahead of you. Try the "How busy" slider.` : `The service is quiet, so there's no line today. Try the "How busy" slider below.`,
+              `Wait time rises sharply as utilisation nears 100% (M/M/1: W_q = ρ/(μ−λ)). Here ρ = ${Math.round(s.busy * 100)}%, adding ${ms(s.durs.queue)}. Providers keep headroom and spread load across regions.`],
+      route: [`A router picks one copy of the model with room for you, ideally one that has already read the start of your conversation.`,
+              `Load balancers prefer a replica whose prefix cache already holds your prompt's opening tokens${s.cached ? " (here the system prompt), so they needn't be recomputed" : ""}.`],
+      tok: [`Your text is chopped into tokens, pieces of words that each become a number.`,
+            `${s.inTok.toLocaleString()} input tokens${s.sys ? `, ${s.sys.toLocaleString()} of them hidden instructions` : ""}. Tokenizing is a fast table lookup on a CPU.`],
+      prefill: [`The model reads every token at once, layer by layer, and keeps notes about each one (the KV cache, bottom).`,
+                `Prefill runs all ${(s.inTok - (s.cached ? s.sys : 0)).toLocaleString()} uncached tokens through every layer in parallel: compute-bound, about 2 × parameters × tokens FLOPs, ${ms(s.durs.prefill)} here.`],
+      think: [`A thinking model first writes hidden reasoning. Those tokens take time like any others, but you don't see them.`,
+              `${s.think} reasoning tokens are decoded exactly like visible ones (${ms(s.durs.think)} here), and their notes go into the KV cache too.`],
+      decode: [`Now it writes the reply one token at a time: score every possible next piece, pick one, add it, repeat. Each token is sent to you the moment it exists.`,
+               `Each decode step reads the weights from memory to produce one token: about ${TPOT} ms per token (${Math.round(1000 / TPOT)} tokens/s). It's limited by memory bandwidth, not compute.`],
+      stream: [`Tokens keep arriving over the same open connection, and your app shows them as they land.`,
+               `Server-sent events: one long HTTP response that delivers each chunk as it's generated. Detokenizing turns IDs back into text.`],
+      done: [`Done. The first word appeared after ${ms(s.ttft)}; the full reply took ${ms(s.total)}. Press replay, or change the prompt, the app or how busy it is.`,
+             `TTFT ${ms(s.ttft)} (network + queue + prefill${s.think ? " + thinking" : ""}), then ${s.outTok} tokens at ${TPOT} ms each: ${ms(s.total)} in total.`]
+    };
+    return (C[k] ? C[k][deep ? 1 : 0] : "") + more;
   }
-  function explain(i) { const s = (trace || build()).spans[i]; $("#tr-now-t").textContent = s.name; $("#tr-now").innerHTML = `${esc(s.d)} <a href="#${s.ch}">Learn more →</a>`; }
-  const loop = animLoop(() => {
-    const speed = +getSpeed(); const now = (performance.now() - t0) / speed;
-    draw(now); const tr = trace; const firstAt = tr.ttft, n = now < firstAt ? 0 : Math.min(tr.words.length, Math.floor((now - firstAt) / (tr.total - firstAt) * tr.words.length) + 1);
-    $("#tr-screen").innerHTML = `<div class="muted" style="font-size:0.9rem">You: ${esc(tr.prompt)}</div><div style="margin-top:0.4rem">${n ? esc(tr.words.slice(0, n).join("")) : `<span class="muted">${tr.think && now > tr.ttft - tr.think * 22 - 40 ? "thinking…" : "waiting for the first token…"}</span>`}</div>`;
-    const cur = tr.spans.findIndex(s => now >= s.start && now < s.start + s.dur && s.k !== "stream");
-    if (cur >= 0 && chosen === null) explain(cur);
-    readouts(tr, now);
-    if (now >= tr.total) { playing = false; $("#tr-go").disabled = false; $("#tr-go").textContent = "Send again"; $("#tr-now-t").textContent = "Done"; $("#tr-now").innerHTML = "Reply complete. Click any bar to read about that step, or <a href=\"#tokens\">start with tokens →</a>"; return false; }
+  const hgt = () => { const w = innerW(stage); return w < 640 ? Math.round(Math.max(280, w * 0.9)) : Math.round(Math.min(560, Math.max(380, w * 0.5))); };
+  const capH = () => 0;
+  const film = makeFilm($("#tr"), {
+    draw: (t, i, segs) => J.draw(t, i, segs, { h: hgt(), capH: capH() }),
+    caption, onFrame: (t, i, rt) => timebar(rt)
   });
-  $("#tr-go").addEventListener("click", () => {
-    trace = build(); chosen = null; playing = true; $("#tr-go").disabled = true;
-    if (reduceMotion()) { draw(null); $("#tr-screen").innerHTML = `<div class="muted" style="font-size:0.9rem">You: ${esc(trace.prompt)}</div><div style="margin-top:0.4rem">${esc(trace.reply)}</div>`; readouts(trace, null); $("#tr-go").disabled = false; playing = false; return; }
-    t0 = performance.now(); loop.start();
-  });
-  cv.addEventListener("click", e => { const r = cv.getBoundingClientRect(); const i = Math.floor((e.clientY - r.top - 4) / cv._hit.rowH); if (i >= 0 && i < cv._hit.n) { chosen = i; explain(i); if (!playing) draw(null); } });
-  cv.style.cursor = "pointer"; cv.tabIndex = 0; cv.setAttribute("aria-label", "Request trace. Use the up and down arrow keys to step through the stages.");
-  cv.addEventListener("keydown", e => { if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return; e.preventDefault(); const n = cv._hit.n; chosen = chosen === null ? 0 : (chosen + (e.key === "ArrowDown" ? 1 : n - 1)) % n; explain(chosen); if (!playing) draw(null); });
-  onRedraw(() => { if (!playing) { draw(trace ? null : null); readouts(trace || build(), null); } });
-  $("#tr-screen").innerHTML = '<span class="muted">Your conversation will appear here.</span>';
+  const bars = [["Network", s => s.durs.net * 2, "--muted"], ["Checks and line", s => s.durs.gw + s.durs.safe + s.durs.queue + s.durs.route + s.durs.tok, "--ink"], ["Reading the prompt", s => s.durs.prefill, "--heat"], ["Thinking", s => s.durs.think, "--l3"], ["Writing the reply", s => s.durs.decode, "--accent"]];
+  function timebar(rt) {
+    const s = sc; if (!s) return; const tot = bars.reduce((a, b) => a + b[1](s), 0);
+    const el = $("#tr-time"); if (!el._built || el._sc !== s) { el._built = 1; el._sc = s;
+      el.innerHTML = `<div class="tb-row">${bars.filter(b => b[1](s) > 0).map(b => `<span style="width:${b[1](s) / tot * 100}%;background:var(${b[2]});opacity:0.85"></span>`).join("")}<i class="tb-head"></i></div><div class="tb-keys">${bars.filter(b => b[1](s) > 0).map(b => `<span><i style="background:var(${b[2]})"></i>${b[0]} ${ms(b[1](s))}</span>`).join("")}</div>`; }
+    $(".tb-head", el).style.left = Math.min(100, rt / tot * 100) + "%";
+  }
+  function stats() {
+    const s = sc;
+    $("#tr-read").innerHTML = `<div><span class="v">${s.inTok.toLocaleString()}</span><span class="k">input tokens</span></div>
+      <div><span class="v" style="color:var(--heat)">${ms(s.ttft)}</span><span class="k">until the first word</span></div>
+      <div><span class="v">${Math.round(1000 / TPOT)}/s</span><span class="k">tokens while writing</span></div>
+      <div><span class="v">${ms(s.total)}</span><span class="k">for the whole reply</span></div>`;
+  }
+  function rebuild() {
+    sc = scenario(); J.setup(sc); film.pause(); film.setSegs(segments(sc)); film.seek(0); stats(); timebar(0);
+  }
+  rebuild();
+  $("#tr-start").addEventListener("click", () => { $("#tr-start").hidden = true; film.seek(film.segs[1].t0); film.play(); });
+  stage.addEventListener("click", e => { if (e.target !== cv) return; $("#tr-start").hidden = true; const r = cv.getBoundingClientRect(), k = J.hitKey(e.clientX - r.left, e.clientY - r.top); if (!k) return; const j = film.segs.findIndex(s => s.key === k); if (j >= 0) film.playSeg(j); });
+  cv.addEventListener("focus", () => { $("#tr-start").hidden = true; });
+  $(".scene-bar", $("#tr")).addEventListener("click", () => { $("#tr-start").hidden = true; });
+  $(".scene-bar", $("#tr")).addEventListener("input", () => { $("#tr-start").hidden = true; });
+  onRedraw(() => { film.refresh(); });
 
   /* ---- rewind ---- */
   const ev = [

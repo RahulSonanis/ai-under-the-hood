@@ -11,42 +11,49 @@
    Sticky top bar (course title, explanation depth, theme). Left: the course outline as a
    route map with progress marks. Right: one chapter per screen, built around a single
    hands-on instrument, with concept "ladders" that deepen from Age 5 to Mathematician. */
+/* Design v3 — "the machine, made visible".
+   Two surfaces with two jobs: a quiet, light reading page for explanation, and dark "stages"
+   (like film frames) where the machinery moves. On every stage the same two signals mean the
+   same thing: teal = data moving (tokens, packets, bytes), amber = energy spent (compute, heat, cost). */
 :root {
-  --bg: #eef2f5;
+  --bg: #f3f4f1;
   --surface: #ffffff;
-  --surface-2: #f5f7fa;
-  --ink: #13212e;
-  --muted: #56667a;
-  --line: #cbd5df;
-  --accent: #1f6fb2;      /* coolant blue: the model, the data path */
-  --accent-soft: #dbe9f6;
-  --heat: #a85f00;        /* power amber: cost, heat, attention */
-  --heat-soft: #f7ead6;
-  --ok: #2f7d4f;
-  --ok-soft: #dcefe3;
-  --crit: #b42318;
-  --crit-soft: #fbe2df;
-  --grid: #e1e7ed;
-  --l1: #2f7d4f; --l2: #1f6fb2; --l3: #6a4fb3; --l4: #a85f00; /* ladder levels */
+  --surface-2: #eceee9;
+  --ink: #15181f;
+  --muted: #5b616c;
+  --line: #d8dbd4;
+  --accent: #2446d8;      /* cobalt: links, the reader's controls */
+  --accent-soft: #e2e8fb;
+  --heat: #b15c08;        /* amber: compute, cost, heat */
+  --heat-soft: #f6e9d8;
+  --ok: #1d7a4c;
+  --ok-soft: #dcefe4;
+  --crit: #c02b1e;
+  --crit-soft: #fae3e0;
+  --grid: #e4e6e0;
+  --l1: #1d7a4c; --l2: #2446d8; --l3: #6b46c1; --l4: #b15c08;
+  /* stage (always dark: it is the inside of the machine) */
+  --stage: #0b1526; --stage-2: #111f36; --stage-line: #24365a; --stage-ink: #e9eef7; --stage-muted: #8a9bb8;
+  --signal: #5ce1c6; --amber: #ffb547; --you: #f4f6fb;
   --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --f-body: "Source Serif 4", Georgia, "Times New Roman", serif;
   --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-  --radius: 8px;
+  --radius: 10px;
   --bar-h: 56px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0e161e; --surface: #15212c; --surface-2: #111b25; --ink: #e3eaf1; --muted: #98a8ba;
-    --line: #2a3d50; --accent: #5aa9e6; --accent-soft: #16324a; --heat: #f0a43a; --heat-soft: #3a2a12;
-    --ok: #5cc28a; --ok-soft: #14321f; --crit: #ff7b6e; --crit-soft: #3d1a17; --grid: #1e2d3b;
-    --l1: #5cc28a; --l2: #5aa9e6; --l3: #a993ec; --l4: #f0a43a; color-scheme: dark;
+    --bg: #0f141c; --surface: #161d28; --surface-2: #121924; --ink: #e6ebf2; --muted: #9aa6b8;
+    --line: #2a3546; --accent: #8aa6ff; --accent-soft: #1d2a4d; --heat: #f2a54a; --heat-soft: #3a2a14;
+    --ok: #5cc895; --ok-soft: #14321f; --crit: #ff7f72; --crit-soft: #3d1a17; --grid: #1f2836;
+    --l1: #5cc895; --l2: #8aa6ff; --l3: #b69cf5; --l4: #f2a54a; --stage: #070e1b; --stage-2: #0d1829; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0e161e; --surface: #15212c; --surface-2: #111b25; --ink: #e3eaf1; --muted: #98a8ba;
-  --line: #2a3d50; --accent: #5aa9e6; --accent-soft: #16324a; --heat: #f0a43a; --heat-soft: #3a2a12;
-  --ok: #5cc28a; --ok-soft: #14321f; --crit: #ff7b6e; --crit-soft: #3d1a17; --grid: #1e2d3b;
-  --l1: #5cc28a; --l2: #5aa9e6; --l3: #a993ec; --l4: #f0a43a; color-scheme: dark;
+  --bg: #0f141c; --surface: #161d28; --surface-2: #121924; --ink: #e6ebf2; --muted: #9aa6b8;
+  --line: #2a3546; --accent: #8aa6ff; --accent-soft: #1d2a4d; --heat: #f2a54a; --heat-soft: #3a2a14;
+  --ok: #5cc895; --ok-soft: #14321f; --crit: #ff7f72; --crit-soft: #3d1a17; --grid: #1f2836;
+  --l1: #5cc895; --l2: #8aa6ff; --l3: #b69cf5; --l4: #f2a54a; --stage: #070e1b; --stage-2: #0d1829; color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -303,6 +310,106 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 .predict-after summary { cursor: pointer; color: var(--accent); }
 .legend { font-size: 0.85rem; color: var(--muted); }
 
+/* ================= v3: typography and quieter chrome ================= */
+body { font-size: 1.09rem; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+h1 { font-size: clamp(2.6rem, 6vw, 4.6rem); font-weight: 650; font-stretch: 112%; letter-spacing: -0.035em; line-height: 0.98; }
+h2 { font-size: clamp(2.1rem, 4.6vw, 3.4rem); font-weight: 650; font-stretch: 110%; letter-spacing: -0.03em; line-height: 1.02; }
+h3 { font-size: 1.3rem; font-weight: 650; font-stretch: 104%; letter-spacing: -0.01em; }
+h4 { font-weight: 650; }
+.label { font-size: 0.8rem; font-weight: 600; letter-spacing: 0; text-transform: none; }
+.readout .k, th, .pill, .case .who, .refs li .tag, .refpop .tag, .level .lv { letter-spacing: 0.01em; text-transform: none; font-size: 0.78rem; }
+.rail .part-title { text-transform: none; letter-spacing: 0; font-size: 0.82rem; color: var(--ink); font-weight: 650; }
+.rail a { font-size: 0.86rem; }
+.rail a[aria-current="page"] { background: transparent; box-shadow: none; color: var(--accent); }
+.rail a[aria-current="page"] .dot { border-color: var(--accent); color: var(--accent); }
+.rail a:hover { background: transparent; color: var(--ink); }
+.topbar { border-bottom-color: transparent; background: color-mix(in srgb, var(--bg) 82%, transparent); }
+.topbar .brand { font-stretch: 112%; font-weight: 700; letter-spacing: -0.02em; }
+.ch-kicker { margin-bottom: 0.9rem; }
+.ch-kicker .num { font-family: var(--f-display); font-size: 0.86rem; font-weight: 600; text-transform: none; }
+.ch-kicker .label { display: none; }
+.answer { display: block; background: none; border: 0; padding: 0; margin: 1.1rem 0 1.4rem; max-width: 40em; }
+.answer .label { display: none; }
+.answer p { font-size: clamp(1.18rem, 2vw, 1.38rem); line-height: 1.5; color: var(--ink); }
+.outcomes { border-left: 0; padding: 0; margin: 0 0 2rem; }
+.outcomes-head .label { color: var(--muted); }
+.outcomes ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 0.35rem 0.5rem; }
+.outcomes li { font-family: var(--f-display); font-size: 0.82rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 0.15rem 0.7rem; margin: 0; }
+.inst { border-radius: 16px; border-color: var(--line); box-shadow: 0 1px 0 rgba(20, 24, 31, 0.03); }
+.inst-head { background: transparent; border-bottom: 0; padding: 1rem 1.2rem 0; }
+.inst-head h4 { font-size: 1.12rem; }
+.inst-head .label { color: var(--muted); font-weight: 500; }
+.howto { border-left: 0; padding-left: 0; font-size: 0.92rem; }
+.concept { border-radius: 16px; }
+.btn { border-radius: 999px; padding: 0.5rem 1.05rem; font-weight: 650; }
+.btn.big { padding: 0.7rem 1.4rem; }
+.seg { border-radius: 999px; }
+.seg button { padding: 0.38rem 0.75rem; }
+.readout { border-radius: 10px; background: var(--surface); }
+.quiz { border-style: solid; border-color: var(--line); background: var(--surface); border-radius: 16px; }
+.predict { border-style: solid; border-color: var(--accent-soft); background: var(--surface); border-radius: 16px; }
+.pager a { border-radius: 14px; }
+
+/* ================= v3: scenes (the dark stages where the machine moves) ================= */
+.scene { margin: 1.6rem 0 2rem; }
+.scene-stage { position: relative; background: var(--stage); border-radius: 18px; overflow: hidden; color: var(--stage-ink); isolation: isolate; }
+.scene-stage canvas { display: block; width: 100%; }
+.scene-cap { position: relative; padding: 0.9rem 1.4rem 1.1rem; min-height: 7.6rem; border-top: 1px solid var(--stage-line); background: var(--stage); }
+.scene-cap .step-n { font-family: var(--f-mono); font-size: 0.74rem; color: var(--stage-muted); }
+.scene-cap h4 { font-family: var(--f-display); font-size: 1.15rem; font-weight: 650; color: var(--stage-ink); margin: 0.15rem 0 0.2rem; }
+.scene-cap p { margin: 0; max-width: 60ch; font-size: 0.98rem; line-height: 1.45; color: color-mix(in srgb, var(--stage-ink) 82%, var(--stage)); }
+.scene-cap a { color: var(--signal); pointer-events: auto; }
+.scene-bar { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.7rem; flex-wrap: wrap; }
+.scene-bar .tbtn { font: inherit; font-family: var(--f-display); font-size: 0.86rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; height: 2.3rem; padding: 0 0.9rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.scene-bar .tbtn.play { background: var(--ink); color: var(--bg); border-color: var(--ink); min-width: 6.2rem; justify-content: center; }
+.scene-bar .tbtn svg { width: 14px; height: 14px; fill: currentColor; }
+.scene-bar .scrub { flex: 1 1 140px; min-width: 120px; position: relative; height: 2.3rem; display: flex; align-items: center; }
+.scene-bar .scrub input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; margin: 0; }
+.scene-bar .track { position: relative; width: 100%; height: 6px; border-radius: 3px; background: var(--grid); }
+.scene-bar .track i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 3px; }
+.scene-bar .track b { position: absolute; top: -3px; width: 2px; height: 12px; background: var(--muted); opacity: 0.5; border-radius: 1px; }
+.scene-bar .scrub:focus-within .track { outline: 2px solid var(--accent); outline-offset: 5px; }
+.scene-bar .clock { flex: none; font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); min-width: 6.8rem; text-align: right; font-variant-numeric: tabular-nums; }
+.scene-setup { display: flex; flex-wrap: wrap; gap: 0.8rem 1.4rem; align-items: flex-end; margin-top: 1rem; padding: 1rem 1.1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; font-family: var(--f-display); font-size: 0.86rem; }
+.scene-setup .ctl { min-width: 180px; }
+.scene-setup .chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.scene-setup .chips button { font: inherit; font-size: 0.84rem; padding: 0.32rem 0.75rem; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+.scene-setup .chips button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.timebar { margin-top: 1rem; }
+.timebar .tb-row { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--grid); position: relative; }
+.timebar .tb-row span { display: block; height: 100%; border-right: 1px solid var(--bg); }
+.timebar .tb-head { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); }
+.timebar .tb-keys { display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; margin-top: 0.5rem; font-family: var(--f-display); font-size: 0.78rem; color: var(--muted); }
+.timebar .tb-keys i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 0.35rem; vertical-align: -1px; }
+.stats { display: flex; flex-wrap: wrap; gap: 0.4rem 2rem; margin-top: 1rem; font-family: var(--f-display); }
+.stats div { display: grid; }
+.stats .v { font-family: var(--f-mono); font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stats .k { font-size: 0.8rem; color: var(--muted); }
+@media (max-width: 640px) {
+  .scene-cap { padding: 0.7rem 1rem 1rem; min-height: 9.5rem; }
+  .scene-bar .clock { min-width: 0; }
+  .scene-bar .tbtn .t { display: none; }
+}
+/* v3 landing + scene start */
+.hero { max-width: 900px; margin: 1.5rem 0 1.6rem; }
+.hero h1 { max-width: 13em; }
+.hero .lede { color: var(--muted); font-size: clamp(1.15rem, 2vw, 1.35rem); margin: 1.1rem 0 1.4rem; max-width: 38em; }
+.hero .btn { text-decoration: none; }
+.hero-stage { margin: 0 0 1.4rem; }
+ol.path { list-style: none; padding: 0; margin: 0 0 1rem; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; }
+ol.path a { display: grid; grid-template-columns: auto 1fr; gap: 0.1rem 0.7rem; padding: 0.9rem 1rem; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); text-decoration: none; height: 100%; }
+ol.path a:hover { border-color: var(--ink); }
+ol.path a .n { grid-row: span 2; font-family: var(--f-display); font-weight: 650; font-size: 1.5rem; font-stretch: 110%; color: var(--accent); line-height: 1.1; }
+ol.path a b { font-family: var(--f-display); font-weight: 650; }
+ol.path a span:last-child { font-size: 0.88rem; color: var(--muted); line-height: 1.4; }
+.hero-meta { font-size: 0.92rem; max-width: 60ch; }
+@media (max-width: 960px) { ol.path { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { ol.path { grid-template-columns: 1fr; } }
+.scene-start { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 0.6rem; font: inherit; font-family: var(--f-display); font-weight: 650; font-size: 1.05rem; padding: 0.85rem 1.5rem 0.85rem 1.2rem; border-radius: 999px; border: 0; background: var(--signal); color: var(--stage); cursor: pointer; box-shadow: 0 0 0 8px color-mix(in srgb, var(--signal) 22%, transparent), 0 10px 40px rgba(0,0,0,0.4); }
+.scene-start svg { width: 16px; height: 16px; fill: currentColor; }
+.scene-start[hidden] { display: none; }
+.scene-start:focus-visible { outline: 3px solid var(--stage-ink); outline-offset: 4px; }
+
 </style>
 </head>
 <body>
@@ -353,21 +460,19 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 <main id="main">
 
 <section class="chapter" id="start" data-title="Start here">
-  <div class="hero-grid">
-    <div>
-      <div class="label">An interactive field guide · October 2026</div>
-      <h1 style="margin-top:0.5rem">What really happens when you talk to an AI?</h1>
-      <p class="lede">You type a question and words start appearing a second later. This course follows that one moment backwards, from the reply on your screen to the gigawatt buildings and months of training behind it. Every idea starts simple and goes as deep as you want.</p>
-      <p class="muted" style="font-size:0.95rem;margin:0.6rem 0 0">For anyone curious, from complete beginners to engineers. No maths or coding needed to start. 16 chapters, each about 5–12 minutes to read, or 20–40 minutes if you play with every experiment; your progress is saved in this browser.</p>
-      <div class="btn-row" style="margin-top:1rem"><a class="btn big" href="#send" style="text-decoration:none">Start: press send →</a><a class="btn ghost" href="https://github.com/RahulSonanis/ai-under-the-hood" style="text-decoration:none">Source on GitHub</a></div>
-    </div>
-    <div class="path">
-      <a href="#send"><span class="n">1</span><b>Press send</b><span>Follow one prompt through the servers, the tokenizer, the model and the chips, until the reply streams back.</span></a>
-      <a href="#data"><span class="n">2</span><b>Rewind</b><span>Where did the model come from? Data, learning, scale, thousands of chips, alignment and safety testing.</span></a>
-      <a href="#datacenter"><span class="n">3</span><b>The building</b><span>Zoom out from one chip to a campus that draws as much power as a city.</span></a>
-      <a href="#harness"><span class="n">4</span><b>Around the model</b><span>The software that turns a model into a chatbot or an agent that uses tools.</span></a>
-    </div>
+  <div class="hero">
+    <h1>What really happens when you talk to an AI?</h1>
+    <p class="lede">You type a question and words start appearing a second later. This course follows that one moment backwards, from the reply on your screen to the gigawatt buildings and months of training behind it.</p>
+    <div class="btn-row"><a class="btn big" href="#send">Follow a prompt</a><a class="btn ghost" href="https://github.com/RahulSonanis/ai-under-the-hood">Source on GitHub</a></div>
   </div>
+  <div class="scene-stage hero-stage"><canvas id="hero-cv"></canvas></div>
+  <ol class="path">
+    <li><a href="#send"><span class="n">1</span><b>Press send</b><span>The two seconds between your prompt and the reply.</span></a></li>
+    <li><a href="#data"><span class="n">2</span><b>Rewind</b><span>Data, learning, scale, thousands of chips, alignment and testing.</span></a></li>
+    <li><a href="#datacenter"><span class="n">3</span><b>The building</b><span>From one chip to a campus that draws as much power as a city.</span></a></li>
+    <li><a href="#harness"><span class="n">4</span><b>Around the model</b><span>The software that turns a model into an agent that uses tools.</span></a></li>
+  </ol>
+  <p class="muted hero-meta">For anyone curious, from complete beginners to engineers. 16 chapters, each about 5–12 minutes to read, or 20–40 minutes if you play with every experiment. Your progress is saved in this browser.</p>
 
   <h3 class="section-title">How much do you already know?</h3>
   <p class="prose">Every concept is explained as a ladder with four rungs. Pick where you'd like explanations to start; you can step up or down on any card, and change this any time with <b>Explain at</b> in the top bar.</p>
@@ -397,43 +502,34 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 </section>
 
 <section class="chapter" id="send" data-title="Press send">
-  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 1</span><span class="label">Press send</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 1</span><span class="label">Press send</span></div>
   <h2>What happens when you press send?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Your message travels to a datacenter, gets checked and queued, is chopped into tokens, read by the model in one pass, and then the reply is written one token at a time and streamed back as each one is made.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min read · 2 interactives</span></div><ul><li>Trace a message from your keyboard to the reply</li><li>Name the stages that add waiting time</li><li>Explain why the first word takes longest</li></ul></div>
 
-  <div class="inst" id="tr">
-    <div class="inst-head"><h4>Trace one prompt from your keyboard and back</h4><span class="label">Live simulation · timings illustrative</span></div>
-    <div class="inst-body">
-      <p class="howto">Pick a prompt and press <b>Send</b>. Watch the reply stream in while the trace shows where the time goes. Click any bar to learn about that step.</p>
-      <div class="inst-cols">
-        <div class="ctrls">
-          <div class="ctl"><label for="tr-prompt">Your prompt</label><textarea id="tr-prompt" rows="3">Why is the sky blue?</textarea></div>
-          <div class="btn-row" id="tr-presets">
-            <button class="btn ghost" type="button" data-p="Why is the sky blue?">Sky</button>
-            <button class="btn ghost" type="button" data-p="Write a haiku about servers.">Haiku</button>
-            <button class="btn ghost" type="button" data-p="What is 17 × 24?">Maths</button>
-            <button class="btn ghost" type="button" data-p="__long__">Long document</button>
-          </div>
-          <div class="ctl"><span id="tr-client-lbl">Sent from</span><div class="seg" id="tr-client" role="group" aria-labelledby="tr-client-lbl"><button type="button" data-v="app" aria-pressed="true">Chat app</button><button type="button" data-v="cli" aria-pressed="false">Terminal</button><button type="button" data-v="api" aria-pressed="false">Your code</button></div><small>Apps and coding tools add hidden instructions to every request; your own API call sends only what you write.</small></div>
-          <label class="toggle"><input type="checkbox" id="tr-think"> Thinking model (reasons before answering)</label>
-          <div class="ctl"><div class="row"><label for="tr-load">How busy is the service?</label><output for="tr-load"></output></div><input type="range" id="tr-load" min="0" max="0.95" step="0.05" value="0.5"><small>Busier means longer waits in the queue.</small></div>
-          <div class="ctl"><span id="tr-speed-lbl">Playback</span><div class="seg" id="tr-speed" role="group" aria-labelledby="tr-speed-lbl"><button type="button" data-v="1" aria-pressed="false">Real time</button><button type="button" data-v="3" aria-pressed="true">Slow motion</button></div></div>
-          <button class="btn big" type="button" id="tr-go">Send</button>
-        </div>
-        <div style="display:grid;gap:0.8rem;min-width:0">
-          <div class="stage" style="padding:0.8rem 1rem;min-height:7.5rem">
-            <div class="label" id="tr-client-label">Chat app</div>
-            <div id="tr-screen" style="margin-top:0.4rem;font-size:1rem"></div>
-          </div>
-          <div class="readouts" id="tr-read"></div>
-        </div>
-      </div>
-      <canvas class="cv" id="tr-cv" aria-label="Trace waterfall of the request"></canvas>
-      <div class="stage" style="padding:0.7rem 1rem" aria-live="polite"><div class="label" id="tr-now-t">Now</div><div id="tr-now" style="margin-top:0.2rem">Press Send to start.</div></div>
-      <p class="note">Each bar is a "span", like a distributed trace in a microservice system. Bar lengths are illustrative orders of magnitude for a large model on a busy service; real numbers vary by provider, model, prompt length and load. Blue bars run on accelerators (GPUs/TPUs), grey bars on ordinary servers and networks.</p>
+  <figure class="scene" id="tr">
+    <div class="scene-stage">
+      <canvas id="tr-cv" aria-label="Animated journey of your prompt. Space plays or pauses; left and right arrows step back and forward; click a part of the machine to jump to it."></canvas>
+      <button class="scene-start" id="tr-start" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z"/></svg><span>Press send</span></button>
+      <div class="scene-cap" aria-live="polite"></div>
     </div>
-  </div>
+    <div class="scene-bar"></div>
+    <div class="stats" id="tr-read"></div>
+    <div class="timebar" id="tr-time" aria-hidden="true"></div>
+    <div class="scene-setup">
+      <div class="ctl"><span id="tr-p-lbl">Prompt</span><div class="chips" id="tr-presets" role="group" aria-labelledby="tr-p-lbl">
+        <button type="button" data-p="Why is the sky blue?" aria-pressed="true">Why is the sky blue?</button>
+        <button type="button" data-p="Write a haiku about servers." aria-pressed="false">A haiku</button>
+        <button type="button" data-p="What is 17 × 24?" aria-pressed="false">17 × 24</button>
+        <button type="button" data-p="__long__" aria-pressed="false">A long report</button>
+      </div></div>
+      <div class="ctl"><label for="tr-prompt">Or type your own</label><input type="text" id="tr-prompt" value="Why is the sky blue?"></div>
+      <div class="ctl"><span id="tr-client-lbl">Sent from</span><div class="seg" id="tr-client" role="group" aria-labelledby="tr-client-lbl"><button type="button" data-v="app" aria-pressed="true">Chat app</button><button type="button" data-v="cli" aria-pressed="false">Coding agent</button><button type="button" data-v="api" aria-pressed="false">Your code</button></div></div>
+      <label class="toggle"><input type="checkbox" id="tr-think"> Thinking model</label>
+      <div class="ctl"><div class="row"><label for="tr-load">How busy is the service?</label><output for="tr-load"></output></div><input type="range" id="tr-load" min="0" max="0.95" step="0.05" value="0.5"></div>
+    </div>
+    <figcaption class="note" style="margin-top:0.8rem">Timings are illustrative orders of magnitude for a large model on a busy service; real numbers vary by provider, model, prompt length and load. The machine is simplified: a real datacenter runs many gateways, queues and thousands of model replicas.</figcaption>
+  </figure>
 
   <h3 class="section-title">Now rewind</h3>
   <p class="prose">Those two seconds sit on top of months of work. Pick a stage to see what happened then. Part 2 of the course jumps back to the beginning and plays it forward, from raw data to the finished model.</p>
@@ -451,9 +547,9 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
     <article class="concept">
       <div class="concept-head"><h3>What actually travels to the server?</h3></div>
       <div class="level" data-l="1"><p>Your words go into a little digital envelope with an address on it. The envelope flies over the internet to a big building full of computers that know how to answer.</p></div>
-      <div class="level" data-l="2"><p>The app sends your whole conversation so far, not just the last message, plus settings such as which model to use and how long the answer may be. The connection is encrypted, so nobody in between can read it.</p></div>
+      <div class="level" data-l="2"><p>The app sends your whole conversation so far (or an ID the service uses to look it up), not just the last message, plus settings such as which model to use and how long the answer may be. The connection is encrypted, so nobody in between can read it.</p></div>
       <div class="level" data-l="3"><p>It's an HTTPS POST to an API endpoint with a JSON body: a list of messages (system, user, assistant turns), the model name, a maximum output length and <code>"stream": true</code>. An API gateway checks the key, applies rate limits and records usage. With streaming on, the reply comes back as server-sent events, a long-lived HTTP response that delivers small chunks as they're produced<sup class="ref"><a href="#ref-55">55</a></sup>.</p></div>
-      <div class="level" data-l="4"><p>Because the model is stateless between requests, the client resends the full history each turn. With a system prompt of s tokens and m new tokens per turn, the tokens sent over n turns add up quadratically:</p><div class="eq">Σᵢ₌₁ⁿ (s + i·m) = n·s + m·n(n+1)/2</div><p> Providers reduce the repeated work with prefix (prompt) caching on the server: if the beginning of the token sequence matches a recent request, its attention keys and values can be reused rather than recomputed (chapter 5).</p></div>
+      <div class="level" data-l="4"><p>Because the model keeps nothing between requests, the full history is fed in again each turn, either resent by the client or restored by the service from a conversation ID. With a system prompt of s tokens and m new tokens per turn, the tokens sent over n turns add up quadratically:</p><div class="eq">Σᵢ₌₁ⁿ (s + i·m) = n·s + m·n(n+1)/2</div><p> Providers reduce the repeated work with prefix (prompt) caching on the server: if the beginning of the token sequence matches a recent request, its attention keys and values can be reused rather than recomputed (chapter 5).</p></div>
     </article>
     <article class="concept">
       <div class="concept-head"><h3>Why does the first word take the longest?</h3></div>
@@ -473,12 +569,12 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 
   <div class="quiz"><div class="label">Check yourself</div>
     <div class="q" data-answer="1"><p>Your prompt is 3,000 tokens long and the reply is 50. Which phase most likely dominates the wait before the first word appears?</p><div class="opts"><button>Writing the 50 output tokens</button><button>Queueing plus reading (prefilling) the 3,000-token prompt</button><button>Encrypting the request</button></div><div class="why">The first token can't appear until the prompt has been read. Encryption is cheap, and the remaining output tokens come after the first one.</div></div>
-    <div class="q" data-answer="2"><p>Why does a chat app send the whole conversation every time you reply?</p><div class="opts"><button>So the server can bill you for the whole conversation</button><button>Because the model learns from every message in real time</button><button>Because the model itself keeps no memory between requests</button></div><div class="why">Each request is independent. The conversation history is the model's only memory, so it is sent again with every turn.</div></div>
+    <div class="q" data-answer="2"><p>Why does the model need to read the whole conversation again every time you reply?</p><div class="opts"><button>So the provider can bill you for the whole conversation</button><button>Because the model learns from every message in real time</button><button>Because the model itself keeps no memory between requests</button></div><div class="why">Each request is independent. The conversation history is the model's only memory, so it is fed in again with every turn, either resent by the app or restored by the service.</div></div>
   </div>
 </section>
 
 <section class="chapter" id="tokens" data-title="Tokens">
-  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 2</span><span class="label">Tokenize</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 2</span><span class="label">Tokenize</span></div>
   <h2>How does text become numbers?</h2>
   <div class="answer"><span class="label">Short answer</span><p>A tokenizer chops your text into common chunks called tokens and swaps each one for an ID number. The model then looks up a long list of numbers for each ID, which captures something like the token's meaning.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 11 min read · 3 interactives</span></div><ul><li>Explain how byte-pair encoding builds a vocabulary</li><li>Estimate how many tokens a text needs</li><li>Describe embeddings as positions in space</li></ul></div>
@@ -537,7 +633,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 </section>
 
 <section class="chapter" id="predict" data-title="Next word">
-  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 3</span><span class="label">Sampling</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 3</span><span class="label">Sampling</span></div>
   <h2>How does a model pick the next word?</h2>
   <div class="answer"><span class="label">Short answer</span><p>It gives every possible next token a probability, then a dice roll weighted by those probabilities picks one. The chosen token is added to the text and the whole thing repeats.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min read · 2 interactives</span></div><ul><li>Explain next-token prediction</li><li>Predict what temperature, top-k and top-p do</li><li>Work out the loss for one guess</li></ul></div>
@@ -606,7 +702,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 </section>
 
 <section class="chapter" id="inside" data-title="Inside the model">
-  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 4</span><span class="label">Forward pass</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 4</span><span class="label">Forward pass</span></div>
   <h2>What happens inside the model?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Each token's numbers pass through a stack of identical layers. In every layer, <b>attention</b> lets each word look back at earlier words that matter to it, and an <b>MLP</b> then works on what it gathered. At the end, the last position's numbers become next-token probabilities.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min read · 3 interactives</span></div><ul><li>Explain what attention computes and why it only looks back</li><li>Compute attention weights for small vectors</li><li>Count a transformer's parameters</li></ul></div>
@@ -688,7 +784,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 </section>
 
 <section class="chapter" id="memory" data-title="KV cache">
-  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 5</span><span class="label">KV cache</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 5</span><span class="label">KV cache</span></div>
   <h2>How does it remember the conversation?</h2>
   <div class="answer"><span class="label">Short answer</span><p>The model itself keeps nothing between messages. The conversation is stored outside it and fed back in with every request. While writing a reply, the model keeps notes on every earlier token (their attention keys and values) so it never recomputes them. Those notes, the <b>KV cache</b>, fill up GPU memory fast, and managing that memory decides how many people one GPU can serve.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 9 min read · 2 interactives</span></div><ul><li>Tell apart chat history, KV cache, prefix caching and app memory</li><li>Compute KV cache size per token</li><li>Explain why paging fits more people on a GPU</li></ul></div>
@@ -753,7 +849,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 </section>
 
 <section class="chapter" id="sharing" data-title="Batching">
-  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 6</span><span class="label">Batching</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 6</span><span class="label">Batching</span></div>
   <h2>How does one GPU serve many people?</h2>
   <div class="answer"><span class="label">Short answer</span><p>To write one token, a GPU must read all the model weights it uses from its memory. Reading is the slow part, so it writes the next token for many conversations in one go. When conversations are short and memory is free, each extra person barely slows the step, which is what makes AI affordable to serve. Long conversations and very large batches change that.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min read · 3 interactives</span></div><ul><li>Explain why generating text is limited by memory reads</li><li>Say when batching stops being nearly free</li><li>Compare static and continuous batching</li></ul></div>
@@ -826,7 +922,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 </section>
 
 <section class="chapter" id="data" data-title="Data">
-  <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 7</span><span class="label">Rewind · data</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 7</span><span class="label">Rewind · data</span></div>
   <h2>Where does the knowledge come from?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Mostly from public web pages, plus code, books, papers and increasingly text written by other models: 15 to 40 trillion tokens for recent large models<sup class="ref"><a href="#ref-9">9</a></sup><sup class="ref"><a href="#ref-65">65</a></sup><sup class="ref"><a href="#ref-66">66</a></sup>. Most of the raw web is thrown away; cleaning and choosing the mix is one of the most important jobs in building a model.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min read · 2 interactives</span></div><ul><li>List the steps of a web-data cleaning pipeline</li><li>Explain deduplication and quality filtering</li><li>Pack documents into training sequences</li></ul></div>
@@ -891,7 +987,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 </section>
 
 <section class="chapter" id="learning" data-title="Learning">
-  <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 8</span><span class="label">Rewind · training</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 8</span><span class="label">Rewind · training</span></div>
   <h2>How does a model learn?</h2>
   <div class="answer"><span class="label">Short answer</span><p>It starts with random numbers and makes terrible guesses. After each batch of text, calculus works out which direction to nudge every number to make the guesses a little less wrong. Repeat millions of times.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min read · 2 interactives</span></div><ul><li>Explain gradient descent and backpropagation</li><li>Recognise a learning rate that is too high or too low</li><li>Name common optimisers and schedules</li></ul></div>
@@ -961,7 +1057,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 </section>
 
 <section class="chapter" id="scale" data-title="Scale">
-  <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 9</span><span class="label">Rewind · compute budget</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 9</span><span class="label">Rewind · compute budget</span></div>
   <h2>How big, how long, how much?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Training cost is roughly 6 × parameters × training tokens operations. Teams split a fixed budget between a bigger model and more data, guided by "scaling laws" fitted on small runs, and then pay for months of thousands of chips plus all the experiments around them.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min read · 2 interactives</span></div><ul><li>Use 6ND to estimate training compute</li><li>Find a compute-optimal model size</li><li>Estimate GPU-hours and cost for a run</li></ul></div>
@@ -1025,7 +1121,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 </section>
 
 <section class="chapter" id="cluster" data-title="Distributed training">
-  <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 10</span><span class="label">Rewind · parallelism</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 10</span><span class="label">Rewind · parallelism</span></div>
   <h2>How do thousands of chips train one model?</h2>
   <div class="answer"><span class="label">Short answer</span><p>The work is split several ways at once: different chips read different data, big matrix maths is cut into pieces, and the layers are spread along an assembly line. After every step, all the chips combine what they learned over very fast networks.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min read · 3 interactives</span></div><ul><li>Tell apart data, tensor and pipeline parallelism</li><li>Compute a pipeline's idle fraction</li><li>Estimate training memory per GPU</li></ul></div>
@@ -1102,7 +1198,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 </section>
 
 <section class="chapter" id="failures" data-title="Failures">
-  <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 11</span><span class="label">Rewind · reliability</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 11</span><span class="label">Rewind · reliability</span></div>
   <h2>What happens when chips break?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Constantly. With tens of thousands of chips in one tightly coupled job, something fails every few hours and the whole job stops. Teams save progress regularly, restart automatically, and design everything assuming failure is normal.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 5 min read · 1 interactive</span></div><ul><li>Estimate how often a large job is interrupted</li><li>Choose a checkpoint interval</li><li>Explain goodput</li></ul></div>
@@ -1155,7 +1251,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 </section>
 
 <section class="chapter" id="align" data-title="Post-training">
-  <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 12</span><span class="label">Rewind · post-training</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 12</span><span class="label">Rewind · post-training</span></div>
   <h2>How does a predictor become an assistant?</h2>
   <div class="answer"><span class="label">Short answer</span><p>A freshly trained "base" model just continues text. Further training on example conversations, then on feedback about which answers are better, teaches it to follow instructions, be honest about uncertainty and decline harmful requests.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min read · 2 interactives</span></div><ul><li>Describe SFT, RLHF and DPO</li><li>Explain why a KL penalty keeps the model close to its start</li><li>Say what each stage changes in a reply</li></ul></div>
@@ -1214,7 +1310,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 </section>
 
 <section class="chapter" id="evals" data-title="Evaluation">
-  <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 13</span><span class="label">Rewind · evaluation and safety</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 13</span><span class="label">Rewind · evaluation and safety</span></div>
   <h2>How do we know it's good and safe?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Teams test the model on thousands of questions with known answers, have people and other models judge open-ended replies, and run dedicated safety tests before release. Scores are noisy, so small differences often mean nothing.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 7 min read · 2 interactives</span></div><ul><li>Read a confidence interval on a benchmark score</li><li>Judge whether a score gap is just noise</li><li>Estimate how many questions a test needs</li></ul></div>
@@ -1270,7 +1366,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 </section>
 
 <section class="chapter" id="datacenter" data-title="Datacenters">
-  <div class="ch-kicker"><span class="num">PART 3 · CHAPTER 14</span><span class="label">The building</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 14</span><span class="label">The building</span></div>
   <h2>What is inside an AI datacenter?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Rows of liquid-cooled racks packed with accelerator chips, wired together with ultra-fast networks into one giant computer, fed by power lines that can carry as much electricity as a city uses. The newest campuses are planned in gigawatts.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 10 min read · 2 interactives</span></div><ul><li>Trace the path from chip to rack to campus</li><li>Estimate a cluster's power with PUE</li><li>Compare the main accelerator platforms</li></ul></div>
@@ -1341,7 +1437,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 </section>
 
 <section class="chapter" id="harness" data-title="Agents">
-  <div class="ch-kicker"><span class="num">PART 4 · CHAPTER 15</span><span class="label">Around the model</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 15</span><span class="label">Around the model</span></div>
   <h2>How does a chatbot become an agent?</h2>
   <div class="answer"><span class="label">Short answer</span><p>The model only turns text into text. Ordinary software around it, the <b>harness</b>, gives it tools to call, runs them, feeds the results back, and loops until the task is done, while managing what fits in the model's limited context.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 5 min read · 1 interactive</span></div><ul><li>Explain the agent loop of model calls and tools</li><li>Track context use and compaction</li><li>Explain how prompt caching cuts cost</li></ul></div>
@@ -1398,7 +1494,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 </section>
 
 <section class="chapter" id="next" data-title="Build it yourself">
-  <div class="ch-kicker"><span class="num">KEEP GOING · CHAPTER 16</span><span class="label">Practice</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 16</span><span class="label">Practice</span></div>
   <h2>Build it yourself</h2>
   <div class="answer"><span class="label">Short answer</span><p>The fastest way to make this stick is to build a small version of each stage and compare your numbers with the ones in this course.</p></div>
   <div class="table-wrap">
@@ -1642,6 +1738,7 @@ function setupLadders(root) {
 }
 function setDepth(n) {
   store.set("depth", n); $$(".concept").forEach(c => c._show && c._show(n, true));
+  document.dispatchEvent(new CustomEvent("depthchange", { detail: n }));
   $$("#depth button, #start-depth button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === n ? "true" : "false"));
 }
 
@@ -1752,6 +1849,408 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("hashchange", route); route();
 });
 
+/* Scene engine: deterministic, scrubbable "films" drawn on canvas.
+   A film is a list of segments (each with a story duration and, optionally, the real duration it
+   stands for). draw(t) is a pure function of the playhead, so play, pause, scrub, back and next
+   all work the same way and every frame is reproducible. */
+
+const clamp01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
+const lerp = (a, b, k) => a + (b - a) * k;
+const easeIO = x => { x = clamp01(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const easeOut = x => { x = clamp01(x); return 1 - Math.pow(1 - x, 3); };
+const bez = (p, k) => { const u = 1 - k; return [0, 1].map(i => u * u * u * p[0][i] + 3 * u * u * k * p[1][i] + 3 * u * k * k * p[2][i] + k * k * k * p[3][i]); };
+const stageColors = () => ({ bg: css("--stage"), bg2: css("--stage-2"), line: css("--stage-line"), ink: css("--stage-ink"), muted: css("--stage-muted"), sig: css("--signal"), amb: css("--amber"), you: css("--you") });
+function wrapLines(ctx, text, maxW) {
+  const words = String(text).split(/\s+/), lines = []; let cur = "";
+  words.forEach(w => { const t = cur ? cur + " " + w : w; if (ctx.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t; });
+  if (cur) lines.push(cur); return lines;
+}
+const ICON = {
+  play: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z"/></svg>',
+  pause: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z"/></svg>',
+  prev: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.5h2v11H3zM13.5 2.5v11L6 8z"/></svg>',
+  next: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11 2.5h2v11h-2zM2.5 2.5v11L10 8z"/></svg>',
+  again: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5a5.5 5.5 0 1 0 5.4 6.5h-2A3.5 3.5 0 1 1 8 4.5c1 0 1.9.4 2.5 1.1L8.5 7.5H14V2l-2 2A5.5 5.5 0 0 0 8 2.5z"/></svg>'
+};
+
+function makeFilm(root, cfg) {
+  const cv = $("canvas", root), cap = $(".scene-cap", root), bar = $(".scene-bar", root);
+  let segs = [], T = 1, t = 0, stopAt = null, real = false, lastSeg = -1;
+  bar.innerHTML = `<button class="tbtn" type="button" data-a="prev" aria-label="Previous step">${ICON.prev}</button>
+    <button class="tbtn play" type="button" data-a="play">${ICON.play}<span class="t">Play</span></button>
+    <button class="tbtn" type="button" data-a="next" aria-label="Next step">${ICON.next}</button>
+    <div class="scrub"><div class="track"><i></i></div><input type="range" min="0" max="1000" step="1" value="0" aria-label="Position in the animation"></div>
+    <div class="seg" role="group" aria-label="Playback speed"><button type="button" data-v="story" aria-pressed="true">Slow motion</button><button type="button" data-v="real" aria-pressed="false">Real speed</button></div>
+    <span class="clock" aria-hidden="true"></span>`;
+  const playBtn = $('[data-a="play"]', bar), scrub = $("input", bar), fill = $(".track i", bar), track = $(".track", bar), clock = $(".clock", bar);
+  seg($(".seg", bar), v => { real = v === "real"; });
+  const segAt = x => { for (let i = 0; i < segs.length; i++) if (x < segs[i].t1) return i; return segs.length - 1; };
+  const realAt = x => { const s = segs[segAt(x)]; return s.r0 + clamp01((x - s.t0) / s.dur) * s.rdur; };
+  const playing = () => loop.running;
+  function setPlayUI() {
+    const p = playing(), end = t >= T - 1e-6;
+    playBtn.innerHTML = (p ? ICON.pause : end ? ICON.again : ICON.play) + `<span class="t">${p ? "Pause" : end ? "Replay" : "Play"}</span>`;
+    playBtn.setAttribute("aria-label", p ? "Pause" : end ? "Replay" : "Play");
+  }
+  function frame() {
+    const i = segAt(t), s = segs[i];
+    cfg.draw(t, i, segs);
+    fill.style.width = (t / T * 100) + "%"; scrub.value = Math.round(t / T * 1000);
+    const rt = realAt(t); clock.textContent = (rt < 1000 ? Math.round(rt) + " ms" : (rt / 1000).toFixed(2) + " s") + " real";
+    scrub.setAttribute("aria-valuetext", `Step ${i + 1} of ${segs.length}: ${s.title}`);
+    if (i !== lastSeg) { lastSeg = i; caption(i); }
+    if (cfg.onFrame) cfg.onFrame(t, i, rt);
+  }
+  function caption(i) {
+    if (!cap) return; const s = segs[i], c = cfg.caption(s, store.get("depth", 1));
+    cap.innerHTML = `<div class="step-n">Step ${i + 1} of ${segs.length}</div><h4>${esc(s.title)}</h4><p>${c}</p>`;
+  }
+  const loop = animLoop(dt => {
+    const s = segs[segAt(t)]; const rate = real ? s.dur / Math.max(0.0005, s.rdur / 1000) : 1;
+    t = Math.min(T, t + dt * rate * (cfg.speed || 1));
+    if (stopAt !== null && t >= stopAt) { t = stopAt; stopAt = null; frame(); setPlayUI(); return false; }
+    if (t >= T) { if (cfg.loopForever) { t = 0; } else { t = T; frame(); setPlayUI(); return false; } }
+    frame();
+  });
+  const api = {
+    get t() { return t; }, get segs() { return segs; },
+    setSegs(list) {
+      segs = list; let a = 0, r = 0; segs.forEach(s => { s.t0 = a; a += s.dur; s.t1 = a; s.r0 = r; r += s.rdur || 0; s.rdur = s.rdur || 0; }); T = a;
+      track.querySelectorAll("b").forEach(b => b.remove());
+      segs.slice(1).forEach(s => { const b = document.createElement("b"); b.style.left = (s.t0 / T * 100) + "%"; track.appendChild(b); });
+      lastSeg = -1; t = Math.min(t, T); frame(); setPlayUI();
+    },
+    seek(x) { t = Math.max(0, Math.min(T, x)); frame(); setPlayUI(); },
+    play() { if (t >= T - 1e-6) t = 0; stopAt = null; loop.start(); setPlayUI(); },
+    pause() { loop.stop(); stopAt = null; setPlayUI(); },
+    toggle() { playing() ? api.pause() : api.play(); },
+    step(d) {
+      const i = segAt(t), atStart = t - segs[i].t0 < 0.25;
+      let j = d > 0 ? Math.min(segs.length - 1, (t >= segs[i].t1 - 1e-6 ? i + 1 : (t - segs[i].t0 < 0.05 && !playing() ? i : i + 1))) : Math.max(0, atStart ? i - 1 : i);
+      if (d > 0 && i === segs.length - 1 && t >= T - 1e-6) return;
+      if (reduceMotion()) { loop.stop(); t = segs[j].t1 - 1e-4; frame(); setPlayUI(); return; }
+      t = segs[j].t0; stopAt = segs[j].t1 - 1e-4; frame(); loop.start(); setPlayUI();
+    },
+    refresh() { lastSeg = -1; frame(); },
+    playSeg(j) { j = Math.max(0, Math.min(segs.length - 1, j)); if (reduceMotion()) { loop.stop(); t = segs[j].t1 - 1e-4; frame(); setPlayUI(); return; } t = segs[j].t0; stopAt = segs[j].t1 - 1e-4; frame(); loop.start(); setPlayUI(); },
+    segAt, realAt
+  };
+  playBtn.addEventListener("click", () => api.toggle());
+  $('[data-a="prev"]', bar).addEventListener("click", () => api.step(-1));
+  $('[data-a="next"]', bar).addEventListener("click", () => api.step(1));
+  scrub.addEventListener("input", () => { loop.stop(); stopAt = null; t = scrub.value / 1000 * T; frame(); setPlayUI(); });
+  cv.tabIndex = 0;
+  cv.addEventListener("keydown", e => {
+    if (e.key === " " || e.key === "k") { e.preventDefault(); api.toggle(); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); api.step(1); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); api.step(-1); }
+  });
+  document.addEventListener("depthchange", () => { if (segs.length) caption(segAt(t)); });
+  return api;
+}
+
+/* ---------- The journey of one prompt (chapter 1, and the landing page's hero) ---------- */
+function createJourney(cv, opt = {}) {
+  const hero = !!opt.hero;
+  const P = {
+    lap: { x: 40, y: 230, w: 300, h: 200 },
+    up: [[340, 335], [420, 200], [490, 480], [560, 345]],
+    down: [[560, 398], [490, 570], [420, 262], [340, 392]],
+    dc: { x: 560, y: 60, w: 1010, h: 650 },
+    gate: [675, 345], scan: [805, 345],
+    queue: { x: 868, y: 324, w: 150, h: 42 },
+    router: [1052, 345],
+    reps: [{ x: 1112, y: 92, w: 118, h: 58 }, { x: 1246, y: 92, w: 118, h: 58 }],
+    srv: { x: 1100, y: 176, w: 452, h: 508 },
+    tokRows: [231, 255], tokX0: 1120, tokX1: 1532,
+    layers: { x0: 1132, n: 9, dx: 36, y: 288, h: 190, w: 22 },
+    samp: { x: 1462, y: 288, w: 74, h: 190 },
+    kv: { x: 1122, y: 534, cols: 30, rows: 9, cell: 11, gap: 3 }
+  };
+  const CAM = {
+    map: { x: 10, y: 50, w: 1580, h: 680 },
+    send: { x: 20, y: 200, w: 600, h: 290 }, net: { x: 290, y: 170, w: 360, h: 380 },
+    gw: { x: 600, y: 225, w: 280, h: 235 }, queue: { x: 840, y: 215, w: 300, h: 250 },
+    route: { x: 1000, y: 70, w: 420, h: 400 }, tok: { x: 1092, y: 180, w: 470, h: 320 },
+    model: { x: 900, y: 168, w: 680, h: 524 }
+  };
+  const camOf = { map: "map", send: "send", net: "net", gw: "gw", safe: "gw", queue: "queue", route: "route", tok: "tok", prefill: "model", think: "model", decode: "model", stream: "map", done: "map" };
+  let S = null; // current scenario
+
+  function pieces(s) { const out = []; (s.match(/\s*\S+/g) || []).forEach(w => { if (w.trim().length <= 6) out.push(w); else { out.push(w.slice(0, 5)); let a = w.slice(5); while (a.length) { out.push(a.slice(0, 4)); a = a.slice(4); } } }); return out; }
+
+  function setup(sc) {
+    // sc: { prompt, reply, sys, think, busy, tpot, durs }
+    const meas = document.createElement("canvas").getContext("2d"); meas.font = `11px ${css("--f-mono")}`;
+    const chips = []; let x = P.tokX0, row = 0;
+    const add = (txt, kind) => { const w = Math.max(16, meas.measureText(txt).width + 10); if (x + w > P.tokX1) { row++; x = P.tokX0; } if (row > 1) return false; chips.push({ txt, kind, x, w, y: P.tokRows[row] }); x += w + 4; return true; };
+    if (sc.sys) add(`system ${sc.sys.toLocaleString()}`, "sys");
+    const ps = pieces(sc.prompt); let shown = 0;
+    for (const p of ps) { if (chips.length && x + 70 > P.tokX1 && row === 1) break; if (!add(p.replace(/\s/g, "·"), "user")) break; shown++; }
+    if (shown < ps.length) add(`+${Math.max(1, sc.inTok - sc.sys - shown).toLocaleString()} more`, "more");
+    const out = pieces(sc.reply);
+    const totalTok = sc.inTok + sc.think + out.length;
+    const per = Math.max(1, Math.ceil(totalTok / (P.kv.cols * P.kv.rows - 6)));
+    const others = Math.min(5, Math.round(sc.busy * 5.4));
+    S = { ...sc, chips, out, per, others, lines: [] };
+    return S;
+  }
+
+  // ---------- drawing helpers ----------
+  let ctx, C, view, scale, ox, oy, W, H;
+  const toScreen = (x, y) => [ox + x * scale, oy + y * scale];
+  function fitCam(r, w, h) { const s = Math.min(w / r.w, h / r.h); return { s, ox: (w - r.w * s) / 2 - r.x * s, oy: (h - r.h * s) / 2 - r.y * s }; }
+  function camAt(key, prevKey, k) {
+    const a = CAM[camOf[prevKey] || "map"], b = CAM[camOf[key] || "map"], e = easeIO(k);
+    return { x: lerp(a.x, b.x, e), y: lerp(a.y, b.y, e), w: lerp(a.w, b.w, e), h: lerp(a.h, b.h, e) };
+  }
+  function label(x, y, text, o = {}) {
+    const [sx, sy] = toScreen(x, y); if (sx < -60 || sx > W + 60 || sy < -20 || sy > H + 20) return;
+    ctx.save(); ctx.setTransform(devicePixelRatio || 1, 0, 0, devicePixelRatio || 1, 0, 0);
+    font(ctx, o.size || 12, o.mono ? "--f-mono" : "--f-display", o.weight || "500");
+    ctx.fillStyle = o.color || C.muted; ctx.globalAlpha = o.alpha == null ? 1 : o.alpha; ctx.textAlign = o.align || "center"; ctx.textBaseline = "middle";
+    ctx.fillText(text, sx, sy); ctx.restore();
+  }
+  function capsule(x, y, w, h, fillCol, glow, alpha = 1) {
+    ctx.save(); ctx.globalAlpha = alpha; if (glow) { ctx.shadowColor = fillCol; ctx.shadowBlur = glow; }
+    ctx.fillStyle = fillCol; rr(ctx, x - w / 2, y - h / 2, w, h, h / 2); ctx.fill(); ctx.restore();
+  }
+  function strokeRR(r, col, lw, rad = 14, dash) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw / scale; if (dash) ctx.setLineDash(dash.map(d => d / scale)); rr(ctx, r.x, r.y, r.w, r.h, rad); ctx.stroke(); ctx.restore(); }
+  function path(points, col, lw, dash, alpha = 1) { ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = col; ctx.lineWidth = lw / scale; if (dash) ctx.setLineDash(dash.map(d => d / scale)); ctx.beginPath(); ctx.moveTo(...points[0]); ctx.bezierCurveTo(...points[1], ...points[2], ...points[3]); ctx.stroke(); ctx.restore(); }
+
+  // the return trip of an output token: server -> door -> fibre -> screen
+  const RET = [
+    { kind: "bez", p: [[1499, 280], [1470, 430], [1250, 432], [1098, 420]], len: 470 },
+    { kind: "line", a: [1098, 420], b: [560, 398], len: 540 },
+    { kind: "bez", p: P.down, len: 310 },
+    { kind: "line", a: [340, 392], b: [200, 360], len: 145 }
+  ];
+  const RET_LEN = RET.reduce((a, r) => a + r.len, 0);
+  function retPos(u) { let d = clamp01(u) * RET_LEN; for (const r of RET) { if (d <= r.len) { const k = d / r.len; return r.kind === "bez" ? bez(r.p, k) : [lerp(r.a[0], r.b[0], k), lerp(r.a[1], r.b[1], k)]; } d -= r.len; } return [200, 360]; }
+
+  function drawScreenContent(landed, sentK, thinkingNow) {
+    const L = P.lap, pad = 16; ctx.save();
+    ctx.beginPath(); rr(ctx, L.x + 4, L.y + 4, L.w - 8, L.h - 8, 8); ctx.clip();
+    font(ctx, 12.5, "--f-body"); const maxW = L.w - pad * 2 - 30;
+    const pl = wrapLines(ctx, S.promptShort, maxW).slice(0, 3);
+    const bh = pl.length * 16 + 12, bw = Math.min(maxW + 14, Math.max(...pl.map(l => ctx.measureText(l).width)) + 18);
+    let y = L.y + pad;
+    // user bubble (right aligned); it lifts off as the request is sent, then reappears as "sent"
+    const lift = sentK > 0 && sentK < 1 ? easeIO(sentK) : 0;
+    ctx.globalAlpha = sentK > 0 && sentK < 1 ? 1 - lift : 1;
+    ctx.fillStyle = C.line; rr(ctx, L.x + L.w - pad - bw, y - lift * 20, bw, bh, 10); ctx.fill();
+    ctx.fillStyle = C.ink; ctx.textBaseline = "top"; pl.forEach((l, i) => ctx.fillText(l, L.x + L.w - pad - bw + 9, y + 6 + i * 16 - lift * 20));
+    ctx.globalAlpha = 1; y += bh + 12;
+    if (sentK >= 1) {
+      const txt = S.out.slice(0, landed).join("");
+      if (!landed) { font(ctx, 12.5, "--f-body"); ctx.fillStyle = C.muted; ctx.fillText(thinkingNow ? "Thinking…" : "…", L.x + pad, y); }
+      else {
+        font(ctx, 12.5, "--f-body"); ctx.fillStyle = C.ink; const lines = wrapLines(ctx, txt, L.w - pad * 2);
+        const maxL = Math.floor((L.y + L.h - pad - y) / 16); lines.slice(Math.max(0, lines.length - maxL)).forEach((l, i) => ctx.fillText(l, L.x + pad, y + i * 16));
+      }
+    }
+    ctx.restore();
+  }
+
+  function draw(t, i, segs, extra = {}) {
+    const dprA = window.devicePixelRatio || 1, cw = cv.clientWidth || innerW(cv.parentElement) || 600;
+    if (cv._cw !== cw || cv._ch !== extra.h || cv._dpr !== dprA) { cv.style.height = extra.h + "px"; cv.width = Math.round(cw * dprA); cv.height = Math.round(extra.h * dprA); cv._cw = cw; cv._ch = extra.h; cv._dpr = dprA; }
+    ctx = cv.getContext("2d"); ctx.setTransform(dprA, 0, 0, dprA, 0, 0); W = cw; H = extra.h; C = stageColors();
+    const s = segs[i], key = s.key, prev = segs[Math.max(0, i - 1)].key;
+    const ph = k => { const g = segs.find(x => x.key === k); if (!g) return k === "think" ? 1 : 0; return clamp01((t - g.t0) / g.dur); };
+    const at = k => segs.find(x => x.key === k);
+    const capH = extra.capH || 0;
+    const cam = hero ? CAM.map : camAt(key, i === 0 ? key : prev, (t - s.t0) / Math.min(1.0, s.dur * 0.45));
+    const f = fitCam(cam, W, H - capH); scale = f.s; ox = f.ox; oy = f.oy;
+    const dpr = devicePixelRatio || 1;
+    // background + dot grid
+    ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * ox, dpr * oy);
+    ctx.fillStyle = C.line; const g0x = Math.floor(cam.x / 40) * 40 - 40, g0y = Math.floor(cam.y / 40) * 40 - 40;
+    for (let gx = g0x; gx < cam.x + cam.w + 80; gx += 40) for (let gy = g0y; gy < cam.y + cam.h + 80; gy += 40) ctx.fillRect(gx - 1, gy - 1, 2, 2);
+
+    const active = k => key === k || (k === "gw" && key === "safe" && false);
+    const hi = k => (key === k) ? C.sig : C.line;
+
+    // ----- static world -----
+    // laptop
+    const L = P.lap; ctx.fillStyle = C.bg2; rr(ctx, L.x, L.y, L.w, L.h, 12); ctx.fill(); strokeRR(L, key === "send" || key === "done" || key === "stream" ? C.sig : C.line, 1.5, 12);
+    ctx.fillStyle = C.line; ctx.beginPath(); ctx.moveTo(L.x - 22, L.y + L.h + 6); ctx.lineTo(L.x + L.w + 22, L.y + L.h + 6); ctx.lineTo(L.x + L.w + 4, L.y + L.h + 26); ctx.lineTo(L.x - 4, L.y + L.h + 26); ctx.closePath(); ctx.fill();
+    // fibres
+    path(P.up, C.line, 1.5, [5, 5]); path(P.down, C.line, 1.5, [5, 5]);
+    // datacenter
+    ctx.fillStyle = C.bg2; ctx.globalAlpha = 0.55; rr(ctx, P.dc.x, P.dc.y, P.dc.w, P.dc.h, 26); ctx.fill(); ctx.globalAlpha = 1; strokeRR(P.dc, C.line, 1.2, 26);
+    // corridor floor
+    ctx.fillStyle = C.line; ctx.globalAlpha = 0.35; ctx.fillRect(560, 333, 540, 24); ctx.fillRect(560, 410, 540, 18); ctx.globalAlpha = 1;
+    // gateway: two pillars + bar
+    const gk = ph("gw"), gateOpen = easeIO((gk - 0.62) / 0.25);
+    ctx.fillStyle = key === "gw" ? C.sig : C.line; ctx.fillRect(P.gate[0] - 34, 300, 10, 140); ctx.fillRect(P.gate[0] + 24, 300, 10, 140);
+    ctx.save(); ctx.translate(P.gate[0] - 24, 312); ctx.rotate(-gateOpen * Math.PI / 2.4); ctx.fillStyle = key === "gw" ? C.amb : C.muted; ctx.fillRect(0, -3, 50, 6); ctx.restore();
+    // scanner arch
+    const sk = ph("safe");
+    ctx.save(); ctx.strokeStyle = key === "safe" ? C.sig : C.line; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(P.scan[0] - 30, 440); ctx.lineTo(P.scan[0] - 30, 300); ctx.arc(P.scan[0], 300, 30, Math.PI, 0); ctx.lineTo(P.scan[0] + 30, 440); ctx.stroke(); ctx.restore();
+    if (key === "safe" && sk > 0.3 && sk < 0.78) { const by = lerp(300, 380, (Math.sin((sk - 0.3) / 0.48 * Math.PI * 2 - Math.PI / 2) + 1) / 2); ctx.save(); ctx.globalAlpha = 0.85; ctx.shadowColor = C.sig; ctx.shadowBlur = 14; ctx.fillStyle = C.sig; ctx.fillRect(P.scan[0] - 27, by, 54, 3); ctx.restore(); }
+    // queue lane
+    strokeRR(P.queue, key === "queue" ? C.sig : C.line, 1.2, 21, [4, 4]);
+    // router + replicas
+    const R = P.router; ctx.save(); ctx.translate(R[0], R[1]); ctx.rotate(Math.PI / 4); ctx.fillStyle = key === "route" ? C.sig : C.line; ctx.fillRect(-11, -11, 22, 22); ctx.restore();
+    const rk = ph("route");
+    const targets = [[P.reps[0].x + P.reps[0].w / 2, P.reps[0].y + P.reps[0].h], [P.reps[1].x + P.reps[1].w / 2, P.reps[1].y + P.reps[1].h], [P.srv.x, 345]];
+    targets.forEach((tg, j) => { ctx.save(); ctx.strokeStyle = j === 2 && rk > 0.35 ? C.sig : C.line; ctx.globalAlpha = key === "route" ? 1 : 0.6; ctx.lineWidth = (j === 2 && rk > 0.35 ? 2.5 : 1.2) / scale; ctx.beginPath(); ctx.moveTo(R[0] + 12, R[1]); ctx.quadraticCurveTo(tg[0] - 20, R[1], tg[0], tg[1]); ctx.stroke(); ctx.restore(); });
+    P.reps.forEach((r, j) => { ctx.fillStyle = C.bg2; rr(ctx, r.x, r.y, r.w, r.h, 10); ctx.fill(); strokeRR(r, C.line, 1.2, 10);
+      for (let d = 0; d < 8; d++) { ctx.fillStyle = C.amb; ctx.globalAlpha = 0.25 + 0.6 * ((Math.sin(t * 3 + d * 1.7 + j) + 1) / 2); ctx.fillRect(r.x + 12 + d * 12.5, r.y + r.h - 18, 8, 8); } ctx.globalAlpha = 1; });
+    // GPU server
+    const V = P.srv; ctx.fillStyle = C.bg2; rr(ctx, V.x, V.y, V.w, V.h, 16); ctx.fill();
+    strokeRR(V, ["tok", "prefill", "think", "decode", "route"].includes(key) ? C.sig : C.line, 1.5, 16);
+    // layers
+    const Ly = P.layers;
+    for (let j = 0; j < Ly.n; j++) { ctx.fillStyle = C.line; rr(ctx, Ly.x0 + j * Ly.dx, Ly.y, Ly.w, Ly.h, 5); ctx.fill(); }
+    // sampler frame
+    strokeRR({ x: P.samp.x, y: P.samp.y, w: P.samp.w, h: P.samp.h }, C.line, 1.2, 8);
+    // KV grid frame
+    const K = P.kv, kvCells = K.cols * K.rows;
+    for (let c = 0; c < kvCells; c++) { const cx = K.x + (c % K.cols) * (K.cell + K.gap), cy = K.y + Math.floor(c / K.cols) * (K.cell + K.gap); ctx.fillStyle = C.line; ctx.globalAlpha = 0.45; ctx.fillRect(cx, cy, K.cell, K.cell); } ctx.globalAlpha = 1;
+
+    // ----- dynamic -----
+    const sendK = ph("send"), netK = ph("net"), safeK = ph("safe"), qK = ph("queue"), tokK = ph("tok"), preK = ph("prefill"), thK = ph("think"), decK = ph("decode");
+    const decSeg = at("decode"), thinkSeg = at("think");
+    // which output tokens have been emitted, and when (story time)
+    const nOut = S.out.length, emitT = [];
+    if (decSeg) { for (let j = 0; j < nOut; j++) { const u = (j + 1) / nOut; const k = u < 0.12 ? u / 0.12 * 0.45 : 0.45 + (u - 0.12) / 0.88 * 0.55; emitT.push(decSeg.t0 + k * decSeg.dur * 0.97); } }
+    const FLY = hero ? 2.2 : 1.7;
+    const landedN = emitT.filter(e => t >= e + FLY).length;
+    // KV fill
+    const sysCells = Math.ceil(S.sys / S.per), userCells = Math.ceil((S.inTok - S.sys) / S.per), thinkCells = Math.ceil(S.think / S.per);
+    let filled = { sys: sysCells, user: Math.round(userCells * easeIO((preK - 0.15) / 0.75)), think: Math.round(thinkCells * thK), out: Math.ceil(emitT.filter(e => t >= e).length / S.per) };
+    if (!S.cached) { filled.sys = Math.round(sysCells * easeIO((preK - 0.15) / 0.75)); }
+    let c = 0; const paint = (n, col, a) => { for (let j = 0; j < n && c < kvCells; j++, c++) { const cx = K.x + (c % K.cols) * (K.cell + K.gap), cy = K.y + Math.floor(c / K.cols) * (K.cell + K.gap); ctx.globalAlpha = a; ctx.fillStyle = col; ctx.fillRect(cx, cy, K.cell, K.cell); } ctx.globalAlpha = 1; };
+    paint(filled.sys, C.muted, 0.9); paint(filled.user, C.sig, 0.55); paint(filled.think, C.muted, 0.45); paint(filled.out, C.sig, 1);
+
+    // prompt token chips
+    if (tokK > 0) {
+      S.chips.forEach((ch, j) => {
+        const appear = clamp01((tokK - 0.25 - j * 0.035) / 0.2); if (appear <= 0) return;
+        const read = preK > 0.1 + (ch.x - P.tokX0) / (P.tokX1 - P.tokX0) * 0.4;
+        ctx.globalAlpha = appear; ctx.fillStyle = ch.kind === "sys" ? C.muted : ch.kind === "more" ? C.line : C.sig; ctx.globalAlpha = appear * (ch.kind === "user" ? (read ? 0.9 : 0.55) : 0.8);
+        rr(ctx, ch.x, ch.y - 9 + (1 - appear) * 6, ch.w, 18, 5); ctx.fill(); ctx.globalAlpha = appear;
+        ctx.fillStyle = ch.kind === "user" ? C.bg : C.ink; font(ctx, 11, "--f-mono"); ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(ch.txt, ch.x + 5, ch.y + 1 + (1 - appear) * 6); ctx.globalAlpha = 1;
+      });
+    }
+    // prefill wave: every token at once, layer by layer
+    const glowLayer = (j, a, col) => { ctx.save(); ctx.globalAlpha = a; ctx.shadowColor = col; ctx.shadowBlur = 18; ctx.fillStyle = col; rr(ctx, Ly.x0 + j * Ly.dx, Ly.y, Ly.w, Ly.h, 5); ctx.fill(); ctx.restore(); };
+    if (key === "prefill") { const w = (preK - 0.12) / 0.7 * (Ly.n + 2); for (let j = 0; j < Ly.n; j++) { const d = Math.abs(w - j - 0.5); if (d < 1.6) glowLayer(j, (1 - d / 1.6) * 0.95, C.amb); }
+      // streams of all tokens entering together
+      for (let r = 0; r < 14; r++) { const yy = Ly.y + 10 + r * 13; const xx = Ly.x0 - 8 + ((w / (Ly.n + 2)) * (Ly.n * Ly.dx + 10)); if (preK > 0.12 && preK < 0.82) capsule(Math.min(xx, Ly.x0 + Ly.n * Ly.dx), yy, 10, 5, C.sig, 6, 0.8); } }
+    // per-token pass (thinking + decoding): one dot crosses the layers, the sampler picks
+    function tokenPass(k, col, showSampler) {
+      const x = Ly.x0 - 10 + k * (Ly.n * Ly.dx + 4), j = Math.floor((x - Ly.x0) / Ly.dx);
+      if (j >= 0 && j < Ly.n) glowLayer(j, 0.85, C.amb);
+      if (k < 0.92) capsule(Math.min(x, P.samp.x - 6), Ly.y + Ly.h / 2, 12, 12, col, 10);
+      if (showSampler) {
+        const sp = clamp01((k - 0.55) / 0.3); const probs = [0.62, 0.21, 0.1, 0.07];
+        probs.forEach((p, q) => { const yy = P.samp.y + 30 + q * 38; ctx.fillStyle = q === 0 && sp > 0.6 ? C.sig : C.muted; ctx.globalAlpha = sp; ctx.fillRect(P.samp.x + 8, yy, (P.samp.w - 16) * p * sp / 0.62, 14); ctx.globalAlpha = 1; });
+      }
+    }
+    if (key === "think" && thinkSeg) { const n = 9, k = (thK * n) % 1; tokenPass(k, C.muted, false);
+      label(P.samp.x + P.samp.w / 2, P.samp.y + P.samp.h / 2, `${Math.round(S.think * thK)} hidden`, { color: C.muted, size: 11, mono: true }); }
+    if (key === "decode" && decSeg) { let j = emitT.findIndex(e => e > t); if (j < 0) j = nOut - 1; const start = j ? emitT[j - 1] : decSeg.t0; const k = clamp01((t - start) / Math.max(1e-3, emitT[j] - start)); tokenPass(k, C.sig, emitT[j] - start > 0.25);
+      if (emitT[j] - start > 0.25 && k > 0.8) label(P.samp.x + P.samp.w / 2, P.samp.y - 14, JSON.stringify(S.out[j].trim() || "␣"), { color: C.sig, mono: true, size: 12, weight: "600" }); }
+    // output tokens in flight
+    emitT.forEach((e, j) => { const u = (t - e) / FLY; if (u <= 0 || u >= 1) return; const [x, y] = retPos(easeOut(u * 0.95 + 0.05) ); capsule(x, y, 14, 9, C.sig, 8, 0.95); });
+
+    // the request packet
+    const pk = (() => {
+      if (sendK <= 0.45) return null;
+      if (sendK < 1) return { p: [lerp(190, 340, easeIO((sendK - 0.45) / 0.55)), lerp(300, 335, easeIO((sendK - 0.45) / 0.55))], a: easeIO((sendK - 0.45) / 0.2) };
+      if (netK < 1) return { p: bez(P.up, easeIO(netK)) };
+      const gw = ph("gw"); if (gw < 1) return { p: [gw < 0.3 ? lerp(560, P.gate[0] - 46, easeIO(gw / 0.3)) : gw < 0.65 ? P.gate[0] - 46 : lerp(P.gate[0] - 46, 745, easeIO((gw - 0.65) / 0.35)), 345] };
+      if (safeK < 1) return { p: [safeK < 0.3 ? lerp(745, P.scan[0], easeIO(safeK / 0.3)) : safeK < 0.78 ? P.scan[0] : lerp(P.scan[0], 845, easeIO((safeK - 0.78) / 0.22)), 345] };
+      const qx = slot => 998 - slot * 24;
+      if (qK < 1) { const arrive = easeIO(qK / 0.3), slot = S.others * (1 - easeIO((qK - 0.3) / 0.65)); return { p: [lerp(845, qx(S.others), arrive) + (qK > 0.3 ? qx(slot) - qx(S.others) : 0), 345], small: true }; }
+      const rk2 = ph("route"); if (rk2 < 1) return { p: rk2 < 0.35 ? [lerp(998, P.router[0], easeIO(rk2 / 0.35)), 345] : [lerp(P.router[0], P.srv.x + 18, easeIO((rk2 - 0.35) / 0.65)), 345] };
+      if (tokK < 0.3) return { p: [lerp(P.srv.x + 18, P.tokX0 + 40, easeIO(tokK / 0.3)), lerp(345, P.tokRows[0], easeIO(tokK / 0.3))], a: 1 - easeIO((tokK - 0.15) / 0.15) };
+      return null;
+    })();
+    // other requests waiting in line
+    if (S.others) { for (let j = 0; j < S.others; j++) { const slot = j - S.others * easeIO((qK - 0.3) / 0.65); const x = 998 - Math.max(slot, -2) * 24; const a = slot < 0 ? clamp01(1 + slot * 0.8) : 1; if (a > 0 && t < (at("route") ? at("route").t1 : 0)) capsule(slot < 0 ? x + (-slot) * 10 : x, 345, 18, 14, C.muted, 0, a * 0.9); } }
+    if (pk) { const small = pk.small; capsule(pk.p[0], pk.p[1], small ? 22 : 44, small ? 16 : 20, C.sig, 16, pk.a == null ? 1 : pk.a);
+      if (!small && !hero && scale > 0.9) { ctx.save(); ctx.globalAlpha = pk.a == null ? 1 : pk.a; font(ctx, 9, "--f-mono", "600"); ctx.fillStyle = C.bg; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("POST", pk.p[0], pk.p[1] + 0.5); ctx.restore(); } }
+    // checks
+    if (key === "gw" && gk > 0.3) label(P.gate[0], 285, gk > 0.55 ? "key ✓  rate limit ✓" : "checking…", { color: gk > 0.55 ? C.sig : C.muted, size: 11, mono: true });
+    if (key === "safe" && sk > 0.78) label(P.scan[0], 285, "allowed ✓", { color: C.sig, size: 11, mono: true });
+    if (key === "route" && rk > 0.35 && S.cached) label(P.srv.x + P.srv.w / 2, 516, "system prompt already cached here ✓", { color: C.sig, size: 11, mono: true });
+
+    // screen content
+    const thinkingNow = (key === "think") || (key === "decode" && landedN === 0 && S.think);
+    drawScreenContent(landedN, sendK >= 1 ? 1 : sendK > 0 ? Math.min(0.999, sendK / 0.5) : 0, thinkingNow);
+
+    // ----- labels (screen space, constant size) -----
+    const lab = (x, y, text, keys, o = {}) => (o.minor && scale < 0.42 && !keys.includes(key)) ? null : label(x, y, text, { color: keys.includes(key) ? C.ink : C.muted, weight: keys.includes(key) ? "650" : "500", size: hero ? 11 : 12, ...o });
+    lab(190, 478, "You", ["send", "done", "stream"]);
+    lab(450, 214, "Internet", ["net"]);
+    lab(612, 88, "Datacenter", [], { align: "left" });
+    lab(P.gate[0], 462, "Gateway", ["gw"], { minor: true }); lab(P.scan[0], 462, "Safety check", ["safe"], { minor: true });
+    lab(943, 392, S.others ? `Queue · ${S.others} ahead` : "Queue · empty", ["queue"], { minor: true });
+    lab(P.router[0], 376, "Router", ["route"], { minor: true });
+    lab(1238, 166, "Other replicas, full", ["route"], { minor: true });
+    lab(P.srv.x + 22, 200, "GPU server · the model", ["tok", "prefill", "decode", "think"], { align: "left" });
+    if (!hero && scale > 0.9) {
+      lab(Ly.x0 + (Ly.n * Ly.dx) / 2 - 8, Ly.y + Ly.h + 16, "Layers (a real model has 30 to 120+)", ["prefill", "decode", "think"]);
+      lab(P.samp.x + P.samp.w / 2, Ly.y + Ly.h + 16, "Next-token odds", ["decode"]);
+      lab(K.x, K.y - 14, `KV cache: the model's notes · 1 square ≈ ${S.per} token${S.per > 1 ? "s" : ""}`, ["prefill", "decode", "think", "route"], { align: "left" });
+    }
+
+    // picture-in-picture of the screen while the camera is inside the server
+    if (!hero && ["think", "decode"].includes(key)) {
+      const pw = Math.min(260, W * 0.36), phh = pw * L.h / L.w, px = 14, py = 14;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 20; ctx.fillStyle = C.bg2; rr(ctx, px, py, pw, phh, 10); ctx.fill(); ctx.restore();
+      const sc2 = pw / L.w; ctx.setTransform(dpr * sc2, 0, 0, dpr * sc2, dpr * (px - L.x * sc2), dpr * (py - L.y * sc2));
+      const sv = scale; scale = sc2; drawScreenContent(landedN, 1, thinkingNow); scale = sv;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.strokeStyle = C.sig; ctx.lineWidth = 1; rr(ctx, px, py, pw, phh, 10); ctx.stroke();
+      font(ctx, 10, "--f-display", "600"); ctx.fillStyle = C.muted; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic"; ctx.fillText("Your screen", px + 8, py + phh + 14);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // remember the world transform for clicks
+    cv._view = { scale, ox, oy };
+  }
+
+  // click a part of the machine to jump to its step
+  function hitKey(sx, sy) {
+    const v = cv._view; if (!v) return null; const x = (sx - v.ox) / v.scale, y = (sy - v.oy) / v.scale;
+    const inR = (r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+    if (inR({ x: 20, y: 220, w: 340, h: 260 })) return "send";
+    if (inR({ x: 360, y: 190, w: 190, h: 330 })) return "net";
+    if (inR({ x: 620, y: 270, w: 110, h: 190 })) return "gw";
+    if (inR({ x: 750, y: 260, w: 110, h: 200 })) return "safe";
+    if (inR({ x: 860, y: 300, w: 170, h: 100 })) return "queue";
+    if (inR({ x: 1030, y: 80, w: 70, h: 330 }) || inR({ x: 1100, y: 80, w: 280, h: 90 })) return "route";
+    if (inR({ x: 1100, y: 210, w: 450, h: 60 })) return "tok";
+    if (inR({ x: 1100, y: 280, w: 360, h: 220 }) || inR({ x: 1100, y: 520, w: 450, h: 160 })) return "prefill";
+    if (inR({ x: 1450, y: 280, w: 100, h: 220 })) return "decode";
+    return null;
+  }
+  return { setup, draw, hitKey, get S() { return S; } };
+}
+
+/* ---------- Landing page hero: the same machine, looping quietly ---------- */
+chapter("start", () => {
+  const cv = $("#hero-cv"); if (!cv) return;
+  const J = createJourney(cv, { hero: true });
+  const prompts = [["Why is the sky blue?", "Sunlight contains every colour. Air scatters short blue wavelengths more strongly, so blue reaches your eyes from every part of the sky."],
+    ["Write a haiku about servers.", "Fans hum through the night / a thousand racks hold their breath / your answer, then dawn"],
+    ["What is 17 × 24?", "17 × 24 = 408. One way: 17 × 20 = 340, plus 17 × 4 = 68."]];
+  let n = 0;
+  const segsFor = () => [["map", 1.0], ["send", 1.2], ["net", 1.6], ["gw", 0.9], ["safe", 0.9], ["queue", 1.0], ["route", 0.9], ["tok", 1.0], ["prefill", 1.4], ["decode", 4.2], ["stream", 2.4], ["done", 1.4]].map(([key, dur]) => ({ key, dur, title: key }));
+  function scen() { const [p, r] = prompts[n % prompts.length]; J.setup({ prompt: p, promptShort: p, reply: r, sys: 400, cached: true, inTok: 410, think: 0, busy: 0.35 }); }
+  scen(); let segs = segsFor(), a = 0; segs.forEach(s => { s.t0 = a; a += s.dur; s.t1 = a; }); const T = a; let t = reduceMotion() ? segs[9].t0 + 2.5 : 0;
+  const hgt = () => Math.round(Math.max(220, Math.min(440, innerW(cv.parentElement) * 0.46)));
+  const segAt = x => segs.findIndex(s => x < s.t1);
+  const frame = () => { const i = segAt(t); J.draw(t, i < 0 ? segs.length - 1 : i, segs, { h: hgt() }); };
+  const loop = animLoop(dt => { t += dt; if (t >= T) { t = 0; n++; scen(); } frame(); });
+  onRedraw(() => { frame(); if (!reduceMotion()) loop.start(); });
+  cv.setAttribute("role", "img"); cv.setAttribute("aria-label", "Animation: a prompt travels from a laptop over the internet into a datacenter, through a gateway, a safety check, a queue and a router to a GPU server, and the reply streams back token by token.");
+});
+
 /* Chapter 1: trace of one request + rewind timeline */
 chapter("send", () => {
   const replies = {
@@ -1759,92 +2258,105 @@ chapter("send", () => {
     "Write a haiku about servers.": "Fans hum through the night / a thousand racks hold their breath / your answer, then dawn",
     "What is 17 × 24?": "17 × 24 = 408. One way: 17 × 20 = 340 and 17 × 4 = 68, and 340 + 68 = 408."
   };
-  const clients = { app: "Chat app", cli: "Terminal (CLI)", api: "Your code (API call)" };
-  const spans = [
-    { k: "net", name: "Network to datacenter", dev: "net", ch: "send", d: "Your encrypted request travels over the internet to the provider's nearest entry point, then on to a region that runs the model." },
-    { k: "gw", name: "API gateway", dev: "cpu", ch: "send", d: "Checks your API key or login, applies rate limits, and records usage for billing." },
-    { k: "safe", name: "Policy checks", dev: "cpu", ch: "evals", d: "Many providers run lightweight classifiers on inputs and outputs to catch abuse. Exact checks differ by provider." },
-    { k: "queue", name: "Queue", dev: "cpu", ch: "sharing", d: "If every model replica is full, your request waits for a free slot. This grows quickly as the service gets busy." },
-    { k: "route", name: "Router", dev: "cpu", ch: "memory", d: "Picks a model replica, ideally one that already has the start of your conversation in its cache." },
-    { k: "tok", name: "Tokenize", dev: "cpu", ch: "tokens", d: "Your text is split into tokens, the integer IDs the model works with." },
-    { k: "prefill", name: "Prefill: read the whole prompt", dev: "gpu", ch: "inside", d: "All prompt tokens pass through the model together. This fills the attention cache and produces the first output token." },
-    { k: "decode", name: "Decode: write one token at a time", dev: "gpu", ch: "predict", d: "Each step reads the model's weights (for mixture-of-experts models, only the experts it uses) to produce the next token, which is sampled, sent back and appended to the input." },
-    { k: "stream", name: "Stream back", dev: "net", ch: "send", d: "Each token is turned back into text and sent to you as soon as it exists, over the same open connection." }
-  ];
-  const thinkSpan = { k: "think", name: "Thinking: hidden reasoning", dev: "gpu", ch: "align", d: "Reasoning models first generate tokens you may not see (or see only as a summary), working through the problem before writing the answer. These are decoded exactly like normal tokens, so they add time and cost before the first visible word." };
-  const sysTok = { app: 400, cli: 3000, api: 0 };
-  const sysNote = { app: "incl. ~400 hidden system-prompt tokens", cli: "incl. ~3,000 tokens of instructions and tool definitions", api: "only what your code sends" };
   const LONG = "Summarise this incident report for an executive audience. " + "At 09:14 UTC the payments service began returning elevated 5xx errors after a configuration change to the connection pool. Retries amplified load on the primary database, which hit its connection limit; the on-call engineer rolled back the change at 09:41 and error rates returned to normal by 09:52. ".repeat(30);
-  const cv = $("#tr-cv"); let trace = null, t0 = 0, playing = false, chosen = null;
-  const getClient = seg($("#tr-client"), v => { $("#tr-client-label").textContent = clients[v]; if (!playing) { trace = build(); draw(null); readouts(trace, null); } });
-  const getSpeed = seg($("#tr-speed"), () => {});
-  bindCtl("tr-load", () => {}, e => Math.round(e.value * 100) + "%");
-  $$("#tr-presets button").forEach(b => b.addEventListener("click", () => { $("#tr-prompt").value = b.dataset.p === "__long__" ? LONG.trim() : b.dataset.p; if (!playing) { trace = build(); draw(null); readouts(trace, null); } }));
-  $("#tr-think").addEventListener("change", () => { if (!playing) { trace = build(); draw(null); readouts(trace, null); } });
+  const LONG_REPLY = "Summary: a configuration change to the payments service's connection pool caused 38 minutes of elevated errors. Retries overloaded the database. Rolling back fixed it; follow-ups are safer config rollout and retry limits.";
+  const sysTok = { app: 400, cli: 3000, api: 0 };
+  const sysWhat = { app: "about 400 hidden system-prompt tokens", cli: "about 3,000 tokens of hidden instructions and tool definitions", api: "no hidden tokens: your code sends only what you write" };
   const approxTokens = s => Math.max(1, Math.ceil(s.length / 4));
+  const TPOT = 22;
+  const chapterOf = { map: "send", send: "send", net: "send", gw: "send", safe: "evals", queue: "sharing", route: "memory", tok: "tokens", prefill: "inside", think: "align", decode: "predict", stream: "send", done: "tokens" };
+  const chName = { send: "this chapter", evals: "Chapter 13", sharing: "Chapter 6", memory: "Chapter 5", tokens: "Chapter 2", inside: "Chapter 4", align: "Chapter 12", predict: "Chapter 3" };
+  const titles = { map: "The whole trip", send: "You press send", net: "Across the internet", gw: "The front door", safe: "A quick safety check", queue: "Waiting in line", route: "Picking a copy of the model", tok: "Chopping text into tokens", prefill: "Reading the whole prompt at once", think: "Thinking before answering", decode: "Writing one token at a time", stream: "Streaming back to you", done: "Done" };
 
-  function build() {
+  const cv = $("#tr-cv"), J = createJourney(cv), stage = cv.parentElement;
+  let sc = null;
+  const getClient = seg($("#tr-client"), () => rebuild());
+  bindCtl("tr-load", () => rebuild(), e => Math.round(e.value * 100) + "%");
+  $("#tr-think").addEventListener("change", () => rebuild());
+  $$("#tr-presets button").forEach(b => b.addEventListener("click", () => { $$("#tr-presets button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); $("#tr-prompt").value = b.dataset.p === "__long__" ? LONG.trim() : b.dataset.p; rebuild(); }));
+  $("#tr-prompt").addEventListener("change", () => { $$("#tr-presets button").forEach(x => x.setAttribute("aria-pressed", "false")); rebuild(); });
+
+  function scenario() {
     const prompt = $("#tr-prompt").value.trim() || "Hello";
-    const reply = prompt.startsWith("Summarise this incident") ? "Summary: a configuration change to the payments service's connection pool caused 38 minutes of elevated errors. Retries overloaded the database. Rolling back fixed it; follow-ups are safer config rollout and retry limits." : replies[prompt] || "(Illustrative reply.) I'd start by breaking the question into parts, then answer each one clearly, and finish with a short summary you can act on.";
-    const sys = sysTok[getClient()], inTok = approxTokens(prompt) + sys, rho = num("tr-load"), think = checked("tr-think") ? 300 : 0;
-    const words = reply.match(/\S+\s*/g) || [reply];
-    const outTok = approxTokens(reply);
-    const durs = { net: 40, gw: 12, safe: 25, queue: Math.round(60 * rho / (1 - rho)), route: 4, tok: 2, prefill: Math.round(30 + inTok * 0.08), think: think * 22, decode: outTok * 22, stream: 40 };
-    const list = think ? [...spans.slice(0, 7), thinkSpan, ...spans.slice(7)] : spans;
-    let t = 0; const out = list.map(s => { const sp = { ...s, start: t, dur: durs[s.k] }; if (s.k === "decode") { sp.start = t; } if (s.k === "stream") { sp.start = durs.net + durs.gw + durs.safe + durs.queue + durs.route + durs.tok + durs.prefill + durs.think; sp.dur = durs.decode + durs.stream; } else t += durs[s.k]; return sp; });
-    const ttft = durs.net + durs.gw + durs.safe + durs.queue + durs.route + durs.tok + durs.prefill + durs.think + durs.stream;
-    const total = out[out.length - 1].start + out[out.length - 1].dur;
-    return { spans: out, words, inTok, outTok, ttft, total, prompt: prompt.length > 160 ? prompt.slice(0, 160) + "… (" + inTok.toLocaleString() + " tokens)" : prompt, reply, tpot: 22, think, client: getClient() };
+    const reply = prompt.startsWith("Summarise this incident") ? LONG_REPLY : replies[prompt] || "Here's a short, clear answer to your question, with the key idea first and a one-line summary at the end.";
+    const client = getClient(), sys = sysTok[client], inTok = approxTokens(prompt) + sys, rho = num("tr-load"), think = checked("tr-think") ? 300 : 0;
+    const cached = sys > 0, outTok = approxTokens(reply);
+    const durs = { net: 40, gw: 12, safe: 25, queue: Math.round(60 * rho / (1 - rho)), route: 4, tok: 2, prefill: Math.round(30 + (inTok - (cached ? sys : 0)) * 0.08), think: think * TPOT, decode: outTok * TPOT, stream: 40 };
+    const ttft = durs.net + durs.gw + durs.safe + durs.queue + durs.route + durs.tok + durs.prefill + durs.think + TPOT + durs.stream;
+    const total = ttft + (outTok - 1) * TPOT;
+    const promptShort = prompt.length > 90 ? prompt.slice(0, 86) + "…" : prompt;
+    return { prompt, promptShort, reply, client, sys, inTok, think, cached, outTok, durs, ttft, total, busy: rho };
   }
-  function draw(now) {
-    const W = innerW(cv.parentElement); const narrow = W < 560; const labW = narrow ? 0 : 230;
-    const tr0 = trace || build(); const rowH = narrow ? 34 : 24; const H = tr0.spans.length * rowH + 36;
-    const { ctx, w } = setupCanvas(cv, H); ctx.clearRect(0, 0, w, H);
-    const tr = tr0; const T = tr.total * 1.04; const sx = v => labW + v / T * (w - labW - 6);
-    font(ctx, 10, "--f-mono"); ctx.fillStyle = css("--muted"); ctx.strokeStyle = css("--grid");
-    const maxTicks = Math.max(3, Math.floor((w - labW) / 70)); const stepMs = [100, 200, 250, 500, 1000, 2000, 5000].find(s => T / s <= maxTicks) || 10000;
-    for (let v = 0; v <= T; v += stepMs) { const x = sx(v); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H - 18); ctx.stroke(); ctx.textAlign = "center"; ctx.fillText(v >= 1000 ? (v / 1000).toFixed(v % 1000 ? 1 : 0) + " s" : v + " ms", Math.max(14, Math.min(w - 16, x)), H - 5); }
-    tr.spans.forEach((s, i) => {
-      const y = i * rowH + 4; const col = s.dev === "gpu" ? css("--accent") : s.dev === "net" ? css("--muted") : css("--ink");
-      font(ctx, 12, "--f-display", chosen === i ? "700" : ""); ctx.fillStyle = chosen === i ? css("--accent") : css("--ink"); ctx.textAlign = "left";
-      if (narrow) ctx.fillText(s.name, 2, y + 10); else ctx.fillText(s.name, 2, y + 13);
-      const by = narrow ? y + 15 : y + 3, bh = narrow ? 12 : 14;
-      ctx.fillStyle = css("--grid"); ctx.fillRect(sx(s.start), by, Math.max(2, sx(s.start + s.dur) - sx(s.start)), bh);
-      const prog = now == null ? s.dur : Math.max(0, Math.min(s.dur, now - s.start));
-      if (prog > 0) { ctx.fillStyle = col; ctx.globalAlpha = s.dev === "cpu" ? 0.55 : 0.9; ctx.fillRect(sx(s.start), by, Math.max(2, sx(s.start + prog) - sx(s.start)), bh); ctx.globalAlpha = 1; }
-      if (s.k === "decode" && prog > 0) { ctx.fillStyle = css("--surface"); const n = Math.floor(prog / tr.tpot); for (let j = 1; j <= n; j++) { const x = sx(s.start + j * tr.tpot); if (x - sx(s.start) > 3) ctx.fillRect(x, by, 1, bh); } }
-    });
-    if (now != null) { const x = sx(Math.min(now, tr.total)); ctx.strokeStyle = css("--heat"); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H - 18); ctx.stroke(); ctx.lineWidth = 1; }
-    cv._hit = { rowH, n: tr.spans.length };
+  function segments(s) {
+    const L = [["map", 2.4, 0], ["send", 2.2, 5], ["net", 2.6, s.durs.net], ["gw", 2.2, s.durs.gw], ["safe", 2.2, s.durs.safe], ["queue", 2.0 + J.S.others * 0.35, s.durs.queue], ["route", 2.4, s.durs.route], ["tok", 2.8, s.durs.tok], ["prefill", 3.4, s.durs.prefill]];
+    if (s.think) L.push(["think", 3.6, s.durs.think]);
+    L.push(["decode", 7, s.durs.decode], ["stream", 2.6, s.durs.stream], ["done", 2.4, 0]);
+    return L.map(([key, dur, rdur]) => ({ key, dur, rdur, title: titles[key] }));
   }
-  function readouts(tr, now) {
-    const done = now == null || now >= tr.total;
-    $("#tr-read").innerHTML = `
-      <div class="readout"><div class="k">Prompt tokens</div><div class="v">≈${tr.inTok}</div><div class="s">${sysNote[tr.client]}</div></div>
-      <div class="readout hot"><div class="k">Time to first token</div><div class="v">${(tr.ttft / 1000).toFixed(2)} s</div></div>
-      <div class="readout"><div class="k">Output speed</div><div class="v">${(1000 / tr.tpot).toFixed(0)} tok/s</div><div class="s">${tr.think ? tr.think + " hidden thinking tokens first" : "visible tokens only"}</div></div>
-      <div class="readout ${done ? "ok" : ""}"><div class="k">Total</div><div class="v">${done ? (tr.total / 1000).toFixed(2) + " s" : "…"}</div><div class="s">${tr.outTok} output tokens</div></div>`;
+  const ms = v => v < 1000 ? Math.round(v) + " ms" : (v / 1000).toFixed(2) + " s";
+  function caption(seg, depth) {
+    const s = sc, k = seg.key, deep = depth >= 3, ch = chapterOf[k];
+    const more = ch && ch !== "send" ? ` <a href="#${ch}">${chName[ch]} goes deeper →</a>` : "";
+    const C = {
+      map: [`Your prompt's trip: from your screen, across the internet, through a datacenter's front door to a GPU that writes the reply. Press play, or step through with the arrows.`,
+            `One request, end to end: client → network → API gateway → safety classifier → queue → router → a model replica on GPUs, then tokens stream back. Press play, or step with ← →.`],
+      send: [`You press send. Your words, and the conversation so far, are packed into a request.`,
+             `The client POSTs JSON over HTTPS: the message list, model name, max tokens and "stream": true. It carries ${sysWhat[s.client]}.`],
+      net: [`The request races through fibre-optic cable to the provider's datacenter. Light covers 1,000 km of fibre in about 5 ms.`,
+            `TLS-encrypted, routed to the provider's nearest entry point, then over its network to a region that serves this model. Expect tens of milliseconds.`],
+      gw: [`At the front door, a gatekeeper checks who you are and that you haven't sent too many requests.`,
+           `The API gateway authenticates the key or session, applies rate limits and records usage for billing.`],
+      safe: [`A quick check looks for clearly harmful requests. Many providers check replies too.`,
+             `Lightweight classifiers screen inputs (and often outputs) for abuse. What is checked, and where, differs by provider.`],
+      queue: [s.busy > 0.05 ? `Every copy of the model is busy, so your request waits its turn. ${J.S.others} ${J.S.others === 1 ? "request is" : "requests are"} ahead of you. Try the "How busy" slider.` : `The service is quiet, so there's no line today. Try the "How busy" slider below.`,
+              `Wait time rises sharply as utilisation nears 100% (M/M/1: W_q = ρ/(μ−λ)). Here ρ = ${Math.round(s.busy * 100)}%, adding ${ms(s.durs.queue)}. Providers keep headroom and spread load across regions.`],
+      route: [`A router picks one copy of the model with room for you, ideally one that has already read the start of your conversation.`,
+              `Load balancers prefer a replica whose prefix cache already holds your prompt's opening tokens${s.cached ? " (here the system prompt), so they needn't be recomputed" : ""}.`],
+      tok: [`Your text is chopped into tokens, pieces of words that each become a number.`,
+            `${s.inTok.toLocaleString()} input tokens${s.sys ? `, ${s.sys.toLocaleString()} of them hidden instructions` : ""}. Tokenizing is a fast table lookup on a CPU.`],
+      prefill: [`The model reads every token at once, layer by layer, and keeps notes about each one (the KV cache, bottom).`,
+                `Prefill runs all ${(s.inTok - (s.cached ? s.sys : 0)).toLocaleString()} uncached tokens through every layer in parallel: compute-bound, about 2 × parameters × tokens FLOPs, ${ms(s.durs.prefill)} here.`],
+      think: [`A thinking model first writes hidden reasoning. Those tokens take time like any others, but you don't see them.`,
+              `${s.think} reasoning tokens are decoded exactly like visible ones (${ms(s.durs.think)} here), and their notes go into the KV cache too.`],
+      decode: [`Now it writes the reply one token at a time: score every possible next piece, pick one, add it, repeat. Each token is sent to you the moment it exists.`,
+               `Each decode step reads the weights from memory to produce one token: about ${TPOT} ms per token (${Math.round(1000 / TPOT)} tokens/s). It's limited by memory bandwidth, not compute.`],
+      stream: [`Tokens keep arriving over the same open connection, and your app shows them as they land.`,
+               `Server-sent events: one long HTTP response that delivers each chunk as it's generated. Detokenizing turns IDs back into text.`],
+      done: [`Done. The first word appeared after ${ms(s.ttft)}; the full reply took ${ms(s.total)}. Press replay, or change the prompt, the app or how busy it is.`,
+             `TTFT ${ms(s.ttft)} (network + queue + prefill${s.think ? " + thinking" : ""}), then ${s.outTok} tokens at ${TPOT} ms each: ${ms(s.total)} in total.`]
+    };
+    return (C[k] ? C[k][deep ? 1 : 0] : "") + more;
   }
-  function explain(i) { const s = (trace || build()).spans[i]; $("#tr-now-t").textContent = s.name; $("#tr-now").innerHTML = `${esc(s.d)} <a href="#${s.ch}">Learn more →</a>`; }
-  const loop = animLoop(() => {
-    const speed = +getSpeed(); const now = (performance.now() - t0) / speed;
-    draw(now); const tr = trace; const firstAt = tr.ttft, n = now < firstAt ? 0 : Math.min(tr.words.length, Math.floor((now - firstAt) / (tr.total - firstAt) * tr.words.length) + 1);
-    $("#tr-screen").innerHTML = `<div class="muted" style="font-size:0.9rem">You: ${esc(tr.prompt)}</div><div style="margin-top:0.4rem">${n ? esc(tr.words.slice(0, n).join("")) : `<span class="muted">${tr.think && now > tr.ttft - tr.think * 22 - 40 ? "thinking…" : "waiting for the first token…"}</span>`}</div>`;
-    const cur = tr.spans.findIndex(s => now >= s.start && now < s.start + s.dur && s.k !== "stream");
-    if (cur >= 0 && chosen === null) explain(cur);
-    readouts(tr, now);
-    if (now >= tr.total) { playing = false; $("#tr-go").disabled = false; $("#tr-go").textContent = "Send again"; $("#tr-now-t").textContent = "Done"; $("#tr-now").innerHTML = "Reply complete. Click any bar to read about that step, or <a href=\"#tokens\">start with tokens →</a>"; return false; }
+  const hgt = () => { const w = innerW(stage); return w < 640 ? Math.round(Math.max(280, w * 0.9)) : Math.round(Math.min(560, Math.max(380, w * 0.5))); };
+  const capH = () => 0;
+  const film = makeFilm($("#tr"), {
+    draw: (t, i, segs) => J.draw(t, i, segs, { h: hgt(), capH: capH() }),
+    caption, onFrame: (t, i, rt) => timebar(rt)
   });
-  $("#tr-go").addEventListener("click", () => {
-    trace = build(); chosen = null; playing = true; $("#tr-go").disabled = true;
-    if (reduceMotion()) { draw(null); $("#tr-screen").innerHTML = `<div class="muted" style="font-size:0.9rem">You: ${esc(trace.prompt)}</div><div style="margin-top:0.4rem">${esc(trace.reply)}</div>`; readouts(trace, null); $("#tr-go").disabled = false; playing = false; return; }
-    t0 = performance.now(); loop.start();
-  });
-  cv.addEventListener("click", e => { const r = cv.getBoundingClientRect(); const i = Math.floor((e.clientY - r.top - 4) / cv._hit.rowH); if (i >= 0 && i < cv._hit.n) { chosen = i; explain(i); if (!playing) draw(null); } });
-  cv.style.cursor = "pointer"; cv.tabIndex = 0; cv.setAttribute("aria-label", "Request trace. Use the up and down arrow keys to step through the stages.");
-  cv.addEventListener("keydown", e => { if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return; e.preventDefault(); const n = cv._hit.n; chosen = chosen === null ? 0 : (chosen + (e.key === "ArrowDown" ? 1 : n - 1)) % n; explain(chosen); if (!playing) draw(null); });
-  onRedraw(() => { if (!playing) { draw(trace ? null : null); readouts(trace || build(), null); } });
-  $("#tr-screen").innerHTML = '<span class="muted">Your conversation will appear here.</span>';
+  const bars = [["Network", s => s.durs.net * 2, "--muted"], ["Checks and line", s => s.durs.gw + s.durs.safe + s.durs.queue + s.durs.route + s.durs.tok, "--ink"], ["Reading the prompt", s => s.durs.prefill, "--heat"], ["Thinking", s => s.durs.think, "--l3"], ["Writing the reply", s => s.durs.decode, "--accent"]];
+  function timebar(rt) {
+    const s = sc; if (!s) return; const tot = bars.reduce((a, b) => a + b[1](s), 0);
+    const el = $("#tr-time"); if (!el._built || el._sc !== s) { el._built = 1; el._sc = s;
+      el.innerHTML = `<div class="tb-row">${bars.filter(b => b[1](s) > 0).map(b => `<span style="width:${b[1](s) / tot * 100}%;background:var(${b[2]});opacity:0.85"></span>`).join("")}<i class="tb-head"></i></div><div class="tb-keys">${bars.filter(b => b[1](s) > 0).map(b => `<span><i style="background:var(${b[2]})"></i>${b[0]} ${ms(b[1](s))}</span>`).join("")}</div>`; }
+    $(".tb-head", el).style.left = Math.min(100, rt / tot * 100) + "%";
+  }
+  function stats() {
+    const s = sc;
+    $("#tr-read").innerHTML = `<div><span class="v">${s.inTok.toLocaleString()}</span><span class="k">input tokens</span></div>
+      <div><span class="v" style="color:var(--heat)">${ms(s.ttft)}</span><span class="k">until the first word</span></div>
+      <div><span class="v">${Math.round(1000 / TPOT)}/s</span><span class="k">tokens while writing</span></div>
+      <div><span class="v">${ms(s.total)}</span><span class="k">for the whole reply</span></div>`;
+  }
+  function rebuild() {
+    sc = scenario(); J.setup(sc); film.pause(); film.setSegs(segments(sc)); film.seek(0); stats(); timebar(0);
+  }
+  rebuild();
+  $("#tr-start").addEventListener("click", () => { $("#tr-start").hidden = true; film.seek(film.segs[1].t0); film.play(); });
+  stage.addEventListener("click", e => { if (e.target !== cv) return; $("#tr-start").hidden = true; const r = cv.getBoundingClientRect(), k = J.hitKey(e.clientX - r.left, e.clientY - r.top); if (!k) return; const j = film.segs.findIndex(s => s.key === k); if (j >= 0) film.playSeg(j); });
+  cv.addEventListener("focus", () => { $("#tr-start").hidden = true; });
+  $(".scene-bar", $("#tr")).addEventListener("click", () => { $("#tr-start").hidden = true; });
+  $(".scene-bar", $("#tr")).addEventListener("input", () => { $("#tr-start").hidden = true; });
+  onRedraw(() => { film.refresh(); });
 
   /* ---- rewind ---- */
   const ev = [

@@ -1,41 +1,32 @@
 <section class="chapter" id="send" data-title="Press send">
-  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 1</span><span class="label">Press send</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 1</span><span class="label">Press send</span></div>
   <h2>What happens when you press send?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Your message travels to a datacenter, gets checked and queued, is chopped into tokens, read by the model in one pass, and then the reply is written one token at a time and streamed back as each one is made.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min read · 2 interactives</span></div><ul><li>Trace a message from your keyboard to the reply</li><li>Name the stages that add waiting time</li><li>Explain why the first word takes longest</li></ul></div>
 
-  <div class="inst" id="tr">
-    <div class="inst-head"><h4>Trace one prompt from your keyboard and back</h4><span class="label">Live simulation · timings illustrative</span></div>
-    <div class="inst-body">
-      <p class="howto">Pick a prompt and press <b>Send</b>. Watch the reply stream in while the trace shows where the time goes. Click any bar to learn about that step.</p>
-      <div class="inst-cols">
-        <div class="ctrls">
-          <div class="ctl"><label for="tr-prompt">Your prompt</label><textarea id="tr-prompt" rows="3">Why is the sky blue?</textarea></div>
-          <div class="btn-row" id="tr-presets">
-            <button class="btn ghost" type="button" data-p="Why is the sky blue?">Sky</button>
-            <button class="btn ghost" type="button" data-p="Write a haiku about servers.">Haiku</button>
-            <button class="btn ghost" type="button" data-p="What is 17 × 24?">Maths</button>
-            <button class="btn ghost" type="button" data-p="__long__">Long document</button>
-          </div>
-          <div class="ctl"><span id="tr-client-lbl">Sent from</span><div class="seg" id="tr-client" role="group" aria-labelledby="tr-client-lbl"><button type="button" data-v="app" aria-pressed="true">Chat app</button><button type="button" data-v="cli" aria-pressed="false">Terminal</button><button type="button" data-v="api" aria-pressed="false">Your code</button></div><small>Apps and coding tools add hidden instructions to every request; your own API call sends only what you write.</small></div>
-          <label class="toggle"><input type="checkbox" id="tr-think"> Thinking model (reasons before answering)</label>
-          <div class="ctl"><div class="row"><label for="tr-load">How busy is the service?</label><output for="tr-load"></output></div><input type="range" id="tr-load" min="0" max="0.95" step="0.05" value="0.5"><small>Busier means longer waits in the queue.</small></div>
-          <div class="ctl"><span id="tr-speed-lbl">Playback</span><div class="seg" id="tr-speed" role="group" aria-labelledby="tr-speed-lbl"><button type="button" data-v="1" aria-pressed="false">Real time</button><button type="button" data-v="3" aria-pressed="true">Slow motion</button></div></div>
-          <button class="btn big" type="button" id="tr-go">Send</button>
-        </div>
-        <div style="display:grid;gap:0.8rem;min-width:0">
-          <div class="stage" style="padding:0.8rem 1rem;min-height:7.5rem">
-            <div class="label" id="tr-client-label">Chat app</div>
-            <div id="tr-screen" style="margin-top:0.4rem;font-size:1rem"></div>
-          </div>
-          <div class="readouts" id="tr-read"></div>
-        </div>
-      </div>
-      <canvas class="cv" id="tr-cv" aria-label="Trace waterfall of the request"></canvas>
-      <div class="stage" style="padding:0.7rem 1rem" aria-live="polite"><div class="label" id="tr-now-t">Now</div><div id="tr-now" style="margin-top:0.2rem">Press Send to start.</div></div>
-      <p class="note">Each bar is a "span", like a distributed trace in a microservice system. Bar lengths are illustrative orders of magnitude for a large model on a busy service; real numbers vary by provider, model, prompt length and load. Blue bars run on accelerators (GPUs/TPUs), grey bars on ordinary servers and networks.</p>
+  <figure class="scene" id="tr">
+    <div class="scene-stage">
+      <canvas id="tr-cv" aria-label="Animated journey of your prompt. Space plays or pauses; left and right arrows step back and forward; click a part of the machine to jump to it."></canvas>
+      <button class="scene-start" id="tr-start" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z"/></svg><span>Press send</span></button>
+      <div class="scene-cap" aria-live="polite"></div>
     </div>
-  </div>
+    <div class="scene-bar"></div>
+    <div class="stats" id="tr-read"></div>
+    <div class="timebar" id="tr-time" aria-hidden="true"></div>
+    <div class="scene-setup">
+      <div class="ctl"><span id="tr-p-lbl">Prompt</span><div class="chips" id="tr-presets" role="group" aria-labelledby="tr-p-lbl">
+        <button type="button" data-p="Why is the sky blue?" aria-pressed="true">Why is the sky blue?</button>
+        <button type="button" data-p="Write a haiku about servers." aria-pressed="false">A haiku</button>
+        <button type="button" data-p="What is 17 × 24?" aria-pressed="false">17 × 24</button>
+        <button type="button" data-p="__long__" aria-pressed="false">A long report</button>
+      </div></div>
+      <div class="ctl"><label for="tr-prompt">Or type your own</label><input type="text" id="tr-prompt" value="Why is the sky blue?"></div>
+      <div class="ctl"><span id="tr-client-lbl">Sent from</span><div class="seg" id="tr-client" role="group" aria-labelledby="tr-client-lbl"><button type="button" data-v="app" aria-pressed="true">Chat app</button><button type="button" data-v="cli" aria-pressed="false">Coding agent</button><button type="button" data-v="api" aria-pressed="false">Your code</button></div></div>
+      <label class="toggle"><input type="checkbox" id="tr-think"> Thinking model</label>
+      <div class="ctl"><div class="row"><label for="tr-load">How busy is the service?</label><output for="tr-load"></output></div><input type="range" id="tr-load" min="0" max="0.95" step="0.05" value="0.5"></div>
+    </div>
+    <figcaption class="note" style="margin-top:0.8rem">Timings are illustrative orders of magnitude for a large model on a busy service; real numbers vary by provider, model, prompt length and load. The machine is simplified: a real datacenter runs many gateways, queues and thousands of model replicas.</figcaption>
+  </figure>
 
   <h3 class="section-title">Now rewind</h3>
   <p class="prose">Those two seconds sit on top of months of work. Pick a stage to see what happened then. Part 2 of the course jumps back to the beginning and plays it forward, from raw data to the finished model.</p>
@@ -53,9 +44,9 @@
     <article class="concept">
       <div class="concept-head"><h3>What actually travels to the server?</h3></div>
       <div class="level" data-l="1"><p>Your words go into a little digital envelope with an address on it. The envelope flies over the internet to a big building full of computers that know how to answer.</p></div>
-      <div class="level" data-l="2"><p>The app sends your whole conversation so far, not just the last message, plus settings such as which model to use and how long the answer may be. The connection is encrypted, so nobody in between can read it.</p></div>
+      <div class="level" data-l="2"><p>The app sends your whole conversation so far (or an ID the service uses to look it up), not just the last message, plus settings such as which model to use and how long the answer may be. The connection is encrypted, so nobody in between can read it.</p></div>
       <div class="level" data-l="3"><p>It's an HTTPS POST to an API endpoint with a JSON body: a list of messages (system, user, assistant turns), the model name, a maximum output length and <code>"stream": true</code>. An API gateway checks the key, applies rate limits and records usage. With streaming on, the reply comes back as server-sent events, a long-lived HTTP response that delivers small chunks as they're produced<sup class="ref"><a href="#ref-55">55</a></sup>.</p></div>
-      <div class="level" data-l="4"><p>Because the model is stateless between requests, the client resends the full history each turn. With a system prompt of s tokens and m new tokens per turn, the tokens sent over n turns add up quadratically:</p><div class="eq">Σᵢ₌₁ⁿ (s + i·m) = n·s + m·n(n+1)/2</div><p> Providers reduce the repeated work with prefix (prompt) caching on the server: if the beginning of the token sequence matches a recent request, its attention keys and values can be reused rather than recomputed (chapter 5).</p></div>
+      <div class="level" data-l="4"><p>Because the model keeps nothing between requests, the full history is fed in again each turn, either resent by the client or restored by the service from a conversation ID. With a system prompt of s tokens and m new tokens per turn, the tokens sent over n turns add up quadratically:</p><div class="eq">Σᵢ₌₁ⁿ (s + i·m) = n·s + m·n(n+1)/2</div><p> Providers reduce the repeated work with prefix (prompt) caching on the server: if the beginning of the token sequence matches a recent request, its attention keys and values can be reused rather than recomputed (chapter 5).</p></div>
     </article>
     <article class="concept">
       <div class="concept-head"><h3>Why does the first word take the longest?</h3></div>
@@ -75,6 +66,6 @@
 
   <div class="quiz"><div class="label">Check yourself</div>
     <div class="q" data-answer="1"><p>Your prompt is 3,000 tokens long and the reply is 50. Which phase most likely dominates the wait before the first word appears?</p><div class="opts"><button>Writing the 50 output tokens</button><button>Queueing plus reading (prefilling) the 3,000-token prompt</button><button>Encrypting the request</button></div><div class="why">The first token can't appear until the prompt has been read. Encryption is cheap, and the remaining output tokens come after the first one.</div></div>
-    <div class="q" data-answer="2"><p>Why does a chat app send the whole conversation every time you reply?</p><div class="opts"><button>So the server can bill you for the whole conversation</button><button>Because the model learns from every message in real time</button><button>Because the model itself keeps no memory between requests</button></div><div class="why">Each request is independent. The conversation history is the model's only memory, so it is sent again with every turn.</div></div>
+    <div class="q" data-answer="2"><p>Why does the model need to read the whole conversation again every time you reply?</p><div class="opts"><button>So the provider can bill you for the whole conversation</button><button>Because the model learns from every message in real time</button><button>Because the model itself keeps no memory between requests</button></div><div class="why">Each request is independent. The conversation history is the model's only memory, so it is fed in again with every turn, either resent by the app or restored by the service.</div></div>
   </div>
 </section>

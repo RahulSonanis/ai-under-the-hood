@@ -118,6 +118,7 @@ function setupLadders(root) {
 }
 function setDepth(n) {
   store.set("depth", n); $$(".concept").forEach(c => c._show && c._show(n, true));
+  document.dispatchEvent(new CustomEvent("depthchange", { detail: n }));
   $$("#depth button, #start-depth button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === n ? "true" : "false"));
 }
 

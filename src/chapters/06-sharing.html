@@ -1,5 +1,5 @@
 <section class="chapter" id="sharing" data-title="Batching">
-  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 6</span><span class="label">Batching</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 6</span><span class="label">Batching</span></div>
   <h2>How does one GPU serve many people?</h2>
   <div class="answer"><span class="label">Short answer</span><p>To write one token, a GPU must read all the model weights it uses from its memory. Reading is the slow part, so it writes the next token for many conversations in one go. When conversations are short and memory is free, each extra person barely slows the step, which is what makes AI affordable to serve. Long conversations and very large batches change that.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min read · 3 interactives</span></div><ul><li>Explain why generating text is limited by memory reads</li><li>Say when batching stops being nearly free</li><li>Compare static and continuous batching</li></ul></div>
