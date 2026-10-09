@@ -1,8 +1,10 @@
 <section class="chapter" id="cluster" data-title="Distributed training">
-  <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 10</span><span class="label">Rewind · parallelism</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 10</span><span class="label">Rewind · parallelism</span></div>
   <h2>How do thousands of chips train one model?</h2>
   <div class="answer"><span class="label">Short answer</span><p>The work is split several ways at once: different chips read different data, big matrix maths is cut into pieces, and the layers are spread along an assembly line. After every step, all the chips combine what they learned over very fast networks.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min read · 3 interactives</span></div><ul><li>Tell apart data, tensor and pipeline parallelism</li><li>Compute a pipeline's idle fraction</li><li>Estimate training memory per GPU</li></ul></div>
+
+  <figure class="scene" id="cl-film" data-start="Play: training across thousands of GPUs"></figure>
 
   <div class="inst" id="ar">
     <div class="inst-head"><h4>Ring all-reduce: how GPUs agree on one update</h4><span class="label">Real algorithm · step by step</span></div>

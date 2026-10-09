@@ -1,8 +1,10 @@
 <section class="chapter" id="inside" data-title="Inside the model">
-  <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 4</span><span class="label">Forward pass</span></div>
+  <div class="ch-kicker"><span class="num">Chapter 4</span><span class="label">Forward pass</span></div>
   <h2>What happens inside the model?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Each token's numbers pass through a stack of identical layers. In every layer, <b>attention</b> lets each word look back at earlier words that matter to it, and an <b>MLP</b> then works on what it gathered. At the end, the last position's numbers become next-token probabilities.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min read · 3 interactives</span></div><ul><li>Explain what attention computes and why it only looks back</li><li>Compute attention weights for small vectors</li><li>Count a transformer's parameters</li></ul></div>
+
+  <figure class="scene" id="in-film" data-start="Play: one trip through a transformer"></figure>
 
   <div class="inst" id="ax">
     <div class="inst-head"><h4>Who is "it"? Explore attention</h4><span class="label">Illustration · patterns like those found in real models</span></div>

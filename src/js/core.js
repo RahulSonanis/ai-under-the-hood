@@ -76,7 +76,7 @@ function plot(cv, opt) {
 
 /* ---------- Chapter registry: lazy init, visibility-aware redraw and animation ---------- */
 const Chapters = { inits: {}, done: {}, redraw: {}, current: null };
-function chapter(id, init) { Chapters.inits[id] = init; }
+function chapter(id, init) { (Chapters.inits[id] = Chapters.inits[id] || []).push(init); }
 function onRedraw(fn) { const id = Chapters.initing; (Chapters.redraw[id] = Chapters.redraw[id] || []).push(fn); fn(); }
 function redrawCurrent() { (Chapters.redraw[Chapters.current] || []).forEach(f => f()); }
 /* Animation loop that only runs while its chapter is on screen and the tab is visible. */
@@ -118,6 +118,7 @@ function setupLadders(root) {
 }
 function setDepth(n) {
   store.set("depth", n); $$(".concept").forEach(c => c._show && c._show(n, true));
+  document.dispatchEvent(new CustomEvent("depthchange", { detail: n }));
   $$("#depth button, #start-depth button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === n ? "true" : "false"));
 }
 
@@ -193,7 +194,7 @@ function route() {
   $$(".rail a").forEach(a => { if (a.getAttribute("href") === "#" + h) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   if ($(".rail").classList.contains("open")) setDrawer(false);
   const el = document.getElementById(h); setupLadders(el); setupQuizzes(el); setupPredicts(el);
-  if (Chapters.inits[h] && !Chapters.done[h]) { Chapters.done[h] = 1; Chapters.initing = h; try { Chapters.inits[h](); } catch (e) { console.error(e); } Chapters.initing = null; }
+  if (Chapters.inits[h] && !Chapters.done[h]) { Chapters.done[h] = 1; Chapters.initing = h; Chapters.inits[h].forEach(fn => { try { fn(); } catch (e) { console.error(e); } }); Chapters.initing = null; }
   else redrawCurrent();
   $$("canvas.cv", el).forEach(c => { if (!c.hasAttribute("role")) c.setAttribute("role", "img"); });
   if (target) { const t = document.getElementById(target); if (t) t.scrollIntoView({ block: "center" }); }
