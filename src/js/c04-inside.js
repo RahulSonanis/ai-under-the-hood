@@ -75,6 +75,15 @@ chapter("inside", () => {
     cands.forEach(([n, v]) => { const d = Math.hypot(v[0] - x, v[1] - y); if (d < bd) { bd = d; best = n; } }); if (best !== null) { drag = best; vc.setPointerCapture(e.pointerId); vc.style.cursor = "grabbing"; } });
   vc.addEventListener("pointermove", e => { if (drag === null) return; let [x, y] = at(e); const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; } if (drag === "q") vecs.q = [x, y]; else vecs.k[drag] = [x, y]; vdraw(); });
   vc.addEventListener("pointerup", () => { drag = null; vc.style.cursor = "grab"; });
+  // keyboard: Tab focuses the canvas, Q/1/2/3 pick a vector, arrows rotate it
+  let vsel = "q"; const names = { q: "query", 0: "key 1", 1: "key 2", 2: "key 3" };
+  const ang = v => Math.round(((Math.atan2(v[1], v[0]) * 180 / Math.PI) + 360) % 360);
+  const announce = () => { const v = vsel === "q" ? vecs.q : vecs.k[vsel]; vc.setAttribute("aria-label", `Attention vectors. ${names[vsel]} selected, pointing at ${ang(v)} degrees. Press Q, 1, 2 or 3 to choose a vector and the arrow keys to rotate it.`); };
+  vc.tabIndex = 0; announce();
+  vc.addEventListener("keydown", e => { const k = e.key.toLowerCase();
+    if (k === "q") vsel = "q"; else if (["1", "2", "3"].includes(k)) vsel = +k - 1;
+    else if (["arrowleft", "arrowright", "arrowup", "arrowdown"].includes(k)) { e.preventDefault(); const v = vsel === "q" ? vecs.q : vecs.k[vsel], L = Math.hypot(v[0], v[1]) || 1, a = Math.atan2(v[1], v[0]) + (k === "arrowleft" || k === "arrowup" ? 1 : -1) * Math.PI / 24, nv = [L * Math.cos(a), L * Math.sin(a)]; if (vsel === "q") vecs.q = nv; else vecs.k[vsel] = nv; vdraw(); }
+    else return; announce(); });
   bindCtl("vq-s", vdraw, e => (+e.value).toFixed(1));
   onRedraw(vdraw);
 

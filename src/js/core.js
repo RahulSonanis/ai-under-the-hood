@@ -24,6 +24,12 @@ function bindCtl(id, cb, show) {
   const upd = () => { if (out) out.textContent = show ? show(el) : el.value; cb(); };
   el.addEventListener("input", upd); if (out) out.textContent = show ? show(el) : el.value; return el;
 }
+/* Mirror each slider's displayed value into aria-valuetext, whoever writes the <output>. */
+function syncValueText(root = document) {
+  $$("output[for]", root).forEach(o => { const el = document.getElementById(o.htmlFor.value || o.getAttribute("for")); if (!el || el.type !== "range" || o._vt) return; o._vt = 1;
+    const up = () => { const t = o.textContent.trim(); if (t) el.setAttribute("aria-valuetext", t); };
+    new MutationObserver(up).observe(o, { childList: true, characterData: true, subtree: true }); up(); });
+}
 function setCtl(id, v, show) { const el = document.getElementById(id); el.value = v; const o = document.querySelector(`output[for="${id}"]`); if (o) o.textContent = show ? show(el) : el.value; }
 function seg(container, cb) {
   const btns = $$("button", container);
@@ -208,7 +214,7 @@ function buildPagers() {
 }
 document.addEventListener("DOMContentLoaded", () => {
   const savedTheme = store.get("theme", null); if (savedTheme) document.documentElement.dataset.theme = savedTheme;
-  buildPagers(); paintProgress();
+  buildPagers(); paintProgress(); syncValueText();
   $$("#depth, #start-depth").forEach(dp => { $$("button", dp).forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === store.get("depth", 1) ? "true" : "false")); seg(dp, v => setDepth(+v)); });
   const tb = $("#theme"); const cur = () => document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   const lab = () => tb.textContent = cur() === "dark" ? "Light" : "Dark"; lab();

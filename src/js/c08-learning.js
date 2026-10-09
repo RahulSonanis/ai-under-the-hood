@@ -34,6 +34,13 @@ chapter("learning", () => {
   $("#gd-run").addEventListener("click", () => { if (loop.running) { loop.stop(); $("#gd-run").textContent = "Run"; } else { loop.start(); $("#gd-run").textContent = "Pause"; } });
   $("#gd-step").addEventListener("click", () => { step(); render(); });
   cv.addEventListener("click", e => { const r = cv.getBoundingClientRect(); const s = cv._size; ball = [-R + 2 * R * (e.clientX - r.left) / s, R - 2 * R * (e.clientY - r.top) / s]; vel = [0, 0]; path = [ball.slice()]; steps = 0; diverged = false; render(); });
+  // keyboard: arrows move the drop point, Enter runs
+  cv.tabIndex = 0;
+  const gdLabel = () => cv.setAttribute("aria-label", `Loss landscape. Ball at x ${ball[0].toFixed(2)}, y ${ball[1].toFixed(2)}, loss ${f(ball[0], ball[1]).toFixed(3)}. Arrow keys move the starting point; Enter runs or pauses.`);
+  cv.addEventListener("keydown", e => { const d = { ArrowLeft: [-0.1, 0], ArrowRight: [0.1, 0], ArrowUp: [0, 0.1], ArrowDown: [0, -0.1] }[e.key];
+    if (d) { e.preventDefault(); if (loop.running) { loop.stop(); $("#gd-run").textContent = "Run"; } ball = [Math.max(-R, Math.min(R, ball[0] + d[0])), Math.max(-R, Math.min(R, ball[1] + d[1]))]; vel = [0, 0]; path = [ball.slice()]; steps = 0; diverged = false; render(); gdLabel(); }
+    else if (e.key === "Enter") { e.preventDefault(); $("#gd-run").click(); } });
+  cv.addEventListener("blur", gdLabel); gdLabel();
   bindCtl("gd-lr", () => {}, e => (10 ** +e.value).toFixed(3));
   onRedraw(() => { img = null; render(); });
 

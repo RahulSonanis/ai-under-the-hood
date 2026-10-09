@@ -358,7 +358,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
       <div class="label">An interactive field guide · October 2026</div>
       <h1 style="margin-top:0.5rem">What really happens when you talk to an AI?</h1>
       <p class="lede">You type a question and words start appearing a second later. This course follows that one moment backwards, from the reply on your screen to the gigawatt buildings and months of training behind it. Every idea starts simple and goes as deep as you want.</p>
-      <p class="muted" style="font-size:0.95rem;margin:0.6rem 0 0">For anyone curious, from complete beginners to engineers. No maths or coding needed to start. About 16 chapters of 15–30 minutes each; your progress is saved in this browser.</p>
+      <p class="muted" style="font-size:0.95rem;margin:0.6rem 0 0">For anyone curious, from complete beginners to engineers. No maths or coding needed to start. 16 chapters, each about 5–12 minutes to read, or 20–40 minutes if you play with every experiment; your progress is saved in this browser.</p>
       <div class="btn-row" style="margin-top:1rem"><a class="btn big" href="#send" style="text-decoration:none">Start: press send →</a><a class="btn ghost" href="https://github.com/RahulSonanis/ai-under-the-hood" style="text-decoration:none">Source on GitHub</a></div>
     </div>
     <div class="path">
@@ -400,7 +400,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 1</span><span class="label">Press send</span></div>
   <h2>What happens when you press send?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Your message travels to a datacenter, gets checked and queued, is chopped into tokens, read by the model in one pass, and then the reply is written one token at a time and streamed back as each one is made.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min · 2 interactives</span></div><ul><li>Trace a message from your keyboard to the reply</li><li>Name the stages that add waiting time</li><li>Explain why the first word takes longest</li></ul></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min read · 2 interactives</span></div><ul><li>Trace a message from your keyboard to the reply</li><li>Name the stages that add waiting time</li><li>Explain why the first word takes longest</li></ul></div>
 
   <div class="inst" id="tr">
     <div class="inst-head"><h4>Trace one prompt from your keyboard and back</h4><span class="label">Live simulation · timings illustrative</span></div>
@@ -481,7 +481,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 2</span><span class="label">Tokenize</span></div>
   <h2>How does text become numbers?</h2>
   <div class="answer"><span class="label">Short answer</span><p>A tokenizer chops your text into common chunks called tokens and swaps each one for an ID number. The model then looks up a long list of numbers for each ID, which captures something like the token's meaning.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 11 min · 3 interactives</span></div><ul><li>Explain how byte-pair encoding builds a vocabulary</li><li>Estimate how many tokens a text needs</li><li>Describe embeddings as positions in space</li></ul></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 11 min read · 3 interactives</span></div><ul><li>Explain how byte-pair encoding builds a vocabulary</li><li>Estimate how many tokens a text needs</li><li>Describe embeddings as positions in space</li></ul></div>
 
   <div class="inst" id="bp">
     <div class="inst-head"><h4>Watch a tokenizer learn its vocabulary</h4><span class="label">Real algorithm · byte-pair encoding</span></div>
@@ -540,7 +540,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 3</span><span class="label">Sampling</span></div>
   <h2>How does a model pick the next word?</h2>
   <div class="answer"><span class="label">Short answer</span><p>It gives every possible next token a probability, then a dice roll weighted by those probabilities picks one. The chosen token is added to the text and the whole thing repeats.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min · 2 interactives</span></div><ul><li>Explain next-token prediction</li><li>Predict what temperature, top-k and top-p do</li><li>Work out the loss for one guess</li></ul></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min read · 2 interactives</span></div><ul><li>Explain next-token prediction</li><li>Predict what temperature, top-k and top-p do</li><li>Work out the loss for one guess</li></ul></div>
 
   <div class="inst" id="lm">
     <div class="inst-head"><h4>Write with a tiny language model</h4><span class="label">Real model · trigram, trained in your browser</span></div>
@@ -609,7 +609,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 4</span><span class="label">Forward pass</span></div>
   <h2>What happens inside the model?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Each token's numbers pass through a stack of identical layers. In every layer, <b>attention</b> lets each word look back at earlier words that matter to it, and an <b>MLP</b> then works on what it gathered. At the end, the last position's numbers become next-token probabilities.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min · 3 interactives</span></div><ul><li>Explain what attention computes and why it only looks back</li><li>Compute attention weights for small vectors</li><li>Count a transformer's parameters</li></ul></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min read · 3 interactives</span></div><ul><li>Explain what attention computes and why it only looks back</li><li>Compute attention weights for small vectors</li><li>Count a transformer's parameters</li></ul></div>
 
   <div class="inst" id="ax">
     <div class="inst-head"><h4>Who is "it"? Explore attention</h4><span class="label">Illustration · patterns like those found in real models</span></div>
@@ -628,7 +628,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="inst" id="vq">
     <div class="inst-head"><h4>Attention with vectors you can drag</h4><span class="label">Real maths · softmax(q·k / √d)</span></div>
     <div class="inst-body">
-      <p class="howto">Drag the <b>query</b> arrow (what this word is looking for) and the three <b>key</b> arrows (what each earlier word offers). The more a key points the same way as the query, the more attention it gets, and the more its <b>value</b> colour flows into the output.</p>
+      <p class="howto">Drag the <b>query</b> arrow (what this word is looking for) and the three <b>key</b> arrows (what each earlier word offers). The more a key points the same way as the query, the more attention it gets, and the more its <b>value</b> colour flows into the output. Keyboard: focus the picture, press Q, 1, 2 or 3, then use the arrow keys.</p>
       <div class="inst-cols wide-first">
         <canvas class="cv" id="vq-cv" style="touch-action:none;cursor:grab" aria-label="Draggable query and key vectors"></canvas>
         <div style="display:grid;gap:0.8rem">
@@ -690,8 +690,8 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
 <section class="chapter" id="memory" data-title="KV cache">
   <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 5</span><span class="label">KV cache</span></div>
   <h2>How does it remember the conversation?</h2>
-  <div class="answer"><span class="label">Short answer</span><p>Between messages, it doesn't: the app sends the whole conversation again with every request. While writing a reply, the model keeps notes on every earlier token (their attention keys and values) so it never recomputes them. Those notes, the <b>KV cache</b>, fill up GPU memory fast, and managing that memory decides how many people one GPU can serve.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 9 min · 2 interactives</span></div><ul><li>Tell apart chat history, KV cache, prefix caching and app memory</li><li>Compute KV cache size per token</li><li>Explain why paging fits more people on a GPU</li></ul></div>
+  <div class="answer"><span class="label">Short answer</span><p>The model itself keeps nothing between messages. The conversation is stored outside it and fed back in with every request. While writing a reply, the model keeps notes on every earlier token (their attention keys and values) so it never recomputes them. Those notes, the <b>KV cache</b>, fill up GPU memory fast, and managing that memory decides how many people one GPU can serve.</p></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 9 min read · 2 interactives</span></div><ul><li>Tell apart chat history, KV cache, prefix caching and app memory</li><li>Compute KV cache size per token</li><li>Explain why paging fits more people on a GPU</li></ul></div>
 
   <div class="predict" data-answer="1"><span class="label">Predict first</span><p>Switch from <b>Reserve max</b> to <b>Paged</b> on the same GPU. How many more conversations run at once?</p><div class="opts"><button type="button">About the same</button><button type="button">Roughly twice as many</button><button type="button">Ten times as many</button></div><div class="predict-after" hidden><p>Locked in. Now try it below and check.</p><details><summary>Show the answer</summary><p>Roughly twice as many in this setup (about 26 to 55). Reserving the maximum length leaves most of each reservation empty; paging allocates memory only as tokens are written.</p></details></div></div>
   <div class="inst" id="kv">
@@ -713,9 +713,9 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="concepts">
     <article class="concept">
       <div class="concept-head"><h3>Four different kinds of "memory"</h3></div>
-      <div class="level" data-l="1"><p>The model forgets everything after each reply. The app keeps your chat and hands the whole thing back every time you send a message, like re-reading a letter thread before answering.</p></div>
-      <div class="level" data-l="2"><p><b>Conversation history:</b> the app stores your messages and resends them. <b>KV cache:</b> the model's scratch notes while writing one reply. <b>Prefix caching:</b> the server keeps notes for text many requests share, such as a system prompt, so it skips recomputing it. <b>App memory:</b> facts some apps save about you and paste into future prompts.</p></div>
-      <div class="level" data-l="3"><p>Chat APIs are stateless: every request carries the full message list<sup class="ref"><a href="#ref-70">70</a></sup>. Providers reuse the KV cache for a repeated prompt prefix for a few minutes and bill those tokens at a discount<sup class="ref"><a href="#ref-71">71</a></sup><sup class="ref"><a href="#ref-72">72</a></sup>. Persistent "memory" features are retrieval: saved text is inserted into the context window. None of the four changes the model's weights.</p></div>
+      <div class="level" data-l="1"><p>The model forgets everything after each reply. The app (or the service behind it) keeps your chat and hands the whole thing back every time you send a message, like re-reading a letter thread before answering.</p></div>
+      <div class="level" data-l="2"><p><b>Conversation history:</b> stored outside the model and fed back in each turn. <b>KV cache:</b> the model's scratch notes while writing one reply. <b>Prefix caching:</b> the server keeps notes for text many requests share, such as a system prompt, so it skips recomputing it. <b>App memory:</b> facts some apps save about you and paste into future prompts.</p></div>
+      <div class="level" data-l="3"><p>Conversation history is managed outside the model. With a stateless API the client resends the full message list<sup class="ref"><a href="#ref-70">70</a></sup>; some APIs instead store the conversation and restore it from a conversation or previous-response ID<sup class="ref"><a href="#ref-73">73</a></sup>. Either way, the model reads the whole history again as input. Providers reuse the KV cache for a repeated prompt prefix for a few minutes and bill those tokens at a discount<sup class="ref"><a href="#ref-71">71</a></sup><sup class="ref"><a href="#ref-72">72</a></sup>. Persistent "memory" features are retrieval: saved text is inserted into the context window. None of the four changes the model's weights.</p></div>
       <div class="level" data-l="4"><div class="eq">p(y_t | x, y_&lt;t ; θ)</div><p>Each output depends only on the tokens in the window and the fixed weights θ. The KV cache memoises K = XW_K and V = XW_V for tokens already processed; a prefix cache shares those tensors across requests whose token prefix is identical (vLLM matches it by hashing fixed-size blocks<sup class="ref"><a href="#ref-34">34</a></sup>). Only training changes θ.</p></div>
     </article>
     <article class="concept">
@@ -756,7 +756,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 6</span><span class="label">Batching</span></div>
   <h2>How does one GPU serve many people?</h2>
   <div class="answer"><span class="label">Short answer</span><p>To write one token, a GPU must read all the model weights it uses from its memory. Reading is the slow part, so it writes the next token for many conversations in one go. When conversations are short and memory is free, each extra person barely slows the step, which is what makes AI affordable to serve. Long conversations and very large batches change that.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min · 3 interactives</span></div><ul><li>Explain why generating text is limited by memory reads</li><li>Say when batching stops being nearly free</li><li>Compare static and continuous batching</li></ul></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min read · 3 interactives</span></div><ul><li>Explain why generating text is limited by memory reads</li><li>Say when batching stops being nearly free</li><li>Compare static and continuous batching</li></ul></div>
 
   <div class="predict" data-answer="1"><span class="label">Predict first</span><p>Raise the batch from 1 to 64 people with short conversations. What happens?</p><div class="opts"><button type="button">Each person gets much slower; total output stays the same</button><button type="button">Each person's speed barely changes; total output rises a lot</button><button type="button">Everyone gets faster</button></div><div class="predict-after" hidden><p>Locked in. Now try it below and check.</p><details><summary>Show the answer</summary><p>The step is dominated by reading the weights once, so it is shared. Then raise the conversation length and watch the KV reads take over.</p></details></div></div>
   <div class="inst" id="ds">
@@ -829,7 +829,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 7</span><span class="label">Rewind · data</span></div>
   <h2>Where does the knowledge come from?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Mostly from public web pages, plus code, books, papers and increasingly text written by other models: 15 to 40 trillion tokens for recent large models<sup class="ref"><a href="#ref-9">9</a></sup><sup class="ref"><a href="#ref-65">65</a></sup><sup class="ref"><a href="#ref-66">66</a></sup>. Most of the raw web is thrown away; cleaning and choosing the mix is one of the most important jobs in building a model.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min · 2 interactives</span></div><ul><li>List the steps of a web-data cleaning pipeline</li><li>Explain deduplication and quality filtering</li><li>Pack documents into training sequences</li></ul></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min read · 2 interactives</span></div><ul><li>List the steps of a web-data cleaning pipeline</li><li>Explain deduplication and quality filtering</li><li>Pack documents into training sequences</li></ul></div>
 
   <div class="inst" id="dp">
     <div class="inst-head"><h4>Run a cleaning pipeline</h4><span class="label">Real algorithms · 16 sample pages</span></div>
@@ -894,12 +894,12 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 8</span><span class="label">Rewind · training</span></div>
   <h2>How does a model learn?</h2>
   <div class="answer"><span class="label">Short answer</span><p>It starts with random numbers and makes terrible guesses. After each batch of text, calculus works out which direction to nudge every number to make the guesses a little less wrong. Repeat millions of times.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min · 2 interactives</span></div><ul><li>Explain gradient descent and backpropagation</li><li>Recognise a learning rate that is too high or too low</li><li>Name common optimisers and schedules</li></ul></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min read · 2 interactives</span></div><ul><li>Explain gradient descent and backpropagation</li><li>Recognise a learning rate that is too high or too low</li><li>Name common optimisers and schedules</li></ul></div>
 
   <div class="inst" id="gd">
     <div class="inst-head"><h4>Roll downhill on a loss landscape</h4><span class="label">Simulation · gradient descent</span></div>
     <div class="inst-body">
-      <p class="howto">The map is the model's error for every setting of two numbers: dark means low error. <b>Click anywhere</b> to drop a ball, then press <b>Run</b>. It can only feel the slope under it. Try a tiny step size, a huge one, and turning on momentum.</p>
+      <p class="howto">The map is the model's error for every setting of two numbers: dark means low error. <b>Click anywhere</b> (or focus the map and use the arrow keys) to drop a ball, then press <b>Run</b>. It can only feel the slope under it. Try a tiny step size, a huge one, and turning on momentum.</p>
       <div class="inst-cols">
         <div class="ctrls">
           <div class="ctl"><div class="row"><label for="gd-lr">Step size (learning rate)</label><output for="gd-lr"></output></div><input type="range" id="gd-lr" min="-3" max="-0.3" step="0.05" value="-1.6"></div>
@@ -964,7 +964,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 9</span><span class="label">Rewind · compute budget</span></div>
   <h2>How big, how long, how much?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Training cost is roughly 6 × parameters × training tokens operations. Teams split a fixed budget between a bigger model and more data, guided by "scaling laws" fitted on small runs, and then pay for months of thousands of chips plus all the experiments around them.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min · 2 interactives</span></div><ul><li>Use 6ND to estimate training compute</li><li>Find a compute-optimal model size</li><li>Estimate GPU-hours and cost for a run</li></ul></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min read · 2 interactives</span></div><ul><li>Use 6ND to estimate training compute</li><li>Find a compute-optimal model size</li><li>Estimate GPU-hours and cost for a run</li></ul></div>
 
   <div class="inst" id="bg">
     <div class="inst-head"><h4>Spend a compute budget</h4><span class="label">Simulation · Chinchilla scaling-law fit</span></div>
@@ -1028,7 +1028,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 10</span><span class="label">Rewind · parallelism</span></div>
   <h2>How do thousands of chips train one model?</h2>
   <div class="answer"><span class="label">Short answer</span><p>The work is split several ways at once: different chips read different data, big matrix maths is cut into pieces, and the layers are spread along an assembly line. After every step, all the chips combine what they learned over very fast networks.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min · 3 interactives</span></div><ul><li>Tell apart data, tensor and pipeline parallelism</li><li>Compute a pipeline's idle fraction</li><li>Estimate training memory per GPU</li></ul></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min read · 3 interactives</span></div><ul><li>Tell apart data, tensor and pipeline parallelism</li><li>Compute a pipeline's idle fraction</li><li>Estimate training memory per GPU</li></ul></div>
 
   <div class="inst" id="ar">
     <div class="inst-head"><h4>Ring all-reduce: how GPUs agree on one update</h4><span class="label">Real algorithm · step by step</span></div>
@@ -1105,7 +1105,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 11</span><span class="label">Rewind · reliability</span></div>
   <h2>What happens when chips break?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Constantly. With tens of thousands of chips in one tightly coupled job, something fails every few hours and the whole job stops. Teams save progress regularly, restart automatically, and design everything assuming failure is normal.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 5 min · 1 interactive</span></div><ul><li>Estimate how often a large job is interrupted</li><li>Choose a checkpoint interval</li><li>Explain goodput</li></ul></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 5 min read · 1 interactive</span></div><ul><li>Estimate how often a large job is interrupted</li><li>Choose a checkpoint interval</li><li>Explain goodput</li></ul></div>
 
   <div class="predict" data-answer="2"><span class="label">Predict first</span><p>A training job runs on 16,384 GPUs. How often does something break it?</p><div class="opts"><button type="button">About once a month</button><button type="button">About once a day</button><button type="button">Every few hours</button></div><div class="predict-after" hidden><p>Locked in. Now try it below and check.</p><details><summary>Show the answer</summary><p>Every few hours. Meta logged 419 unexpected interruptions in 54 days of Llama 3 training, about one every three hours.</p></details></div></div>
   <div class="inst" id="fg">
@@ -1158,7 +1158,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 12</span><span class="label">Rewind · post-training</span></div>
   <h2>How does a predictor become an assistant?</h2>
   <div class="answer"><span class="label">Short answer</span><p>A freshly trained "base" model just continues text. Further training on example conversations, then on feedback about which answers are better, teaches it to follow instructions, be honest about uncertainty and decline harmful requests.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min · 2 interactives</span></div><ul><li>Describe SFT, RLHF and DPO</li><li>Explain why a KL penalty keeps the model close to its start</li><li>Say what each stage changes in a reply</li></ul></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 8 min read · 2 interactives</span></div><ul><li>Describe SFT, RLHF and DPO</li><li>Explain why a KL penalty keeps the model close to its start</li><li>Say what each stage changes in a reply</li></ul></div>
 
   <div class="inst" id="st">
     <div class="inst-head"><h4>One prompt, three stages of training</h4><span class="label">Illustration · typical behaviour at each stage</span></div>
@@ -1217,7 +1217,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="ch-kicker"><span class="num">PART 2 · CHAPTER 13</span><span class="label">Rewind · evaluation and safety</span></div>
   <h2>How do we know it's good and safe?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Teams test the model on thousands of questions with known answers, have people and other models judge open-ended replies, and run dedicated safety tests before release. Scores are noisy, so small differences often mean nothing.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 7 min · 2 interactives</span></div><ul><li>Read a confidence interval on a benchmark score</li><li>Judge whether a score gap is just noise</li><li>Estimate how many questions a test needs</li></ul></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 7 min read · 2 interactives</span></div><ul><li>Read a confidence interval on a benchmark score</li><li>Judge whether a score gap is just noise</li><li>Estimate how many questions a test needs</li></ul></div>
 
   <div class="inst" id="nm">
     <div class="inst-head"><h4>The noise machine</h4><span class="label">Simulation · binomial sampling</span></div>
@@ -1273,7 +1273,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="ch-kicker"><span class="num">PART 3 · CHAPTER 14</span><span class="label">The building</span></div>
   <h2>What is inside an AI datacenter?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Rows of liquid-cooled racks packed with accelerator chips, wired together with ultra-fast networks into one giant computer, fed by power lines that can carry as much electricity as a city uses. The newest campuses are planned in gigawatts.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 10 min · 2 interactives</span></div><ul><li>Trace the path from chip to rack to campus</li><li>Estimate a cluster's power with PUE</li><li>Compare the main accelerator platforms</li></ul></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 10 min read · 2 interactives</span></div><ul><li>Trace the path from chip to rack to campus</li><li>Estimate a cluster's power with PUE</li><li>Compare the main accelerator platforms</li></ul></div>
 
   <div class="inst" id="zm">
     <div class="inst-head"><h4>Zoom from one chip to a campus</h4><span class="label">Explorer · NVIDIA GB200 NVL72-based example</span></div>
@@ -1344,7 +1344,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
   <div class="ch-kicker"><span class="num">PART 4 · CHAPTER 15</span><span class="label">Around the model</span></div>
   <h2>How does a chatbot become an agent?</h2>
   <div class="answer"><span class="label">Short answer</span><p>The model only turns text into text. Ordinary software around it, the <b>harness</b>, gives it tools to call, runs them, feeds the results back, and loops until the task is done, while managing what fits in the model's limited context.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 5 min · 1 interactive</span></div><ul><li>Explain the agent loop of model calls and tools</li><li>Track context use and compaction</li><li>Explain how prompt caching cuts cost</li></ul></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 5 min read · 1 interactive</span></div><ul><li>Explain the agent loop of model calls and tools</li><li>Track context use and compaction</li><li>Explain how prompt caching cuts cost</li></ul></div>
 
   <div class="inst" id="ag">
     <div class="inst-head"><h4>Watch an agent fix a failing test</h4><span class="label">Simulation · scripted run, real context arithmetic</span></div>
@@ -1405,14 +1405,14 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
     <table>
       <thead><tr><th>Topic</th><th>Hands-on project</th><th>Done when</th><th>Start with</th></tr></thead>
       <tbody>
-        <tr><td><b>Train a tiny GPT</b></td><td>Train a character-level transformer on a small corpus on a laptop or one cloud GPU; watch the loss fall and samples improve.</td><td>Validation loss near 1.5 on Shakespeare characters (nanoGPT's GPU baseline is about 1.47) and samples that read like play dialogue.</td><td>nanoGPT<sup class="ref"><a href="#ref-46">46</a></sup></td></tr>
-        <tr><td><b>Data and tokenizers</b></td><td>Deduplicate a slice of web text with MinHash, then train a BPE tokenizer and measure characters per token across languages.</td><td>You can state the duplicate rate of your slice and show a chart of characters per token for at least three languages.</td><td>FineWeb write-up<sup class="ref"><a href="#ref-3">3</a></sup></td></tr>
-        <tr><td><b>Scaling on a budget</b></td><td>Train three model sizes at fixed compute and plot your own small iso-FLOP curve.</td><td>Three losses at equal FLOPs form a U shape, and you can say which model size wins and why.</td><td>Chinchilla<sup class="ref"><a href="#ref-8">8</a></sup>, Smol Training Playbook<sup class="ref"><a href="#ref-1">1</a></sup></td></tr>
-        <tr><td><b>Multi-GPU training</b></td><td>Rent two GPUs for an hour; run the same job with data parallel, then FSDP; record memory and step time.</td><td>A table of peak memory and step time for both setups, with FSDP using less memory per GPU.</td><td>Ultra-Scale Playbook<sup class="ref"><a href="#ref-2">2</a></sup></td></tr>
-        <tr><td><b>Post-training</b></td><td>Fine-tune a small open model with SFT, then DPO on a preference dataset; compare answers before and after.</td><td>Ten fixed prompts answered by the base, SFT and DPO models side by side, with a note on what changed.</td><td>Hugging Face TRL<sup class="ref"><a href="#ref-49">49</a></sup>, DPO paper<sup class="ref"><a href="#ref-18">18</a></sup></td></tr>
-        <tr><td><b>Serving</b></td><td>Serve a small model with vLLM; measure time to first token and throughput as you raise concurrency, and compare with chapter 6's numbers.</td><td>A chart of time to first token and tokens per second against concurrency: throughput rises then flattens while latency climbs.</td><td>vLLM<sup class="ref"><a href="#ref-54">54</a></sup></td></tr>
-        <tr><td><b>Build a harness</b></td><td>Write a 200-line agent loop with two tools (read file, run tests) against a model API; add compaction and a budget limit.</td><td>The agent fixes a planted bug so tests pass, stays inside your token budget, and logs every tool call.</td><td>Building effective agents<sup class="ref"><a href="#ref-40">40</a></sup>, MCP<sup class="ref"><a href="#ref-42">42</a></sup></td></tr>
-        <tr><td><b>Infrastructure watch</b></td><td>Track one new cluster announcement per month: chips, power, network, cooling. Plug it into chapter 14's power calculator.</td><td>A dated table of at least three clusters, with your power estimate next to the announced figure.</td><td>Epoch AI data<sup class="ref"><a href="#ref-48">48</a></sup></td></tr>
+        <tr><td><b>Train a tiny GPT</b></td><td>Train a character-level transformer on a small corpus on a laptop or one cloud GPU; watch the loss fall and samples improve.</td><td>You can report the config, training time, train and held-out loss curves, and a few samples, and explain what changed as loss fell.</td><td>nanoGPT<sup class="ref"><a href="#ref-46">46</a></sup></td></tr>
+        <tr><td><b>Data and tokenizers</b></td><td>Deduplicate a slice of web text with MinHash, then train a BPE tokenizer and measure characters per token across languages.</td><td>You report how many near-duplicates you found at your threshold and characters per token for at least three languages, with a sentence on why they differ.</td><td>FineWeb write-up<sup class="ref"><a href="#ref-3">3</a></sup></td></tr>
+        <tr><td><b>Scaling on a budget</b></td><td>Train three model sizes at fixed compute and plot your own small iso-FLOP curve.</td><td>You report each model's size, tokens, FLOPs and held-out loss, and interpret the trend, even if your sizes don't bracket the optimum or noise hides it.</td><td>Chinchilla<sup class="ref"><a href="#ref-8">8</a></sup>, Smol Training Playbook<sup class="ref"><a href="#ref-1">1</a></sup></td></tr>
+        <tr><td><b>Multi-GPU training</b></td><td>Rent two GPUs for an hour; run the same job with data parallel, then FSDP; record memory and step time.</td><td>A table of peak memory per GPU and step time for both setups, with the config and an explanation of the difference.</td><td>Ultra-Scale Playbook<sup class="ref"><a href="#ref-2">2</a></sup></td></tr>
+        <tr><td><b>Post-training</b></td><td>Fine-tune a small open model with SFT, then DPO on a preference dataset; compare answers before and after.</td><td>The same ten prompts answered by the base, SFT and DPO models side by side, with the datasets and settings, and your notes on what changed.</td><td>Hugging Face TRL<sup class="ref"><a href="#ref-49">49</a></sup>, DPO paper<sup class="ref"><a href="#ref-18">18</a></sup></td></tr>
+        <tr><td><b>Serving</b></td><td>Serve a small model with vLLM; measure time to first token and throughput as you raise concurrency, and compare with chapter 6's numbers.</td><td>A chart of time to first token and tokens per second at each concurrency level, with the model, GPU and prompt lengths, and your reading of where it saturates.</td><td>vLLM<sup class="ref"><a href="#ref-54">54</a></sup></td></tr>
+        <tr><td><b>Build a harness</b></td><td>Write a 200-line agent loop with two tools (read file, run tests) against a model API; add compaction and a budget limit.</td><td>A log of every model call and tool call for a planted bug, the total tokens used against your budget, and whether the tests passed.</td><td>Building effective agents<sup class="ref"><a href="#ref-40">40</a></sup>, MCP<sup class="ref"><a href="#ref-42">42</a></sup></td></tr>
+        <tr><td><b>Infrastructure watch</b></td><td>Track one new cluster announcement per month: chips, power, network, cooling. Plug it into chapter 14's power calculator.</td><td>A dated table of at least three clusters with sources, and your power estimate next to the announced figure with the assumptions you used.</td><td>Epoch AI data<sup class="ref"><a href="#ref-48">48</a></sup></td></tr>
       </tbody>
     </table>
   </div>
@@ -1514,6 +1514,7 @@ h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
     <li id="ref-70"><a href="https://docs.claude.com/en/docs/build-with-claude/working-with-messages">Working with the Messages API</a>. Anthropic documentation.<span class="tag">Docs</span></li>
     <li id="ref-71"><a href="https://docs.claude.com/en/docs/build-with-claude/prompt-caching">Prompt caching</a>. Anthropic documentation.<span class="tag">Docs</span></li>
     <li id="ref-72"><a href="https://platform.openai.com/docs/guides/prompt-caching">Prompt caching</a>. OpenAI documentation.<span class="tag">Docs</span></li>
+    <li id="ref-73"><a href="https://platform.openai.com/docs/guides/conversation-state">Conversation state</a>. OpenAI documentation.<span class="tag">Docs</span></li>
   </ol>
   <div class="callout"><div class="label">About this course</div><p>Built with Claude for personal learning. The text is original and paraphrases its sources; figures, names and trademarks belong to their owners and are cited for educational use. Simulations are simplified models for intuition; panels that use illustrative inputs say so. Code is MIT-licensed and text is CC BY 4.0.</p></div>
 </section>
@@ -1546,6 +1547,12 @@ function bindCtl(id, cb, show) {
   const out = document.querySelector(`output[for="${id}"]`);
   const upd = () => { if (out) out.textContent = show ? show(el) : el.value; cb(); };
   el.addEventListener("input", upd); if (out) out.textContent = show ? show(el) : el.value; return el;
+}
+/* Mirror each slider's displayed value into aria-valuetext, whoever writes the <output>. */
+function syncValueText(root = document) {
+  $$("output[for]", root).forEach(o => { const el = document.getElementById(o.htmlFor.value || o.getAttribute("for")); if (!el || el.type !== "range" || o._vt) return; o._vt = 1;
+    const up = () => { const t = o.textContent.trim(); if (t) el.setAttribute("aria-valuetext", t); };
+    new MutationObserver(up).observe(o, { childList: true, characterData: true, subtree: true }); up(); });
 }
 function setCtl(id, v, show) { const el = document.getElementById(id); el.value = v; const o = document.querySelector(`output[for="${id}"]`); if (o) o.textContent = show ? show(el) : el.value; }
 function seg(container, cb) {
@@ -1731,7 +1738,7 @@ function buildPagers() {
 }
 document.addEventListener("DOMContentLoaded", () => {
   const savedTheme = store.get("theme", null); if (savedTheme) document.documentElement.dataset.theme = savedTheme;
-  buildPagers(); paintProgress();
+  buildPagers(); paintProgress(); syncValueText();
   $$("#depth, #start-depth").forEach(dp => { $$("button", dp).forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === store.get("depth", 1) ? "true" : "false")); seg(dp, v => setDepth(+v)); });
   const tb = $("#theme"); const cur = () => document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   const lab = () => tb.textContent = cur() === "dark" ? "Light" : "Dark"; lab();
@@ -2199,6 +2206,15 @@ chapter("inside", () => {
     cands.forEach(([n, v]) => { const d = Math.hypot(v[0] - x, v[1] - y); if (d < bd) { bd = d; best = n; } }); if (best !== null) { drag = best; vc.setPointerCapture(e.pointerId); vc.style.cursor = "grabbing"; } });
   vc.addEventListener("pointermove", e => { if (drag === null) return; let [x, y] = at(e); const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; } if (drag === "q") vecs.q = [x, y]; else vecs.k[drag] = [x, y]; vdraw(); });
   vc.addEventListener("pointerup", () => { drag = null; vc.style.cursor = "grab"; });
+  // keyboard: Tab focuses the canvas, Q/1/2/3 pick a vector, arrows rotate it
+  let vsel = "q"; const names = { q: "query", 0: "key 1", 1: "key 2", 2: "key 3" };
+  const ang = v => Math.round(((Math.atan2(v[1], v[0]) * 180 / Math.PI) + 360) % 360);
+  const announce = () => { const v = vsel === "q" ? vecs.q : vecs.k[vsel]; vc.setAttribute("aria-label", `Attention vectors. ${names[vsel]} selected, pointing at ${ang(v)} degrees. Press Q, 1, 2 or 3 to choose a vector and the arrow keys to rotate it.`); };
+  vc.tabIndex = 0; announce();
+  vc.addEventListener("keydown", e => { const k = e.key.toLowerCase();
+    if (k === "q") vsel = "q"; else if (["1", "2", "3"].includes(k)) vsel = +k - 1;
+    else if (["arrowleft", "arrowright", "arrowup", "arrowdown"].includes(k)) { e.preventDefault(); const v = vsel === "q" ? vecs.q : vecs.k[vsel], L = Math.hypot(v[0], v[1]) || 1, a = Math.atan2(v[1], v[0]) + (k === "arrowleft" || k === "arrowup" ? 1 : -1) * Math.PI / 24, nv = [L * Math.cos(a), L * Math.sin(a)]; if (vsel === "q") vecs.q = nv; else vecs.k[vsel] = nv; vdraw(); }
+    else return; announce(); });
   bindCtl("vq-s", vdraw, e => (+e.value).toFixed(1));
   onRedraw(vdraw);
 
@@ -2548,6 +2564,13 @@ chapter("learning", () => {
   $("#gd-run").addEventListener("click", () => { if (loop.running) { loop.stop(); $("#gd-run").textContent = "Run"; } else { loop.start(); $("#gd-run").textContent = "Pause"; } });
   $("#gd-step").addEventListener("click", () => { step(); render(); });
   cv.addEventListener("click", e => { const r = cv.getBoundingClientRect(); const s = cv._size; ball = [-R + 2 * R * (e.clientX - r.left) / s, R - 2 * R * (e.clientY - r.top) / s]; vel = [0, 0]; path = [ball.slice()]; steps = 0; diverged = false; render(); });
+  // keyboard: arrows move the drop point, Enter runs
+  cv.tabIndex = 0;
+  const gdLabel = () => cv.setAttribute("aria-label", `Loss landscape. Ball at x ${ball[0].toFixed(2)}, y ${ball[1].toFixed(2)}, loss ${f(ball[0], ball[1]).toFixed(3)}. Arrow keys move the starting point; Enter runs or pauses.`);
+  cv.addEventListener("keydown", e => { const d = { ArrowLeft: [-0.1, 0], ArrowRight: [0.1, 0], ArrowUp: [0, 0.1], ArrowDown: [0, -0.1] }[e.key];
+    if (d) { e.preventDefault(); if (loop.running) { loop.stop(); $("#gd-run").textContent = "Run"; } ball = [Math.max(-R, Math.min(R, ball[0] + d[0])), Math.max(-R, Math.min(R, ball[1] + d[1]))]; vel = [0, 0]; path = [ball.slice()]; steps = 0; diverged = false; render(); gdLabel(); }
+    else if (e.key === "Enter") { e.preventDefault(); $("#gd-run").click(); } });
+  cv.addEventListener("blur", gdLabel); gdLabel();
   bindCtl("gd-lr", () => {}, e => (10 ** +e.value).toFixed(3));
   onRedraw(() => { img = null; render(); });
 

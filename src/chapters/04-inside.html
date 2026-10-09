@@ -2,7 +2,7 @@
   <div class="ch-kicker"><span class="num">PART 1 · CHAPTER 4</span><span class="label">Forward pass</span></div>
   <h2>What happens inside the model?</h2>
   <div class="answer"><span class="label">Short answer</span><p>Each token's numbers pass through a stack of identical layers. In every layer, <b>attention</b> lets each word look back at earlier words that matter to it, and an <b>MLP</b> then works on what it gathered. At the end, the last position's numbers become next-token probabilities.</p></div>
-  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min · 3 interactives</span></div><ul><li>Explain what attention computes and why it only looks back</li><li>Compute attention weights for small vectors</li><li>Count a transformer's parameters</li></ul></div>
+  <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min read · 3 interactives</span></div><ul><li>Explain what attention computes and why it only looks back</li><li>Compute attention weights for small vectors</li><li>Count a transformer's parameters</li></ul></div>
 
   <div class="inst" id="ax">
     <div class="inst-head"><h4>Who is "it"? Explore attention</h4><span class="label">Illustration · patterns like those found in real models</span></div>
@@ -21,7 +21,7 @@
   <div class="inst" id="vq">
     <div class="inst-head"><h4>Attention with vectors you can drag</h4><span class="label">Real maths · softmax(q·k / √d)</span></div>
     <div class="inst-body">
-      <p class="howto">Drag the <b>query</b> arrow (what this word is looking for) and the three <b>key</b> arrows (what each earlier word offers). The more a key points the same way as the query, the more attention it gets, and the more its <b>value</b> colour flows into the output.</p>
+      <p class="howto">Drag the <b>query</b> arrow (what this word is looking for) and the three <b>key</b> arrows (what each earlier word offers). The more a key points the same way as the query, the more attention it gets, and the more its <b>value</b> colour flows into the output. Keyboard: focus the picture, press Q, 1, 2 or 3, then use the arrow keys.</p>
       <div class="inst-cols wide-first">
         <canvas class="cv" id="vq-cv" style="touch-action:none;cursor:grab" aria-label="Draggable query and key vectors"></canvas>
         <div style="display:grid;gap:0.8rem">
