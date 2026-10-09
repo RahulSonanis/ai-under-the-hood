@@ -153,11 +153,11 @@ function sceneKit(cv) {
   k.flow = (path, n, phase, col, o = {}) => { const len = o.len || 0.08, sz = o.size || 3; for (let j = 0; j < n; j++) { const u = ((j / n) + phase) % 1; const pts = []; for (let s = 6; s >= 0; s--) { const uu = u - len * s / 6; if (uu >= 0) pts.push(path(uu)); } if (pts.length > 1) k.trail(pts, col, { w: sz * 0.9, alpha: o.alpha == null ? 0.8 : o.alpha }); const [x, y] = path(u); k.dot(x, y, k.px(sz), col, { glow: o.glow == null ? 8 : o.glow, alpha: o.alpha }); } };
   /* Glass readout panel in screen space. corner: "tl" | "tr" | "bl" | "br". rows: [[key, value], ...] */
   k.hud = (corner, title, rows, o = {}) => {
-    const c = k.ctx; c.save(); k.screen(); const pad = 10, lh = 17, w = o.w || 190, h = pad * 2 + (title ? 18 : 0) + rows.length * lh;
-    const m = 12, x = corner[1] === "l" ? m : k.W - w - m, y = corner[0] === "t" ? m : k.H - h - m;
+    const c = k.ctx; c.save(); k.screen(); const sm = k.W < 500, pad = sm ? 7 : 10, lh = sm ? 14 : 17, fs = sm ? 10 : 11, w = sm ? Math.min(o.w || 190, 172) : (o.w || 190), h = pad * 2 + (title ? lh + 1 : 0) + rows.length * lh;
+    const m = sm ? 8 : 12, x = corner[1] === "l" ? m : k.W - w - m, y = corner[0] === "t" ? m : k.H - h - m;
     c.globalAlpha = 0.82; c.fillStyle = k.C.bg2; rr(c, x, y, w, h, 10); c.fill(); c.globalAlpha = 1; c.strokeStyle = k.C.line; c.lineWidth = 1; c.stroke();
-    let yy = y + pad + 6; if (title) { font(c, 11, "--f-display", "650"); c.fillStyle = k.C.ink; c.textAlign = "left"; c.textBaseline = "middle"; c.fillText(title, x + pad, yy); yy += 18; }
-    rows.forEach(([kk, v, col]) => { font(c, 11, "--f-display"); c.fillStyle = k.C.muted; c.textAlign = "left"; c.fillText(kk, x + pad, yy); font(c, 11.5, "--f-mono", "600"); c.fillStyle = col || k.C.ink; c.textAlign = "right"; c.fillText(v, x + w - pad, yy); yy += lh; });
+    let yy = y + pad + 6; c.textBaseline = "middle"; if (title) { font(c, fs, "--f-display", "650"); c.fillStyle = k.C.ink; c.textAlign = "left"; c.fillText(title, x + pad, yy); yy += lh + 1; }
+    rows.forEach(([kk, v, col]) => { font(c, fs, "--f-display"); c.fillStyle = k.C.muted; c.textAlign = "left"; c.fillText(kk, x + pad, yy); font(c, fs + 0.5, "--f-mono", "600"); c.fillStyle = col || k.C.ink; c.textAlign = "right"; c.fillText(v, x + w - pad, yy); yy += lh; });
     c.restore(); k.world();
   };
   return k;
@@ -184,8 +184,9 @@ function storyFilm(fig, spec) {
   const hgt = spec.height || (() => stageH(stage));
   const film = makeFilm(fig, {
     draw: (t, i, segs) => {
-      const s = segs[i]; k.begin(hgt(), filmCam(spec.cams, segs, i, t), { grid: spec.grid });
-      spec.draw(k, { t, i, key: s.key, p: clamp01((t - s.t0) / s.dur), at: key => stepK(segs, t, key), segs, C: k.C });
+      const s = segs[i], narrow = innerW(stage) < 640, cams = narrow && spec.camsNarrow ? spec.camsNarrow : spec.cams;
+      k.begin(hgt(), filmCam(cams, segs, i, t), { grid: spec.grid });
+      spec.draw(k, { t, i, key: s.key, p: clamp01((t - s.t0) / s.dur), at: key => stepK(segs, t, key), segs, C: k.C, narrow });
     },
     caption: (s, depth) => { const tx = s.text || ["", ""]; return (depth >= 3 ? tx[1] || tx[0] : tx[0]) + (s.link ? ` <a href="${s.link}">Read more →</a>` : ""); }
   });

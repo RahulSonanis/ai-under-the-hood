@@ -47,8 +47,10 @@ chapter("inside", () => {
     attn: { x: 850, y: 330, w: 790, h: 430 }, heads: { x: 850, y: 330, w: 790, h: 430 },
     mlp: { x: 840, y: 140, w: 800, h: 440 }, moe: { x: 840, y: 140, w: 800, h: 440 },
     add: { x: 850, y: 100, w: 790, h: 650 },
-    out: { x: 470, y: -250, w: 650, h: 440 }
+    stack: { x: -50, y: -80, w: 740, h: 790 },
+    out: { x: 420, y: -705, w: 450, h: 270 }
   };
+  let NAR = false;
   const cams = {
     default: { x: -90, y: 110, w: 860, h: 600 },
     enter: { x: -90, y: 110, w: 860, h: 600 },
@@ -97,7 +99,7 @@ chapter("inside", () => {
       k.box(O.x, y, O.w, O.sh, { fill: C.bg2, stroke: zoom ? C.sig : C.line, r: 8, alpha: 0.95, glow: zoom ? 10 : 0 });
       if (hot > 0) k.box(O.x, y, O.w, O.sh, { fill: C.amb, r: 8, alpha: 0.35 * hot, glow: 22 * hot, glowCol: C.amb });
       for (let j = 0; j < N; j++) k.dot(O.cx(j), y + O.sh / 2, 3, C.sig, { alpha: 0.35 + 0.6 * hot });
-      k.label(O.x - 10, y + O.sh / 2, layerName[l], { align: "right", size: 11, col: zoom ? C.ink : C.muted });
+      if (!(NAR && f.key === "stack" && l > 0 && l < O.L - 1)) k.label(O.x - 10, y + O.sh / 2, layerName[l], { align: "right", size: 11, col: zoom ? C.ink : C.muted });
     }
     // chips and embeddings
     for (let j = 0; j < N; j++) {
@@ -115,13 +117,13 @@ chapter("inside", () => {
   function frame(k, f, o = {}) {
     const C = k.C;
     k.box(D.x, D.y, D.w, D.h, { fill: C.bg2, alpha: 0.35, r: 18 }); k.box(D.x, D.y, D.w, D.h, { stroke: C.line, r: 18 });
-    const nw = k.W < 560, lx = nw ? BX.x + 10 : D.x + 16;
-    k.label(nw ? BX.x : lx, D.y + 18, "Inside layer 4", { align: "left", col: C.ink, weight: "600" });
+    const nw = NAR, lx = nw ? BX.x + 10 : D.x + 16;
+    if (!o.noLabels && !nw) k.label(lx, D.y + 18, "Inside layer 4", { align: "left", col: C.ink, weight: "600" });
     for (let j = 0; j < N; j++) k.line(D.cx(j), D.vecY, D.cx(j), D.top, { col: C.sig, alpha: 0.18, lw: 2 });
     k.box(BX.x, D.attY, BX.w, D.attH, { fill: C.bg2, stroke: o.attHot ? C.sig : C.line, r: 12, alpha: 0.9 });
     k.box(BX.x, D.mlpY, BX.w, D.mlpH, { fill: C.bg2, stroke: o.mlpHot ? C.amb : C.line, r: 12, alpha: 0.9 });
-    k.label(lx, nw ? D.attY + 14 : D.attY + D.attH / 2, "Attention", { align: "left", col: o.attHot ? C.ink : C.muted, weight: o.attHot ? "650" : "500" });
-    k.label(lx, nw ? D.mlpY + 14 : D.mlpY + D.mlpH / 2, o.moe ? "Experts" : "MLP", { align: "left", col: o.mlpHot ? C.ink : C.muted, weight: o.mlpHot ? "650" : "500" });
+    if (!o.noLabels) k.label(lx, nw ? D.attY + 14 : D.attY + D.attH / 2, "Attention", { align: "left", col: o.attHot ? C.ink : C.muted, weight: o.attHot ? "650" : "500" });
+    if (!o.noLabels) k.label(lx, nw ? D.mlpY + 14 : D.mlpY + D.mlpH / 2, o.moe ? "Experts" : "MLP", { align: "left", col: o.mlpHot ? C.ink : C.muted, weight: o.mlpHot ? "650" : "500" });
     for (let j = 0; j < N; j++) { plus(k, D.cx(j), D.addA, 1, o.hotA && o.hotA(j)); plus(k, D.cx(j), D.addM, 1, o.hotM && o.hotM(j)); }
     for (let j = 0; j < N; j++) {
       const fut = o.future != null && j > o.future;
@@ -149,13 +151,14 @@ chapter("inside", () => {
     k.text(x, D.keyY + 1, s, { size: 12, mono: true, weight: "600", col: col || (hot ? C.ink : C.sig) });
   }
 
-  const camsW = Object.fromEntries(Object.keys(camsN).map(key => [key, cams[key]]));
+  const camsNarrow = { ...cams, ...camsN, default: camsN.enter };
   storyFilm(fig, {
-    height: () => { const st = $(".scene-stage", fig), h = stageH(st); Object.assign(cams, innerW(st) < 560 ? camsN : camsW); cams.default = cams.enter; return h; },
+    camsNarrow,
     label: "Animated explanation of one forward pass through a transformer",
     steps, cams,
     draw(k, f) {
-      const C = k.C, wide = k.W >= 560, i = f.i, p = f.p;
+      NAR = !!f.narrow;
+      const C = k.C, wide = !NAR, i = f.i, p = f.p;
       // ---------- overview (always drawn; the camera decides what is seen) ----------
       let wave = null; if (f.key === "stack") wave = p * 1.2 * (O.L + 1) - 0.6;
       overview(k, f, {
@@ -184,7 +187,27 @@ chapter("inside", () => {
       if (f.key === "stack") {
         for (let j = 0; j < N; j++) { const x = O.cx(j), yw = O.sy(Math.max(0, Math.min(O.L - 1, wave))) + O.sh / 2; if (wave < O.L - 0.4) vec(k, x, yw - 37, after(j, Math.min(2, Math.floor(wave / 2))), OV, { glow: 10 }); }
         const n = Math.max(1, Math.min(32, Math.round(clamp01((wave + 0.5) / O.L) * 32)));
-        k.hud("tr", "Through the stack", [["layer", `${n} of 32`, C.amb], ["in each layer", "attention, then MLP"]], { w: 220 });
+        k.hud("tr", "Through the stack", [["layer", `${n} of 32`, C.amb], ["in each layer", NAR ? "attn + MLP" : "attention, then MLP"]], { w: 220 });
+      }
+      if (f.key === "out" && NAR) {
+        // phone: a clean composition of its own, away from the stack
+        const xv = 470, vt = -620, mx = 520, my = -625, mw = 54, mh = 112, bx = 610, b0 = 672, bw = 140;
+        const pa = clamp01((p - 0.08) / 0.15), pb = clamp01((p - 0.3) / 0.35);
+        vec(k, xv, vt, after(8, 2), DV, { glow: 12 });
+        k.label(xv, vt + 104 + 18, "last word", { size: 11 });
+        k.flow(u => [xv + 18 + u * (mx - xv - 22), vt + 52], 2, f.t * 0.6, C.sig, { alpha: pa });
+        for (let r = 0; r < 9; r++) for (let c = 0; c < 5; c++) { const on = hash(r * 5 + c, Math.floor(f.t * 6)) > 0.6 && p > 0.15 && p < 0.7; k.box(mx + c * 11, my + r * 12.5, 8, 9.5, { fill: on ? C.amb : C.line, r: 2, alpha: on ? 0.9 : 0.6, glow: on ? 6 : 0 }); }
+        k.label(mx + mw / 2 - 3, my - 14, "unembedding", { size: 11, col: p > 0.15 && p < 0.7 ? C.amb : C.muted });
+        vocab.forEach(([w, pr], r) => {
+          const y = -660 + r * 30, g = easeOut((pb - r * 0.06) / 0.5), best = r === 0 && p > 0.72;
+          k.curve([[mx + mw, my + mh / 2], [mx + mw + 20, my + mh / 2], [bx - 30, y], [bx - 6, y]], { col: C.line, alpha: 0.7 * pa });
+          k.label(bx, y, w, { align: "left", size: 12, weight: best ? "700" : "500", col: best ? C.sig : C.ink, alpha: Math.max(0.25, g) });
+          k.box(b0, y - 7, Math.max(2, bw * pr / 0.38 * g), 14, { fill: best ? C.sig : C.muted, r: 3, alpha: best ? 1 : 0.7, glow: best ? 10 : 0 });
+          if (g > 0.5) k.label(b0 + bw * pr / 0.38 * g + 6, y, Math.round(pr * 100) + "%", { align: "left", size: 10, mono: true, alpha: (g - 0.5) * 2 });
+        });
+        k.label(bx, -660 + 6 * 30, "… every other token", { align: "left", size: 11, alpha: pb });
+        k.label(430, -688, p > 0.72 ? "Next token: slept" : "Scores for every token", { align: "left", col: p > 0.72 ? C.sig : C.ink, weight: "650", size: 13 });
+        return;
       }
       if (f.key === "out") {
         frame(k, f, {}); for (let j = 0; j < N; j++) mlpGlyph(k, D.cx(j), 1, 0, j);
@@ -241,7 +264,7 @@ chapter("inside", () => {
           const u = j => clamp01((p - 0.05 - j * 0.035) / 0.78);
           const cy = j => lerp(D.vecY + 52, D.top - 10, u(j));
           const near = (j, y) => Math.abs(cy(j) - y) < 40;
-          frame(k, f, { hideIn: true, hotA: j => near(j, D.addA), hotM: j => near(j, D.addM) });
+          frame(k, f, { noLabels: NAR, hideIn: true, hotA: j => near(j, D.addA), hotM: j => near(j, D.addM) });
           for (let j = 0; j < N; j++) {
             mlpGlyph(k, D.cx(j), 1, 0, j);
             vec(k, D.cx(j), D.vecY, vals(j), DV, { dash: true, alpha: 0.25 });
@@ -254,7 +277,7 @@ chapter("inside", () => {
           }
           if (wide) k.label(D.x + 16, D.addA, "add", { align: "left", col: C.amb, weight: "600" });
           if (wide) k.label(D.x + 16, D.addM, "add", { align: "left", col: C.amb, weight: "600" });
-          k.label(D.cx(N - 1), D.top - 2, "to layer 5", { col: C.muted, size: 11, dx: -60 });
+          if (wide) k.label(D.cx(N - 1), D.top - 2, "to layer 5", { col: C.muted, size: 11, dx: -60 });
           return;
         }
         frame(k, f, { mlpHot: f.key !== "stack" || stackHot > 0.2, attHot: stackHot > 0.2, moe, inVals: j => vals(j, blendOf(Math.max(1, j))) });

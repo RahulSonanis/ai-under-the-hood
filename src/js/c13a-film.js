@@ -159,7 +159,7 @@ chapter("evals", () => {
           grid(k, GA, A, N0, N0); grid(k, GB, B, N0, N0, { hi: true });
           const done = j + (sub > 0.5 ? 1 : 0);
           const shownS = done ? reruns[done - 1] : reruns[0];
-          head(k, GA, j ? nm(k, `Model A · test ${j + 1}`, "A") : nm(k, "Model A", "A"), shownS.sa.toFixed(1) + "%"); head(k, GB, j ? nm(k, `Model B · test ${j + 1}`, "B") : nm(k, "Model B", "B"), shownS.sb.toFixed(1) + "%", { hi: true, scol: C.sig });
+          head(k, GA, j ? nm(k, `Model A · test ${j + 1}`, "") : nm(k, "Model A", ""), shownS.sa.toFixed(1) + "%"); head(k, GB, j ? nm(k, `Model B · test ${j + 1}`, "") : nm(k, "Model B", ""), shownS.sb.toFixed(1) + "%", { hi: true, scol: C.sig });
           axis(k); scoreDots(k, reruns, Math.max(1, done));
           // the newest scores drop from the grids to the axis
           if (j > 0 && sub > 0.45 && sub < 0.75) { const e = easeIO((sub - 0.45) / 0.3); k.dot(lerp(GA.x + 180, X(cur.sa), e), lerp(470, AX.yA, e), 6, C.ink, { glow: 10 }); k.dot(lerp(GB.x + 180, X(cur.sb), e), lerp(470, AX.yB, e), 6, C.sig, { glow: 10 }); }
@@ -169,7 +169,7 @@ chapter("evals", () => {
         }
         if (f.key === "ci") {
           grid(k, GA, firstA, N0, N0, { alpha: 0.6 }); grid(k, GB, firstB, N0, N0, { alpha: 0.6 });
-          head(k, GA, nm(k, "Model A", "A"), "62.0%", { scol: C.muted }); head(k, GB, nm(k, "Model B", "B"), "64.0%", { scol: C.sig });
+          head(k, GA, nm(k, "Model A", ""), "62.0%", { scol: C.muted }); head(k, GB, nm(k, "Model B", ""), "64.0%", { scol: C.sig });
           axis(k); scoreDots(k, reruns, R + 1, 0.35);
           const g = easeOut(f.p / 0.45), hA = half(PA, N0) * g, hB = half(PB, N0) * g;
           band(k, AX.yA, 62 - hA, 62 + hA, C.ink, 1); band(k, AX.yB, 64 - hB, 64 + hB, C.sig, 1);
@@ -182,7 +182,7 @@ chapter("evals", () => {
         // bigger test
         const e = easeIO(f.p / 0.7), n = Math.round(Math.exp(lerp(Math.log(N0), Math.log(N1), e)));
         dense(k, GA, n, PA, 3); dense(k, GB, n, PB, 5);
-        head(k, GA, nm(k, `Model A · ${n.toLocaleString()} questions`, "A"), "62.0%", { scol: C.muted }); head(k, GB, nm(k, `Model B · ${n.toLocaleString()} questions`, "B"), "64.0%", { hi: true, scol: C.sig });
+        head(k, GA, nm(k, `Model A · ${n.toLocaleString()} questions`, ""), "62.0%", { scol: C.muted }); head(k, GB, nm(k, `Model B · ${n.toLocaleString()} questions`, ""), "64.0%", { hi: true, scol: C.sig });
         axis(k);
         scoreDots(k, reruns, R + 1, 0.3 * (1 - e));
         const nb = Math.floor(clamp01((f.p - 0.62) / 0.3) * R); scoreDots(k, big, nb, 0.9, false);
@@ -203,7 +203,7 @@ chapter("evals", () => {
         head(k, GB, nm(k, "Model B · old, famous benchmark", "Old benchmark"), (right / N0 * 100).toFixed(1) + "%", { hi: true, scol: learn > 0 ? C.amb : C.sig });
         // training data: a stack of web pages
         k.box(B0.x, B0.y, B0.w, B0.h, { fill: C.bg2, stroke: C.line, r: 12 });
-        k.label(B0.x + B0.w / 2, B0.y - 18, nm(k, "Training data · text from the web", "Training data"), { col: C.ink, weight: "600" });
+        k.label(B0.x + B0.w / 2, k.W < 640 ? B0.y + B0.h + 22 : B0.y - 18, nm(k, "Training data · text from the web", "Training data"), { col: C.ink, weight: "600" });
         for (let l = 0; l < 13; l++) { const w = 120 + ((l * 73) % 200); k.box(B0.x + 24, B0.y + 22 + l * 20, w, 8, { fill: C.line, r: 4, alpha: 0.6 }); }
         const L = [...leaked];
         L.forEach((q, j) => {
@@ -221,7 +221,7 @@ chapter("evals", () => {
         k.box(RT.x, RT.y, RT.w, RT.h, { fill: C.bg2, stroke: C.line, r: 14 });
         k.label(RT.x + RT.w / 2, RT.y - 18, nm(k, "Red team · people and automated attacks", "Red team"), { col: C.ink, weight: "600" });
         const catY = c => RT.y + 60 + c * 90;
-        cats.forEach((nm, c) => { k.box(RT.x + 20, catY(c) - 24, RT.w - 40, 48, { stroke: C.amb, r: 10, alpha: 0.55 }); k.label(RT.x + RT.w / 2, catY(c), k.W < 640 ? catsShort[c] : nm, { col: C.ink, size: k.W < 640 ? 10 : 12 }); });
+        cats.forEach((nm, c) => { k.box(RT.x + 20, catY(c) - 24, RT.w - 40, 48, { stroke: C.amb, r: 10, alpha: 0.55 }); k.label(RT.x + RT.w / 2, catY(c), k.W < 640 ? catsShort[c] : nm, { col: C.ink, size: k.W < 640 ? 9 : 12 }); });
         const mx = M.x + M.w / 2, my = M.y + M.h / 2;
         let refused = 0, found = 0;
         attacks.forEach((a, j) => {

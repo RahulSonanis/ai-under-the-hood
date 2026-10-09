@@ -41,13 +41,14 @@ chapter("memory", () => {
     reserve: { x: 960, y: 20, w: 1000, h: 660 }, paged: { x: 960, y: 20, w: 1000, h: 660 }, prefix: { x: 960, y: 20, w: 1000, h: 660 }
   };
 
+  let NW = 8; // tokens shown (fewer on phones)
   function tokensRow(k, f, gen, mode) {
     const C = k.C;
-    for (let j = 0; j < words.length; j++) {
+    for (let j = 0; j < NW; j++) {
       const x = chipX(j), live = j < gen, isNew = j === gen;
       if (!live && !isNew) { k.box(x, CH.y, CH.w, CH.h, { stroke: C.line, r: 8, dash: [4, 4] }); continue; }
       k.box(x, CH.y, CH.w, CH.h, { fill: isNew ? C.sig : C.bg2, stroke: isNew ? C.sig : C.line, r: 8, glow: isNew ? 14 : 0 });
-      k.text(x + CH.w / 2, CH.y + CH.h / 2 + 1, words[j], { col: isNew ? C.bg : C.ink, size: 15, weight: "600" });
+      k.text(x + CH.w / 2, CH.y + CH.h / 2 + 1, words[j], { col: isNew ? C.bg : C.ink, size: f.narrow ? 22 : 15, weight: "600" });
     }
   }
   function cards(k, j, a, flash) { // K and V note cards under token j
@@ -60,7 +61,7 @@ chapter("memory", () => {
   function workBars(k, gen, mode) {
     const C = k.C, bx = 70, by = 450, bw = 30;
     k.label(bx, by + 22, "Work per step", { align: "left", col: C.muted });
-    for (let g = 1; g <= 7; g++) {
+    for (let g = 1; g <= NW - 1; g++) {
       const redo = g, h = 14 * redo;
       if (mode === "cache") k.box(bx + (g - 1) * (bw + 8), by - h, bw, h, { stroke: C.line, r: 3, dash: [3, 3] });
       if (g > gen) continue;
@@ -74,15 +75,18 @@ chapter("memory", () => {
   }
   function hatch(k, x, y, w, h, col) { const c = k.ctx; c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip(); c.strokeStyle = col; c.globalAlpha = 0.55; c.lineWidth = k.px(1.2); for (let d = -h; d < w; d += 8) { c.beginPath(); c.moveTo(x + d, y + h); c.lineTo(x + d + h, y); c.stroke(); } c.restore(); }
 
+  const mem = { x: 1090, y: -150, w: 800, h: 880 }, tok = { x: 30, y: -130, w: 600, h: 640 };
+  const camsNarrow = { default: tok, redo: tok, cache: tok, grow: mem, many: mem, reserve: mem, paged: mem, prefix: mem };
   storyFilm(fig, {
     label: "Animated explanation of the KV cache and paged memory",
-    steps, cams,
+    steps, cams, camsNarrow,
     draw(k, f) {
       const C = k.C;
       if (f.key === "redo" || f.key === "cache") {
-        const mode = f.key, gen = 1 + Math.min(6, Math.floor(f.p * 7.2)), sub = (f.p * 7.2) % 1;
+        NW = f.narrow ? 5 : 8;
+        const mode = f.key, gen = 1 + Math.min(NW - 2, Math.floor(f.p * (NW - 0.8))), sub = (f.p * (NW - 0.8)) % 1;
         tokensRow(k, f, gen, mode);
-        k.box(CH.x0 - 20, 150, chipX(7) + CH.w - CH.x0 + 40, 60, { stroke: C.line, r: 12 });
+        k.box(CH.x0 - 20, 150, chipX(NW - 1) + CH.w - CH.x0 + 40, 60, { stroke: C.line, r: 12 });
         k.label(CH.x0 - 6, 140, "Attention layer", { align: "left", col: C.muted });
         // which tokens compute K,V this step
         for (let j = 0; j < gen; j++) {
@@ -96,17 +100,17 @@ chapter("memory", () => {
         }
         k.label(chipX(gen) + CH.w / 2, CH.y - 18, "next word", { col: C.sig, size: 11 });
         workBars(k, gen, mode);
-        k.hud("br", mode === "redo" ? "Recomputing everything" : "With a KV cache", [["tokens written", String(gen)], ["K,V computed this step", mode === "redo" ? String(gen) : "1", mode === "redo" ? C.amb : C.sig], ["total so far", mode === "redo" ? String(gen * (gen + 1) / 2) : String(gen)]], { w: 210 });
+        k.hud(f.narrow ? "tl" : "br", mode === "redo" ? "Recomputing everything" : "With a KV cache", [["tokens written", String(gen)], ["K,V computed this step", mode === "redo" ? String(gen) : "1", mode === "redo" ? C.amb : C.sig], ["total so far", mode === "redo" ? String(gen * (gen + 1) / 2) : String(gen)]], { w: 210 });
         return;
       }
       // ---- memory panel steps ----
-      k.label(M.x, M.y - 24, "One GPU's memory (80 GB) · each square ≈ 0.25 GB", { align: "left", col: C.ink, weight: "600" });
+      if (!f.narrow) k.label(M.x, M.y - 24, "One GPU's memory (80 GB) · each square ≈ 0.25 GB", { align: "left", col: C.ink, weight: "600" });
       const N = M.cols * M.rows, free = N - W_CELLS;
       const weights = c => c < W_CELLS ? { fill: C.muted, r: 5, alpha: 0.8 } : null;
       if (f.key === "grow") {
         const tok = Math.round(32768 * easeIO(f.p)), cells = Math.ceil(tok * 128 / 1024 / 1024 / 0.25); // KiB -> GB
         memoryGrid(k, c => weights(c) || (c - W_CELLS < cells ? { fill: C.sig, r: 5, glow: c - W_CELLS === cells - 1 ? 14 : 0 } : null));
-        k.label(M.x, cellXY(W_CELLS - 1)[1] + M.cell + 18, "Model weights · 16 GB", { align: "left", col: C.muted });
+        if (!f.narrow) k.label(M.x, cellXY(W_CELLS - 1)[1] + M.cell + 18, "Model weights · 16 GB", { align: "left", col: C.muted });
         k.hud("tl", "One conversation", [["tokens", tok.toLocaleString()], ["KV per token", "128 KiB"], ["KV cache", (tok * 128 / 1048576).toFixed(2) + " GiB", C.sig]], { w: 200 });
         return;
       }
@@ -150,7 +154,7 @@ chapter("memory", () => {
           myCells[0].slice(0, 5).forEach((c, q) => { const [x, y] = cellXY(c); k.line(tx - 12, ty + 18 + q * 26, x, y + M.cell / 2, { col: convCol[0], lw: 1, alpha: 0.6 }); k.dot(tx - 40, ty + 18 + q * 26, 4, convCol[0]); }); }
         else { const sharedCells = [...owner.entries()].filter(([, o]) => o === -1).map(([c]) => c); [0, 1, 2, 3].forEach(j => { const mc = myCells[j][0]; if (mc == null) return; const [x1, y1] = cellXY(mc); sharedCells.slice(0, 2).forEach(sc => { const [x2, y2] = cellXY(sc); k.line(x1 + M.cell / 2, y1 + M.cell / 2, x2 + M.cell / 2, y2 + M.cell / 2, { col: convCol[j % 8], lw: 1.2, alpha: 0.5 }); }); }); }
         const usedCells = myCells.reduce((a, m) => a + m.length, 0);
-        k.hud("tl", shared ? "Prefix caching" : "Paged memory", shared ? [["conversations", String(nConv)], ["shared instructions", "stored once", C.ink], ["recomputed", "never", C.sig]] : [["conversations", String(myCells.length), C.sig], ["reserved but empty", "almost none", C.sig], ["free memory", ((N - W_CELLS - usedCells) * 0.25).toFixed(1) + " GB"]], { w: 210 });
+        k.hud("tl", shared ? "Prefix caching" : "Paged memory", shared ? [["conversations", String(nConv)], ["shared instructions", "stored once", C.ink], ["recomputed", "never", C.sig]] : [["conversations", String(myCells.length), C.sig], ["reserved but empty", "≈ 0", C.sig], ["free memory", ((N - W_CELLS - usedCells) * 0.25).toFixed(1) + " GB"]], { w: 210 });
       }
     }
   });

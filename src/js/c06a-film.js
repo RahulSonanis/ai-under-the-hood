@@ -49,6 +49,7 @@ chapter("sharing", () => {
     static: { x: 870, y: 50, w: 480, h: 490 }, cont: { x: 870, y: 50, w: 480, h: 490 }
   };
   const cams = { ...camsW, default: camsW.gpu };
+  let NAR = false;
 
   // ---------- requests for the seat timeline (illustrative lengths, in decode steps) ----------
   const LENS = [6, 24, 10, 4, 16, 9, 34, 7, 12, 5, 20, 8, 14, 6, 26, 9, 11, 4, 18, 7, 13, 5, 22, 8, 10, 6, 15, 9, 12, 7, 17, 5];
@@ -68,7 +69,7 @@ chapter("sharing", () => {
 
   // ---------- drawing ----------
   function gpu(k, f, o) {
-    const C = k.C, N = M.cols * M.rows, nar = k.W < 560;
+    const C = k.C, N = M.cols * M.rows, nar = NAR;
     // memory block
     k.box(M.x, M.y, M.w, M.h, { fill: C.bg2, stroke: o.memHot ? C.amb : C.line, r: 16 });
     k.label(M.x + 18, M.y + 24, nar ? "Memory · 80 GB" : "GPU memory (HBM) · 80 GB", { align: "left", col: C.ink, weight: "600" });
@@ -98,15 +99,15 @@ chapter("sharing", () => {
       k.flow(u => [lerp(PIPE.x0 - 6, PIPE.x1 + 6, u), y], 5, f.t * 0.9 + lane * 0.21, frac < 1 - kvFrac ? C.amb : C.sig, { alpha: a, size: 2.6, len: 0.1 });
     }
   }
-  const seatX = k => k.W < 560 ? 920 : SEAT.x;
+  const seatX = k => NAR ? 920 : SEAT.x;
   function seatRow(k, y, col, n, a, newest) {
-    const C = k.C, sx = seatX(k), mx = k.W < 560 ? 8 : 18;
+    const C = k.C, sx = seatX(k), mx = NAR ? 8 : 18;
     k.dot(sx + 10, y, 7, col, { alpha: a });
     for (let q = 0; q < Math.min(n, mx); q++) k.box(sx + 26 + q * 16, y - 5, 11, 10, { fill: C.sig, r: 2, alpha: a * (q === Math.min(n, mx) - 1 && newest ? 1 : 0.55), glow: q === Math.min(n, mx) - 1 && newest ? 10 : 0 });
   }
 
   function decodeStep(k, f, sc, B, kvCellsEach) {
-    const C = k.C, wide = k.W >= 560;
+    const C = k.C, wide = !NAR;
     const cyc = sc.t * 1000 * SECS_PER_MS, el = f.p * f.segs[f.i].dur, n = Math.floor(el / cyc), u = (el / cyc) % 1;
     const kvCells = Math.ceil(B * kvCellsEach), readCells = W_CELLS + kvCells, kvFrac = kvCells / readCells;
     const head = u * readCells;
@@ -140,7 +141,7 @@ chapter("sharing", () => {
   }
 
   function timeline(k, f, kind) {
-    const C = k.C, wide = k.W >= 560, segs = SCHED[kind];
+    const C = k.C, wide = !NAR, segs = SCHED[kind];
     const X0 = 1000, X1 = 1330, Y0 = 170, RH = 40, sw = (X1 - X0) / HORIZON;
     const now = Math.min(HORIZON, easeIO(f.p / 0.95) * HORIZON), tick = Math.floor(now);
     gpu(k, f, { noPipeLabel: true, cuHot: true, pipeHot: true, tick, lit: 2.5 / 64, cell: c => c < W_CELLS ? { fill: C.muted, r: 3, alpha: 0.75 } : null });
@@ -174,18 +175,19 @@ chapter("sharing", () => {
   }
 
   storyFilm(fig, {
-    height: () => { const st = $(".scene-stage", fig), h = stageH(st); Object.assign(cams, innerW(st) < 560 ? camsN : camsW); cams.default = cams.gpu; return h; },
+    camsNarrow: { ...camsN, default: camsN.gpu },
     label: "Animated explanation of how one GPU serves many conversations at once",
     steps, cams,
     draw(k, f) {
+      NAR = !!f.narrow;
       const C = k.C, p = f.p;
       if (f.key === "gpu") {
         const a1 = easeOut(p / 0.25), a2 = easeOut((p - 0.25) / 0.25), a3 = easeOut((p - 0.5) / 0.25);
         gpu(k, f, { memHot: p < 0.35, pipeHot: p >= 0.35 && p < 0.6, cuHot: p >= 0.6, tick: Math.floor(f.t * 8), lit: p >= 0.6 ? 0.08 : 0,
           cell: c => c < W_CELLS ? { fill: C.muted, r: 3, alpha: 0.8 * clamp01(a1 * 1.6 - c / W_CELLS * 0.6) } : null });
-        if (a1 > 0) k.label(M.x + M.w / 2, cellXY(W_CELLS - 1)[1] + 34, k.W < 560 ? "weights · 16 GB" : "the model's weights · 16 GB", { col: C.muted, alpha: a1 });
+        if (a1 > 0) k.label(M.x + M.w / 2, cellXY(W_CELLS - 1)[1] + 34, NAR ? "weights · 16 GB" : "the model's weights · 16 GB", { col: C.muted, alpha: a1 });
         if (a2 > 0) pipeFlow(k, f, 0, 0, a2 * 0.8);
-        if (k.W >= 560) k.hud("br", "NVIDIA H100", [["memory", "80 GB"], ["bandwidth", "3.35 TB/s", C.amb], ["maths", "989 TFLOPS"]], { w: 180 });
+        if (!NAR) k.hud("br", "NVIDIA H100", [["memory", "80 GB"], ["bandwidth", "3.35 TB/s", C.amb], ["maths", "989 TFLOPS"]], { w: 180 });
         return;
       }
       if (f.key === "one") return decodeStep(k, f, SC.one, 1, 0);

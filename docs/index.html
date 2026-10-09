@@ -2075,11 +2075,11 @@ function sceneKit(cv) {
   k.flow = (path, n, phase, col, o = {}) => { const len = o.len || 0.08, sz = o.size || 3; for (let j = 0; j < n; j++) { const u = ((j / n) + phase) % 1; const pts = []; for (let s = 6; s >= 0; s--) { const uu = u - len * s / 6; if (uu >= 0) pts.push(path(uu)); } if (pts.length > 1) k.trail(pts, col, { w: sz * 0.9, alpha: o.alpha == null ? 0.8 : o.alpha }); const [x, y] = path(u); k.dot(x, y, k.px(sz), col, { glow: o.glow == null ? 8 : o.glow, alpha: o.alpha }); } };
   /* Glass readout panel in screen space. corner: "tl" | "tr" | "bl" | "br". rows: [[key, value], ...] */
   k.hud = (corner, title, rows, o = {}) => {
-    const c = k.ctx; c.save(); k.screen(); const pad = 10, lh = 17, w = o.w || 190, h = pad * 2 + (title ? 18 : 0) + rows.length * lh;
-    const m = 12, x = corner[1] === "l" ? m : k.W - w - m, y = corner[0] === "t" ? m : k.H - h - m;
+    const c = k.ctx; c.save(); k.screen(); const sm = k.W < 500, pad = sm ? 7 : 10, lh = sm ? 14 : 17, fs = sm ? 10 : 11, w = sm ? Math.min(o.w || 190, 172) : (o.w || 190), h = pad * 2 + (title ? lh + 1 : 0) + rows.length * lh;
+    const m = sm ? 8 : 12, x = corner[1] === "l" ? m : k.W - w - m, y = corner[0] === "t" ? m : k.H - h - m;
     c.globalAlpha = 0.82; c.fillStyle = k.C.bg2; rr(c, x, y, w, h, 10); c.fill(); c.globalAlpha = 1; c.strokeStyle = k.C.line; c.lineWidth = 1; c.stroke();
-    let yy = y + pad + 6; if (title) { font(c, 11, "--f-display", "650"); c.fillStyle = k.C.ink; c.textAlign = "left"; c.textBaseline = "middle"; c.fillText(title, x + pad, yy); yy += 18; }
-    rows.forEach(([kk, v, col]) => { font(c, 11, "--f-display"); c.fillStyle = k.C.muted; c.textAlign = "left"; c.fillText(kk, x + pad, yy); font(c, 11.5, "--f-mono", "600"); c.fillStyle = col || k.C.ink; c.textAlign = "right"; c.fillText(v, x + w - pad, yy); yy += lh; });
+    let yy = y + pad + 6; c.textBaseline = "middle"; if (title) { font(c, fs, "--f-display", "650"); c.fillStyle = k.C.ink; c.textAlign = "left"; c.fillText(title, x + pad, yy); yy += lh + 1; }
+    rows.forEach(([kk, v, col]) => { font(c, fs, "--f-display"); c.fillStyle = k.C.muted; c.textAlign = "left"; c.fillText(kk, x + pad, yy); font(c, fs + 0.5, "--f-mono", "600"); c.fillStyle = col || k.C.ink; c.textAlign = "right"; c.fillText(v, x + w - pad, yy); yy += lh; });
     c.restore(); k.world();
   };
   return k;
@@ -2106,8 +2106,9 @@ function storyFilm(fig, spec) {
   const hgt = spec.height || (() => stageH(stage));
   const film = makeFilm(fig, {
     draw: (t, i, segs) => {
-      const s = segs[i]; k.begin(hgt(), filmCam(spec.cams, segs, i, t), { grid: spec.grid });
-      spec.draw(k, { t, i, key: s.key, p: clamp01((t - s.t0) / s.dur), at: key => stepK(segs, t, key), segs, C: k.C });
+      const s = segs[i], narrow = innerW(stage) < 640, cams = narrow && spec.camsNarrow ? spec.camsNarrow : spec.cams;
+      k.begin(hgt(), filmCam(cams, segs, i, t), { grid: spec.grid });
+      spec.draw(k, { t, i, key: s.key, p: clamp01((t - s.t0) / s.dur), at: key => stepK(segs, t, key), segs, C: k.C, narrow });
     },
     caption: (s, depth) => { const tx = s.text || ["", ""]; return (depth >= 3 ? tx[1] || tx[0] : tx[0]) + (s.link ? ` <a href="${s.link}">Read more →</a>` : ""); }
   });
@@ -3473,8 +3474,10 @@ chapter("inside", () => {
     attn: { x: 850, y: 330, w: 790, h: 430 }, heads: { x: 850, y: 330, w: 790, h: 430 },
     mlp: { x: 840, y: 140, w: 800, h: 440 }, moe: { x: 840, y: 140, w: 800, h: 440 },
     add: { x: 850, y: 100, w: 790, h: 650 },
-    out: { x: 470, y: -250, w: 650, h: 440 }
+    stack: { x: -50, y: -80, w: 740, h: 790 },
+    out: { x: 420, y: -705, w: 450, h: 270 }
   };
+  let NAR = false;
   const cams = {
     default: { x: -90, y: 110, w: 860, h: 600 },
     enter: { x: -90, y: 110, w: 860, h: 600 },
@@ -3523,7 +3526,7 @@ chapter("inside", () => {
       k.box(O.x, y, O.w, O.sh, { fill: C.bg2, stroke: zoom ? C.sig : C.line, r: 8, alpha: 0.95, glow: zoom ? 10 : 0 });
       if (hot > 0) k.box(O.x, y, O.w, O.sh, { fill: C.amb, r: 8, alpha: 0.35 * hot, glow: 22 * hot, glowCol: C.amb });
       for (let j = 0; j < N; j++) k.dot(O.cx(j), y + O.sh / 2, 3, C.sig, { alpha: 0.35 + 0.6 * hot });
-      k.label(O.x - 10, y + O.sh / 2, layerName[l], { align: "right", size: 11, col: zoom ? C.ink : C.muted });
+      if (!(NAR && f.key === "stack" && l > 0 && l < O.L - 1)) k.label(O.x - 10, y + O.sh / 2, layerName[l], { align: "right", size: 11, col: zoom ? C.ink : C.muted });
     }
     // chips and embeddings
     for (let j = 0; j < N; j++) {
@@ -3541,13 +3544,13 @@ chapter("inside", () => {
   function frame(k, f, o = {}) {
     const C = k.C;
     k.box(D.x, D.y, D.w, D.h, { fill: C.bg2, alpha: 0.35, r: 18 }); k.box(D.x, D.y, D.w, D.h, { stroke: C.line, r: 18 });
-    const nw = k.W < 560, lx = nw ? BX.x + 10 : D.x + 16;
-    k.label(nw ? BX.x : lx, D.y + 18, "Inside layer 4", { align: "left", col: C.ink, weight: "600" });
+    const nw = NAR, lx = nw ? BX.x + 10 : D.x + 16;
+    if (!o.noLabels && !nw) k.label(lx, D.y + 18, "Inside layer 4", { align: "left", col: C.ink, weight: "600" });
     for (let j = 0; j < N; j++) k.line(D.cx(j), D.vecY, D.cx(j), D.top, { col: C.sig, alpha: 0.18, lw: 2 });
     k.box(BX.x, D.attY, BX.w, D.attH, { fill: C.bg2, stroke: o.attHot ? C.sig : C.line, r: 12, alpha: 0.9 });
     k.box(BX.x, D.mlpY, BX.w, D.mlpH, { fill: C.bg2, stroke: o.mlpHot ? C.amb : C.line, r: 12, alpha: 0.9 });
-    k.label(lx, nw ? D.attY + 14 : D.attY + D.attH / 2, "Attention", { align: "left", col: o.attHot ? C.ink : C.muted, weight: o.attHot ? "650" : "500" });
-    k.label(lx, nw ? D.mlpY + 14 : D.mlpY + D.mlpH / 2, o.moe ? "Experts" : "MLP", { align: "left", col: o.mlpHot ? C.ink : C.muted, weight: o.mlpHot ? "650" : "500" });
+    if (!o.noLabels) k.label(lx, nw ? D.attY + 14 : D.attY + D.attH / 2, "Attention", { align: "left", col: o.attHot ? C.ink : C.muted, weight: o.attHot ? "650" : "500" });
+    if (!o.noLabels) k.label(lx, nw ? D.mlpY + 14 : D.mlpY + D.mlpH / 2, o.moe ? "Experts" : "MLP", { align: "left", col: o.mlpHot ? C.ink : C.muted, weight: o.mlpHot ? "650" : "500" });
     for (let j = 0; j < N; j++) { plus(k, D.cx(j), D.addA, 1, o.hotA && o.hotA(j)); plus(k, D.cx(j), D.addM, 1, o.hotM && o.hotM(j)); }
     for (let j = 0; j < N; j++) {
       const fut = o.future != null && j > o.future;
@@ -3575,13 +3578,14 @@ chapter("inside", () => {
     k.text(x, D.keyY + 1, s, { size: 12, mono: true, weight: "600", col: col || (hot ? C.ink : C.sig) });
   }
 
-  const camsW = Object.fromEntries(Object.keys(camsN).map(key => [key, cams[key]]));
+  const camsNarrow = { ...cams, ...camsN, default: camsN.enter };
   storyFilm(fig, {
-    height: () => { const st = $(".scene-stage", fig), h = stageH(st); Object.assign(cams, innerW(st) < 560 ? camsN : camsW); cams.default = cams.enter; return h; },
+    camsNarrow,
     label: "Animated explanation of one forward pass through a transformer",
     steps, cams,
     draw(k, f) {
-      const C = k.C, wide = k.W >= 560, i = f.i, p = f.p;
+      NAR = !!f.narrow;
+      const C = k.C, wide = !NAR, i = f.i, p = f.p;
       // ---------- overview (always drawn; the camera decides what is seen) ----------
       let wave = null; if (f.key === "stack") wave = p * 1.2 * (O.L + 1) - 0.6;
       overview(k, f, {
@@ -3610,7 +3614,27 @@ chapter("inside", () => {
       if (f.key === "stack") {
         for (let j = 0; j < N; j++) { const x = O.cx(j), yw = O.sy(Math.max(0, Math.min(O.L - 1, wave))) + O.sh / 2; if (wave < O.L - 0.4) vec(k, x, yw - 37, after(j, Math.min(2, Math.floor(wave / 2))), OV, { glow: 10 }); }
         const n = Math.max(1, Math.min(32, Math.round(clamp01((wave + 0.5) / O.L) * 32)));
-        k.hud("tr", "Through the stack", [["layer", `${n} of 32`, C.amb], ["in each layer", "attention, then MLP"]], { w: 220 });
+        k.hud("tr", "Through the stack", [["layer", `${n} of 32`, C.amb], ["in each layer", NAR ? "attn + MLP" : "attention, then MLP"]], { w: 220 });
+      }
+      if (f.key === "out" && NAR) {
+        // phone: a clean composition of its own, away from the stack
+        const xv = 470, vt = -620, mx = 520, my = -625, mw = 54, mh = 112, bx = 610, b0 = 672, bw = 140;
+        const pa = clamp01((p - 0.08) / 0.15), pb = clamp01((p - 0.3) / 0.35);
+        vec(k, xv, vt, after(8, 2), DV, { glow: 12 });
+        k.label(xv, vt + 104 + 18, "last word", { size: 11 });
+        k.flow(u => [xv + 18 + u * (mx - xv - 22), vt + 52], 2, f.t * 0.6, C.sig, { alpha: pa });
+        for (let r = 0; r < 9; r++) for (let c = 0; c < 5; c++) { const on = hash(r * 5 + c, Math.floor(f.t * 6)) > 0.6 && p > 0.15 && p < 0.7; k.box(mx + c * 11, my + r * 12.5, 8, 9.5, { fill: on ? C.amb : C.line, r: 2, alpha: on ? 0.9 : 0.6, glow: on ? 6 : 0 }); }
+        k.label(mx + mw / 2 - 3, my - 14, "unembedding", { size: 11, col: p > 0.15 && p < 0.7 ? C.amb : C.muted });
+        vocab.forEach(([w, pr], r) => {
+          const y = -660 + r * 30, g = easeOut((pb - r * 0.06) / 0.5), best = r === 0 && p > 0.72;
+          k.curve([[mx + mw, my + mh / 2], [mx + mw + 20, my + mh / 2], [bx - 30, y], [bx - 6, y]], { col: C.line, alpha: 0.7 * pa });
+          k.label(bx, y, w, { align: "left", size: 12, weight: best ? "700" : "500", col: best ? C.sig : C.ink, alpha: Math.max(0.25, g) });
+          k.box(b0, y - 7, Math.max(2, bw * pr / 0.38 * g), 14, { fill: best ? C.sig : C.muted, r: 3, alpha: best ? 1 : 0.7, glow: best ? 10 : 0 });
+          if (g > 0.5) k.label(b0 + bw * pr / 0.38 * g + 6, y, Math.round(pr * 100) + "%", { align: "left", size: 10, mono: true, alpha: (g - 0.5) * 2 });
+        });
+        k.label(bx, -660 + 6 * 30, "… every other token", { align: "left", size: 11, alpha: pb });
+        k.label(430, -688, p > 0.72 ? "Next token: slept" : "Scores for every token", { align: "left", col: p > 0.72 ? C.sig : C.ink, weight: "650", size: 13 });
+        return;
       }
       if (f.key === "out") {
         frame(k, f, {}); for (let j = 0; j < N; j++) mlpGlyph(k, D.cx(j), 1, 0, j);
@@ -3667,7 +3691,7 @@ chapter("inside", () => {
           const u = j => clamp01((p - 0.05 - j * 0.035) / 0.78);
           const cy = j => lerp(D.vecY + 52, D.top - 10, u(j));
           const near = (j, y) => Math.abs(cy(j) - y) < 40;
-          frame(k, f, { hideIn: true, hotA: j => near(j, D.addA), hotM: j => near(j, D.addM) });
+          frame(k, f, { noLabels: NAR, hideIn: true, hotA: j => near(j, D.addA), hotM: j => near(j, D.addM) });
           for (let j = 0; j < N; j++) {
             mlpGlyph(k, D.cx(j), 1, 0, j);
             vec(k, D.cx(j), D.vecY, vals(j), DV, { dash: true, alpha: 0.25 });
@@ -3680,7 +3704,7 @@ chapter("inside", () => {
           }
           if (wide) k.label(D.x + 16, D.addA, "add", { align: "left", col: C.amb, weight: "600" });
           if (wide) k.label(D.x + 16, D.addM, "add", { align: "left", col: C.amb, weight: "600" });
-          k.label(D.cx(N - 1), D.top - 2, "to layer 5", { col: C.muted, size: 11, dx: -60 });
+          if (wide) k.label(D.cx(N - 1), D.top - 2, "to layer 5", { col: C.muted, size: 11, dx: -60 });
           return;
         }
         frame(k, f, { mlpHot: f.key !== "stack" || stackHot > 0.2, attHot: stackHot > 0.2, moe, inVals: j => vals(j, blendOf(Math.max(1, j))) });
@@ -3863,13 +3887,14 @@ chapter("memory", () => {
     reserve: { x: 960, y: 20, w: 1000, h: 660 }, paged: { x: 960, y: 20, w: 1000, h: 660 }, prefix: { x: 960, y: 20, w: 1000, h: 660 }
   };
 
+  let NW = 8; // tokens shown (fewer on phones)
   function tokensRow(k, f, gen, mode) {
     const C = k.C;
-    for (let j = 0; j < words.length; j++) {
+    for (let j = 0; j < NW; j++) {
       const x = chipX(j), live = j < gen, isNew = j === gen;
       if (!live && !isNew) { k.box(x, CH.y, CH.w, CH.h, { stroke: C.line, r: 8, dash: [4, 4] }); continue; }
       k.box(x, CH.y, CH.w, CH.h, { fill: isNew ? C.sig : C.bg2, stroke: isNew ? C.sig : C.line, r: 8, glow: isNew ? 14 : 0 });
-      k.text(x + CH.w / 2, CH.y + CH.h / 2 + 1, words[j], { col: isNew ? C.bg : C.ink, size: 15, weight: "600" });
+      k.text(x + CH.w / 2, CH.y + CH.h / 2 + 1, words[j], { col: isNew ? C.bg : C.ink, size: f.narrow ? 22 : 15, weight: "600" });
     }
   }
   function cards(k, j, a, flash) { // K and V note cards under token j
@@ -3882,7 +3907,7 @@ chapter("memory", () => {
   function workBars(k, gen, mode) {
     const C = k.C, bx = 70, by = 450, bw = 30;
     k.label(bx, by + 22, "Work per step", { align: "left", col: C.muted });
-    for (let g = 1; g <= 7; g++) {
+    for (let g = 1; g <= NW - 1; g++) {
       const redo = g, h = 14 * redo;
       if (mode === "cache") k.box(bx + (g - 1) * (bw + 8), by - h, bw, h, { stroke: C.line, r: 3, dash: [3, 3] });
       if (g > gen) continue;
@@ -3896,15 +3921,18 @@ chapter("memory", () => {
   }
   function hatch(k, x, y, w, h, col) { const c = k.ctx; c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip(); c.strokeStyle = col; c.globalAlpha = 0.55; c.lineWidth = k.px(1.2); for (let d = -h; d < w; d += 8) { c.beginPath(); c.moveTo(x + d, y + h); c.lineTo(x + d + h, y); c.stroke(); } c.restore(); }
 
+  const mem = { x: 1090, y: -150, w: 800, h: 880 }, tok = { x: 30, y: -130, w: 600, h: 640 };
+  const camsNarrow = { default: tok, redo: tok, cache: tok, grow: mem, many: mem, reserve: mem, paged: mem, prefix: mem };
   storyFilm(fig, {
     label: "Animated explanation of the KV cache and paged memory",
-    steps, cams,
+    steps, cams, camsNarrow,
     draw(k, f) {
       const C = k.C;
       if (f.key === "redo" || f.key === "cache") {
-        const mode = f.key, gen = 1 + Math.min(6, Math.floor(f.p * 7.2)), sub = (f.p * 7.2) % 1;
+        NW = f.narrow ? 5 : 8;
+        const mode = f.key, gen = 1 + Math.min(NW - 2, Math.floor(f.p * (NW - 0.8))), sub = (f.p * (NW - 0.8)) % 1;
         tokensRow(k, f, gen, mode);
-        k.box(CH.x0 - 20, 150, chipX(7) + CH.w - CH.x0 + 40, 60, { stroke: C.line, r: 12 });
+        k.box(CH.x0 - 20, 150, chipX(NW - 1) + CH.w - CH.x0 + 40, 60, { stroke: C.line, r: 12 });
         k.label(CH.x0 - 6, 140, "Attention layer", { align: "left", col: C.muted });
         // which tokens compute K,V this step
         for (let j = 0; j < gen; j++) {
@@ -3918,17 +3946,17 @@ chapter("memory", () => {
         }
         k.label(chipX(gen) + CH.w / 2, CH.y - 18, "next word", { col: C.sig, size: 11 });
         workBars(k, gen, mode);
-        k.hud("br", mode === "redo" ? "Recomputing everything" : "With a KV cache", [["tokens written", String(gen)], ["K,V computed this step", mode === "redo" ? String(gen) : "1", mode === "redo" ? C.amb : C.sig], ["total so far", mode === "redo" ? String(gen * (gen + 1) / 2) : String(gen)]], { w: 210 });
+        k.hud(f.narrow ? "tl" : "br", mode === "redo" ? "Recomputing everything" : "With a KV cache", [["tokens written", String(gen)], ["K,V computed this step", mode === "redo" ? String(gen) : "1", mode === "redo" ? C.amb : C.sig], ["total so far", mode === "redo" ? String(gen * (gen + 1) / 2) : String(gen)]], { w: 210 });
         return;
       }
       // ---- memory panel steps ----
-      k.label(M.x, M.y - 24, "One GPU's memory (80 GB) · each square ≈ 0.25 GB", { align: "left", col: C.ink, weight: "600" });
+      if (!f.narrow) k.label(M.x, M.y - 24, "One GPU's memory (80 GB) · each square ≈ 0.25 GB", { align: "left", col: C.ink, weight: "600" });
       const N = M.cols * M.rows, free = N - W_CELLS;
       const weights = c => c < W_CELLS ? { fill: C.muted, r: 5, alpha: 0.8 } : null;
       if (f.key === "grow") {
         const tok = Math.round(32768 * easeIO(f.p)), cells = Math.ceil(tok * 128 / 1024 / 1024 / 0.25); // KiB -> GB
         memoryGrid(k, c => weights(c) || (c - W_CELLS < cells ? { fill: C.sig, r: 5, glow: c - W_CELLS === cells - 1 ? 14 : 0 } : null));
-        k.label(M.x, cellXY(W_CELLS - 1)[1] + M.cell + 18, "Model weights · 16 GB", { align: "left", col: C.muted });
+        if (!f.narrow) k.label(M.x, cellXY(W_CELLS - 1)[1] + M.cell + 18, "Model weights · 16 GB", { align: "left", col: C.muted });
         k.hud("tl", "One conversation", [["tokens", tok.toLocaleString()], ["KV per token", "128 KiB"], ["KV cache", (tok * 128 / 1048576).toFixed(2) + " GiB", C.sig]], { w: 200 });
         return;
       }
@@ -3972,7 +4000,7 @@ chapter("memory", () => {
           myCells[0].slice(0, 5).forEach((c, q) => { const [x, y] = cellXY(c); k.line(tx - 12, ty + 18 + q * 26, x, y + M.cell / 2, { col: convCol[0], lw: 1, alpha: 0.6 }); k.dot(tx - 40, ty + 18 + q * 26, 4, convCol[0]); }); }
         else { const sharedCells = [...owner.entries()].filter(([, o]) => o === -1).map(([c]) => c); [0, 1, 2, 3].forEach(j => { const mc = myCells[j][0]; if (mc == null) return; const [x1, y1] = cellXY(mc); sharedCells.slice(0, 2).forEach(sc => { const [x2, y2] = cellXY(sc); k.line(x1 + M.cell / 2, y1 + M.cell / 2, x2 + M.cell / 2, y2 + M.cell / 2, { col: convCol[j % 8], lw: 1.2, alpha: 0.5 }); }); }); }
         const usedCells = myCells.reduce((a, m) => a + m.length, 0);
-        k.hud("tl", shared ? "Prefix caching" : "Paged memory", shared ? [["conversations", String(nConv)], ["shared instructions", "stored once", C.ink], ["recomputed", "never", C.sig]] : [["conversations", String(myCells.length), C.sig], ["reserved but empty", "almost none", C.sig], ["free memory", ((N - W_CELLS - usedCells) * 0.25).toFixed(1) + " GB"]], { w: 210 });
+        k.hud("tl", shared ? "Prefix caching" : "Paged memory", shared ? [["conversations", String(nConv)], ["shared instructions", "stored once", C.ink], ["recomputed", "never", C.sig]] : [["conversations", String(myCells.length), C.sig], ["reserved but empty", "≈ 0", C.sig], ["free memory", ((N - W_CELLS - usedCells) * 0.25).toFixed(1) + " GB"]], { w: 210 });
       }
     }
   });
@@ -4150,6 +4178,7 @@ chapter("sharing", () => {
     static: { x: 870, y: 50, w: 480, h: 490 }, cont: { x: 870, y: 50, w: 480, h: 490 }
   };
   const cams = { ...camsW, default: camsW.gpu };
+  let NAR = false;
 
   // ---------- requests for the seat timeline (illustrative lengths, in decode steps) ----------
   const LENS = [6, 24, 10, 4, 16, 9, 34, 7, 12, 5, 20, 8, 14, 6, 26, 9, 11, 4, 18, 7, 13, 5, 22, 8, 10, 6, 15, 9, 12, 7, 17, 5];
@@ -4169,7 +4198,7 @@ chapter("sharing", () => {
 
   // ---------- drawing ----------
   function gpu(k, f, o) {
-    const C = k.C, N = M.cols * M.rows, nar = k.W < 560;
+    const C = k.C, N = M.cols * M.rows, nar = NAR;
     // memory block
     k.box(M.x, M.y, M.w, M.h, { fill: C.bg2, stroke: o.memHot ? C.amb : C.line, r: 16 });
     k.label(M.x + 18, M.y + 24, nar ? "Memory · 80 GB" : "GPU memory (HBM) · 80 GB", { align: "left", col: C.ink, weight: "600" });
@@ -4199,15 +4228,15 @@ chapter("sharing", () => {
       k.flow(u => [lerp(PIPE.x0 - 6, PIPE.x1 + 6, u), y], 5, f.t * 0.9 + lane * 0.21, frac < 1 - kvFrac ? C.amb : C.sig, { alpha: a, size: 2.6, len: 0.1 });
     }
   }
-  const seatX = k => k.W < 560 ? 920 : SEAT.x;
+  const seatX = k => NAR ? 920 : SEAT.x;
   function seatRow(k, y, col, n, a, newest) {
-    const C = k.C, sx = seatX(k), mx = k.W < 560 ? 8 : 18;
+    const C = k.C, sx = seatX(k), mx = NAR ? 8 : 18;
     k.dot(sx + 10, y, 7, col, { alpha: a });
     for (let q = 0; q < Math.min(n, mx); q++) k.box(sx + 26 + q * 16, y - 5, 11, 10, { fill: C.sig, r: 2, alpha: a * (q === Math.min(n, mx) - 1 && newest ? 1 : 0.55), glow: q === Math.min(n, mx) - 1 && newest ? 10 : 0 });
   }
 
   function decodeStep(k, f, sc, B, kvCellsEach) {
-    const C = k.C, wide = k.W >= 560;
+    const C = k.C, wide = !NAR;
     const cyc = sc.t * 1000 * SECS_PER_MS, el = f.p * f.segs[f.i].dur, n = Math.floor(el / cyc), u = (el / cyc) % 1;
     const kvCells = Math.ceil(B * kvCellsEach), readCells = W_CELLS + kvCells, kvFrac = kvCells / readCells;
     const head = u * readCells;
@@ -4241,7 +4270,7 @@ chapter("sharing", () => {
   }
 
   function timeline(k, f, kind) {
-    const C = k.C, wide = k.W >= 560, segs = SCHED[kind];
+    const C = k.C, wide = !NAR, segs = SCHED[kind];
     const X0 = 1000, X1 = 1330, Y0 = 170, RH = 40, sw = (X1 - X0) / HORIZON;
     const now = Math.min(HORIZON, easeIO(f.p / 0.95) * HORIZON), tick = Math.floor(now);
     gpu(k, f, { noPipeLabel: true, cuHot: true, pipeHot: true, tick, lit: 2.5 / 64, cell: c => c < W_CELLS ? { fill: C.muted, r: 3, alpha: 0.75 } : null });
@@ -4275,18 +4304,19 @@ chapter("sharing", () => {
   }
 
   storyFilm(fig, {
-    height: () => { const st = $(".scene-stage", fig), h = stageH(st); Object.assign(cams, innerW(st) < 560 ? camsN : camsW); cams.default = cams.gpu; return h; },
+    camsNarrow: { ...camsN, default: camsN.gpu },
     label: "Animated explanation of how one GPU serves many conversations at once",
     steps, cams,
     draw(k, f) {
+      NAR = !!f.narrow;
       const C = k.C, p = f.p;
       if (f.key === "gpu") {
         const a1 = easeOut(p / 0.25), a2 = easeOut((p - 0.25) / 0.25), a3 = easeOut((p - 0.5) / 0.25);
         gpu(k, f, { memHot: p < 0.35, pipeHot: p >= 0.35 && p < 0.6, cuHot: p >= 0.6, tick: Math.floor(f.t * 8), lit: p >= 0.6 ? 0.08 : 0,
           cell: c => c < W_CELLS ? { fill: C.muted, r: 3, alpha: 0.8 * clamp01(a1 * 1.6 - c / W_CELLS * 0.6) } : null });
-        if (a1 > 0) k.label(M.x + M.w / 2, cellXY(W_CELLS - 1)[1] + 34, k.W < 560 ? "weights · 16 GB" : "the model's weights · 16 GB", { col: C.muted, alpha: a1 });
+        if (a1 > 0) k.label(M.x + M.w / 2, cellXY(W_CELLS - 1)[1] + 34, NAR ? "weights · 16 GB" : "the model's weights · 16 GB", { col: C.muted, alpha: a1 });
         if (a2 > 0) pipeFlow(k, f, 0, 0, a2 * 0.8);
-        if (k.W >= 560) k.hud("br", "NVIDIA H100", [["memory", "80 GB"], ["bandwidth", "3.35 TB/s", C.amb], ["maths", "989 TFLOPS"]], { w: 180 });
+        if (!NAR) k.hud("br", "NVIDIA H100", [["memory", "80 GB"], ["bandwidth", "3.35 TB/s", C.amb], ["maths", "989 TFLOPS"]], { w: 180 });
         return;
       }
       if (f.key === "one") return decodeStep(k, f, SC.one, 1, 0);
@@ -6425,7 +6455,7 @@ chapter("evals", () => {
           grid(k, GA, A, N0, N0); grid(k, GB, B, N0, N0, { hi: true });
           const done = j + (sub > 0.5 ? 1 : 0);
           const shownS = done ? reruns[done - 1] : reruns[0];
-          head(k, GA, j ? nm(k, `Model A · test ${j + 1}`, "A") : nm(k, "Model A", "A"), shownS.sa.toFixed(1) + "%"); head(k, GB, j ? nm(k, `Model B · test ${j + 1}`, "B") : nm(k, "Model B", "B"), shownS.sb.toFixed(1) + "%", { hi: true, scol: C.sig });
+          head(k, GA, j ? nm(k, `Model A · test ${j + 1}`, "") : nm(k, "Model A", ""), shownS.sa.toFixed(1) + "%"); head(k, GB, j ? nm(k, `Model B · test ${j + 1}`, "") : nm(k, "Model B", ""), shownS.sb.toFixed(1) + "%", { hi: true, scol: C.sig });
           axis(k); scoreDots(k, reruns, Math.max(1, done));
           // the newest scores drop from the grids to the axis
           if (j > 0 && sub > 0.45 && sub < 0.75) { const e = easeIO((sub - 0.45) / 0.3); k.dot(lerp(GA.x + 180, X(cur.sa), e), lerp(470, AX.yA, e), 6, C.ink, { glow: 10 }); k.dot(lerp(GB.x + 180, X(cur.sb), e), lerp(470, AX.yB, e), 6, C.sig, { glow: 10 }); }
@@ -6435,7 +6465,7 @@ chapter("evals", () => {
         }
         if (f.key === "ci") {
           grid(k, GA, firstA, N0, N0, { alpha: 0.6 }); grid(k, GB, firstB, N0, N0, { alpha: 0.6 });
-          head(k, GA, nm(k, "Model A", "A"), "62.0%", { scol: C.muted }); head(k, GB, nm(k, "Model B", "B"), "64.0%", { scol: C.sig });
+          head(k, GA, nm(k, "Model A", ""), "62.0%", { scol: C.muted }); head(k, GB, nm(k, "Model B", ""), "64.0%", { scol: C.sig });
           axis(k); scoreDots(k, reruns, R + 1, 0.35);
           const g = easeOut(f.p / 0.45), hA = half(PA, N0) * g, hB = half(PB, N0) * g;
           band(k, AX.yA, 62 - hA, 62 + hA, C.ink, 1); band(k, AX.yB, 64 - hB, 64 + hB, C.sig, 1);
@@ -6448,7 +6478,7 @@ chapter("evals", () => {
         // bigger test
         const e = easeIO(f.p / 0.7), n = Math.round(Math.exp(lerp(Math.log(N0), Math.log(N1), e)));
         dense(k, GA, n, PA, 3); dense(k, GB, n, PB, 5);
-        head(k, GA, nm(k, `Model A · ${n.toLocaleString()} questions`, "A"), "62.0%", { scol: C.muted }); head(k, GB, nm(k, `Model B · ${n.toLocaleString()} questions`, "B"), "64.0%", { hi: true, scol: C.sig });
+        head(k, GA, nm(k, `Model A · ${n.toLocaleString()} questions`, ""), "62.0%", { scol: C.muted }); head(k, GB, nm(k, `Model B · ${n.toLocaleString()} questions`, ""), "64.0%", { hi: true, scol: C.sig });
         axis(k);
         scoreDots(k, reruns, R + 1, 0.3 * (1 - e));
         const nb = Math.floor(clamp01((f.p - 0.62) / 0.3) * R); scoreDots(k, big, nb, 0.9, false);
@@ -6469,7 +6499,7 @@ chapter("evals", () => {
         head(k, GB, nm(k, "Model B · old, famous benchmark", "Old benchmark"), (right / N0 * 100).toFixed(1) + "%", { hi: true, scol: learn > 0 ? C.amb : C.sig });
         // training data: a stack of web pages
         k.box(B0.x, B0.y, B0.w, B0.h, { fill: C.bg2, stroke: C.line, r: 12 });
-        k.label(B0.x + B0.w / 2, B0.y - 18, nm(k, "Training data · text from the web", "Training data"), { col: C.ink, weight: "600" });
+        k.label(B0.x + B0.w / 2, k.W < 640 ? B0.y + B0.h + 22 : B0.y - 18, nm(k, "Training data · text from the web", "Training data"), { col: C.ink, weight: "600" });
         for (let l = 0; l < 13; l++) { const w = 120 + ((l * 73) % 200); k.box(B0.x + 24, B0.y + 22 + l * 20, w, 8, { fill: C.line, r: 4, alpha: 0.6 }); }
         const L = [...leaked];
         L.forEach((q, j) => {
@@ -6487,7 +6517,7 @@ chapter("evals", () => {
         k.box(RT.x, RT.y, RT.w, RT.h, { fill: C.bg2, stroke: C.line, r: 14 });
         k.label(RT.x + RT.w / 2, RT.y - 18, nm(k, "Red team · people and automated attacks", "Red team"), { col: C.ink, weight: "600" });
         const catY = c => RT.y + 60 + c * 90;
-        cats.forEach((nm, c) => { k.box(RT.x + 20, catY(c) - 24, RT.w - 40, 48, { stroke: C.amb, r: 10, alpha: 0.55 }); k.label(RT.x + RT.w / 2, catY(c), k.W < 640 ? catsShort[c] : nm, { col: C.ink, size: k.W < 640 ? 10 : 12 }); });
+        cats.forEach((nm, c) => { k.box(RT.x + 20, catY(c) - 24, RT.w - 40, 48, { stroke: C.amb, r: 10, alpha: 0.55 }); k.label(RT.x + RT.w / 2, catY(c), k.W < 640 ? catsShort[c] : nm, { col: C.ink, size: k.W < 640 ? 9 : 12 }); });
         const mx = M.x + M.w / 2, my = M.y + M.h / 2;
         let refused = 0, found = 0;
         attacks.forEach((a, j) => {
@@ -6850,7 +6880,7 @@ chapter("datacenter", () => {
       if (f.key === "chip") hud(k, "tr", "One accelerator (Blackwell GPU)", [["memory", "~186 GB HBM3E", C.sig], ["memory bandwidth", "8 TB/s", C.sig], ["power", "≈ 1 kW class", C.amb]]);
       if (f.key === "tray") hud(k, "tr", "Compute tray", [["holds", "4 GPUs + 2 CPUs"], ["cooling", "cold plates", COOL], ["height", "1 rack unit"]]);
       if (f.key === "rack") hud(k, "tr", "One rack: GB200 NVL72", [["GPUs", "72 · plus 36 CPUs"], ["NVLink in the rack", "130 TB/s", C.sig], ["power", "~120 kW", C.amb], ["ordinary rack", "well under 20 kW"]]);
-      if (f.key === "hall") hud(k, "tr", "Cluster", [["holds", "hundreds of racks"], ["network", "InfiniBand or Ethernet", C.sig], ["power", "tens to hundreds of MW", C.amb]]);
+      if (f.key === "hall") hud(k, "tr", "Cluster", [["holds", "hundreds of racks"], ["network", f.narrow ? "IB or Ethernet" : "InfiniBand or Ethernet", C.sig], ["power", f.narrow ? "10s–100s of MW" : "tens to hundreds of MW", C.amb]]);
       if (f.key === "campus") hud(k, "tr", "Campus · Abilene, Texas", [["designed for", "1.2 GW", C.amb], ["GPUs", "450,000+ GB200"], ["buildings", "8"]]);
       if (f.key === "pue") { const it = 100, fac = Math.round(lerp(100, 120, easeIO((P - 0.15) / 0.5)));
         hud(k, "tr", "Power in, heat out", [["IT equipment", it + " MW"], ["whole facility", fac + " MW", C.amb], ["PUE = facility ÷ IT", (fac / it).toFixed(2), C.amb], ["Google's fleet PUE", "≈ 1.09"]]); }
@@ -7063,15 +7093,16 @@ chapter("harness", () => {
     }
     // context bar
     const used = st.used, warn = used > WIN * COMPACT_AT && st.cp < 0.5;
-    k.label(BAR.x, BAR.y - 14, "Context window", { align: "left", col: C.muted, size: 11 });
-    k.label(BAR.x + BAR.w, BAR.y - 14, `${Math.round(used).toLocaleString()} of ${WIN.toLocaleString()} tokens`, { align: "right", mono: true, size: 11, col: warn ? C.amb : C.ink });
+    const narrowBar = BAR.w * k.scale < 300;
+    if (!narrowBar) k.label(BAR.x, BAR.y, "Context window", { align: "left", col: C.muted, size: 11, dy: -10 });
+    k.label(BAR.x + BAR.w, BAR.y, narrowBar ? `${Math.round(used).toLocaleString()} / ${WIN.toLocaleString()}` : `${Math.round(used).toLocaleString()} of ${WIN.toLocaleString()} tokens`, { align: "right", mono: true, size: 11, col: warn ? C.amb : C.ink, dy: -10 });
     k.box(BAR.x, BAR.y, BAR.w, BAR.h, { fill: C.bg, stroke: C.line, r: 6 });
     let x = BAR.x; for (let i = 0; i < st.n; i++) { const w = Math.max(2, tokX(st.toks[i])); k.box(x, BAR.y + 3, w - 1, BAR.h - 6, { fill: colOf(C, items[i].who), r: 3, alpha: items[i].small && st.cp > 0.5 ? 0.45 : 0.85 }); x += w; }
     if (f.key === "cache" || f.key === "done") { const cw = tokX(5190); const c = k.ctx; c.save(); c.beginPath(); c.rect(BAR.x, BAR.y, cw, BAR.h); c.clip(); c.strokeStyle = C.bg; c.globalAlpha = 0.55; c.lineWidth = k.px(2); for (let d = -BAR.h; d < cw; d += 9) { c.beginPath(); c.moveTo(BAR.x + d, BAR.y + BAR.h); c.lineTo(BAR.x + d + BAR.h, BAR.y); c.stroke(); } c.restore();
-      k.label(BAR.x + cw / 2, BAR.y + BAR.h + 14, "cached prefix", { col: C.sig, size: 11 }); }
+      k.label(BAR.x + cw / 2, BAR.y + BAR.h, "cached prefix", { col: C.sig, size: 11, dy: 11 }); }
     const tx = BAR.x + tokX(WIN * COMPACT_AT);
     k.line(tx, BAR.y - 4, tx, BAR.y + BAR.h + 4, { col: C.amb, dash: [3, 3], lw: 1.4, glow: warn ? 8 : 0 });
-    if (f.key === "retest" || f.key === "compact") k.label(tx, BAR.y + BAR.h + 14, "80%: summarise", { col: C.amb, size: 11 });
+    if (f.key === "retest" || f.key === "compact") k.label(tx, BAR.y + BAR.h, "80%: summarise", { col: C.amb, size: 11, dy: 11 });
   }
   function drawModel(k, f, think) {
     const C = k.C, M = MODEL;
@@ -7109,7 +7140,7 @@ chapter("harness", () => {
     const C = k.C, P = PAN, a = clamp01(f.at("cache") / 0.15) * (1 - clamp01(f.at("done") / 0.2));
     if (a <= 0) return;
     k.box(P.x, P.y, P.w, P.h, { fill: C.bg2, stroke: f.key === "cache" ? C.sig : C.line, r: 16, alpha: a });
-    k.label(P.x + 24, P.y + 22, "Input the model processes on each call", { align: "left", col: C.ink, weight: "650", alpha: a });
+    k.label(P.x + 24, P.y + 22, f.narrow ? "Input per call" : "Input the model processes on each call", { align: "left", col: C.ink, weight: "650", alpha: a });
     const bx = P.x + 120, sc = tokX(1) * 0.8;
     calls.forEach((cl, j) => {
       const g = a * clamp01((f.at("cache") - 0.1 - j * 0.12) / 0.12); if (g <= 0) return;
@@ -7117,11 +7148,11 @@ chapter("harness", () => {
       k.label(P.x + 24, y + 12, `call ${j + 1}`, { align: "left", col: C.muted, size: 11, alpha: g });
       k.box(bx, y, w, 24, { fill: C.sig, r: 5, alpha: 0.9 * g });
       if (cw > 0) { k.box(bx, y, cw, 24, { fill: C.sig, r: 5, alpha: 0.25 * g }); k.box(bx, y, cw, 24, { fill: C.bg, r: 5, alpha: 0.55 * g }); k.box(bx, y, cw, 24, { stroke: C.sig, r: 5, alpha: 0.6 * g, lw: 1 }); }
-      k.label(bx + cl.inp * sc + 10, y + 12, `${cl.inp.toLocaleString()}${cl.cached ? " · " + cl.cached.toLocaleString() + " cached" : ""}`, { align: "left", mono: true, size: 11, col: C.muted, alpha: g });
+      if (!f.narrow) k.label(bx + cl.inp * sc + 10, y + 12, `${cl.inp.toLocaleString()}${cl.cached ? " · " + cl.cached.toLocaleString() + " cached" : ""}`, { align: "left", mono: true, size: 11, col: C.muted, alpha: g });
     });
     const lg = a * clamp01((f.at("cache") - 0.75) / 0.15);
     if (lg > 0) { k.box(bx, P.y + P.h - 30, 18, 14, { fill: C.bg, stroke: C.sig, r: 3, alpha: lg }); k.label(bx + 26, P.y + P.h - 23, "reused from cache", { align: "left", size: 11, col: C.muted, alpha: lg });
-      k.box(bx + 180, P.y + P.h - 30, 18, 14, { fill: C.sig, r: 3, alpha: lg }); k.label(bx + 206, P.y + P.h - 23, "processed fresh", { align: "left", size: 11, col: C.muted, alpha: lg }); }
+      const lx2 = bx + Math.max(180, k.px(140)); k.box(lx2, P.y + P.h - 30, 18, 14, { fill: C.sig, r: 3, alpha: lg }); k.label(lx2 + 26, P.y + P.h - 23, "processed fresh", { align: "left", size: 11, col: C.muted, alpha: lg }); }
   }
 
   storyFilm(fig, {
@@ -7146,7 +7177,7 @@ chapter("harness", () => {
       if (f.key === "done") {
         think = Math.max(think, Math.sin(clamp01(f.p / 0.2) * Math.PI));
         if (f.p > 0.18 && f.p < 0.34) travel(k, A.modL, A.harTR, (f.p - 0.18) / 0.16, C.sig, "final answer", { arc: -30 });
-        if (f.p > 0.4 && f.p < 0.75) travel(k, A.harL, A.userR, (f.p - 0.4) / 0.35, C.sig, "Fixed. All 42 tests pass.", { arc: 40, w: 210 });
+        if (f.p > 0.4 && f.p < 0.75) travel(k, A.harL, A.userR, (f.p - 0.4) / 0.35, C.sig, f.narrow ? "answer" : "Fixed. All 42 tests pass.", { arc: 40, w: f.narrow ? 100 : 210, alpha: 1 - clamp01((f.p - 0.68) / 0.07) });
       }
       drawModel(k, f, think);
       // flashing warning when the page crosses 80%

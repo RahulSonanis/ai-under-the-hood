@@ -255,7 +255,7 @@ chapter("datacenter", () => {
       if (f.key === "chip") hud(k, "tr", "One accelerator (Blackwell GPU)", [["memory", "~186 GB HBM3E", C.sig], ["memory bandwidth", "8 TB/s", C.sig], ["power", "≈ 1 kW class", C.amb]]);
       if (f.key === "tray") hud(k, "tr", "Compute tray", [["holds", "4 GPUs + 2 CPUs"], ["cooling", "cold plates", COOL], ["height", "1 rack unit"]]);
       if (f.key === "rack") hud(k, "tr", "One rack: GB200 NVL72", [["GPUs", "72 · plus 36 CPUs"], ["NVLink in the rack", "130 TB/s", C.sig], ["power", "~120 kW", C.amb], ["ordinary rack", "well under 20 kW"]]);
-      if (f.key === "hall") hud(k, "tr", "Cluster", [["holds", "hundreds of racks"], ["network", "InfiniBand or Ethernet", C.sig], ["power", "tens to hundreds of MW", C.amb]]);
+      if (f.key === "hall") hud(k, "tr", "Cluster", [["holds", "hundreds of racks"], ["network", f.narrow ? "IB or Ethernet" : "InfiniBand or Ethernet", C.sig], ["power", f.narrow ? "10s–100s of MW" : "tens to hundreds of MW", C.amb]]);
       if (f.key === "campus") hud(k, "tr", "Campus · Abilene, Texas", [["designed for", "1.2 GW", C.amb], ["GPUs", "450,000+ GB200"], ["buildings", "8"]]);
       if (f.key === "pue") { const it = 100, fac = Math.round(lerp(100, 120, easeIO((P - 0.15) / 0.5)));
         hud(k, "tr", "Power in, heat out", [["IT equipment", it + " MW"], ["whole facility", fac + " MW", C.amb], ["PUE = facility ÷ IT", (fac / it).toFixed(2), C.amb], ["Google's fleet PUE", "≈ 1.09"]]); }

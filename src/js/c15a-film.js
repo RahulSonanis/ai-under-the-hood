@@ -144,15 +144,16 @@ chapter("harness", () => {
     }
     // context bar
     const used = st.used, warn = used > WIN * COMPACT_AT && st.cp < 0.5;
-    k.label(BAR.x, BAR.y - 14, "Context window", { align: "left", col: C.muted, size: 11 });
-    k.label(BAR.x + BAR.w, BAR.y - 14, `${Math.round(used).toLocaleString()} of ${WIN.toLocaleString()} tokens`, { align: "right", mono: true, size: 11, col: warn ? C.amb : C.ink });
+    const narrowBar = BAR.w * k.scale < 300;
+    if (!narrowBar) k.label(BAR.x, BAR.y, "Context window", { align: "left", col: C.muted, size: 11, dy: -10 });
+    k.label(BAR.x + BAR.w, BAR.y, narrowBar ? `${Math.round(used).toLocaleString()} / ${WIN.toLocaleString()}` : `${Math.round(used).toLocaleString()} of ${WIN.toLocaleString()} tokens`, { align: "right", mono: true, size: 11, col: warn ? C.amb : C.ink, dy: -10 });
     k.box(BAR.x, BAR.y, BAR.w, BAR.h, { fill: C.bg, stroke: C.line, r: 6 });
     let x = BAR.x; for (let i = 0; i < st.n; i++) { const w = Math.max(2, tokX(st.toks[i])); k.box(x, BAR.y + 3, w - 1, BAR.h - 6, { fill: colOf(C, items[i].who), r: 3, alpha: items[i].small && st.cp > 0.5 ? 0.45 : 0.85 }); x += w; }
     if (f.key === "cache" || f.key === "done") { const cw = tokX(5190); const c = k.ctx; c.save(); c.beginPath(); c.rect(BAR.x, BAR.y, cw, BAR.h); c.clip(); c.strokeStyle = C.bg; c.globalAlpha = 0.55; c.lineWidth = k.px(2); for (let d = -BAR.h; d < cw; d += 9) { c.beginPath(); c.moveTo(BAR.x + d, BAR.y + BAR.h); c.lineTo(BAR.x + d + BAR.h, BAR.y); c.stroke(); } c.restore();
-      k.label(BAR.x + cw / 2, BAR.y + BAR.h + 14, "cached prefix", { col: C.sig, size: 11 }); }
+      k.label(BAR.x + cw / 2, BAR.y + BAR.h, "cached prefix", { col: C.sig, size: 11, dy: 11 }); }
     const tx = BAR.x + tokX(WIN * COMPACT_AT);
     k.line(tx, BAR.y - 4, tx, BAR.y + BAR.h + 4, { col: C.amb, dash: [3, 3], lw: 1.4, glow: warn ? 8 : 0 });
-    if (f.key === "retest" || f.key === "compact") k.label(tx, BAR.y + BAR.h + 14, "80%: summarise", { col: C.amb, size: 11 });
+    if (f.key === "retest" || f.key === "compact") k.label(tx, BAR.y + BAR.h, "80%: summarise", { col: C.amb, size: 11, dy: 11 });
   }
   function drawModel(k, f, think) {
     const C = k.C, M = MODEL;
@@ -190,7 +191,7 @@ chapter("harness", () => {
     const C = k.C, P = PAN, a = clamp01(f.at("cache") / 0.15) * (1 - clamp01(f.at("done") / 0.2));
     if (a <= 0) return;
     k.box(P.x, P.y, P.w, P.h, { fill: C.bg2, stroke: f.key === "cache" ? C.sig : C.line, r: 16, alpha: a });
-    k.label(P.x + 24, P.y + 22, "Input the model processes on each call", { align: "left", col: C.ink, weight: "650", alpha: a });
+    k.label(P.x + 24, P.y + 22, f.narrow ? "Input per call" : "Input the model processes on each call", { align: "left", col: C.ink, weight: "650", alpha: a });
     const bx = P.x + 120, sc = tokX(1) * 0.8;
     calls.forEach((cl, j) => {
       const g = a * clamp01((f.at("cache") - 0.1 - j * 0.12) / 0.12); if (g <= 0) return;
@@ -198,11 +199,11 @@ chapter("harness", () => {
       k.label(P.x + 24, y + 12, `call ${j + 1}`, { align: "left", col: C.muted, size: 11, alpha: g });
       k.box(bx, y, w, 24, { fill: C.sig, r: 5, alpha: 0.9 * g });
       if (cw > 0) { k.box(bx, y, cw, 24, { fill: C.sig, r: 5, alpha: 0.25 * g }); k.box(bx, y, cw, 24, { fill: C.bg, r: 5, alpha: 0.55 * g }); k.box(bx, y, cw, 24, { stroke: C.sig, r: 5, alpha: 0.6 * g, lw: 1 }); }
-      k.label(bx + cl.inp * sc + 10, y + 12, `${cl.inp.toLocaleString()}${cl.cached ? " · " + cl.cached.toLocaleString() + " cached" : ""}`, { align: "left", mono: true, size: 11, col: C.muted, alpha: g });
+      if (!f.narrow) k.label(bx + cl.inp * sc + 10, y + 12, `${cl.inp.toLocaleString()}${cl.cached ? " · " + cl.cached.toLocaleString() + " cached" : ""}`, { align: "left", mono: true, size: 11, col: C.muted, alpha: g });
     });
     const lg = a * clamp01((f.at("cache") - 0.75) / 0.15);
     if (lg > 0) { k.box(bx, P.y + P.h - 30, 18, 14, { fill: C.bg, stroke: C.sig, r: 3, alpha: lg }); k.label(bx + 26, P.y + P.h - 23, "reused from cache", { align: "left", size: 11, col: C.muted, alpha: lg });
-      k.box(bx + 180, P.y + P.h - 30, 18, 14, { fill: C.sig, r: 3, alpha: lg }); k.label(bx + 206, P.y + P.h - 23, "processed fresh", { align: "left", size: 11, col: C.muted, alpha: lg }); }
+      const lx2 = bx + Math.max(180, k.px(140)); k.box(lx2, P.y + P.h - 30, 18, 14, { fill: C.sig, r: 3, alpha: lg }); k.label(lx2 + 26, P.y + P.h - 23, "processed fresh", { align: "left", size: 11, col: C.muted, alpha: lg }); }
   }
 
   storyFilm(fig, {
@@ -227,7 +228,7 @@ chapter("harness", () => {
       if (f.key === "done") {
         think = Math.max(think, Math.sin(clamp01(f.p / 0.2) * Math.PI));
         if (f.p > 0.18 && f.p < 0.34) travel(k, A.modL, A.harTR, (f.p - 0.18) / 0.16, C.sig, "final answer", { arc: -30 });
-        if (f.p > 0.4 && f.p < 0.75) travel(k, A.harL, A.userR, (f.p - 0.4) / 0.35, C.sig, "Fixed. All 42 tests pass.", { arc: 40, w: 210 });
+        if (f.p > 0.4 && f.p < 0.75) travel(k, A.harL, A.userR, (f.p - 0.4) / 0.35, C.sig, f.narrow ? "answer" : "Fixed. All 42 tests pass.", { arc: 40, w: f.narrow ? 100 : 210, alpha: 1 - clamp01((f.p - 0.68) / 0.07) });
       }
       drawModel(k, f, think);
       // flashing warning when the page crosses 80%
