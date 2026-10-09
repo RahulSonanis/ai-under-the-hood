@@ -1,0 +1,40 @@
+<section class="chapter" id="next" data-title="Build it yourself">
+  <div class="ch-kicker"><span class="num">Chapter 16</span><span class="label">Practice</span></div>
+  <h2>Build it yourself</h2>
+  <div class="answer"><span class="label">Short answer</span><p>The fastest way to make this stick is to build a small version of each stage and compare your numbers with the ones in this course.</p></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Topic</th><th>Hands-on project</th><th>Done when</th><th>Start with</th></tr></thead>
+      <tbody>
+        <tr><td><b>Train a tiny GPT</b></td><td>Train a character-level transformer on a small corpus on a laptop or one cloud GPU; watch the loss fall and samples improve.</td><td>You can report the config, training time, train and held-out loss curves, and a few samples, and explain what changed as loss fell.</td><td>nanoGPT<sup class="ref"><a href="#ref-46">46</a></sup></td></tr>
+        <tr><td><b>Data and tokenizers</b></td><td>Deduplicate a slice of web text with MinHash, then train a BPE tokenizer and measure characters per token across languages.</td><td>You report how many near-duplicates you found at your threshold and characters per token for at least three languages, with a sentence on why they differ.</td><td>FineWeb write-up<sup class="ref"><a href="#ref-3">3</a></sup></td></tr>
+        <tr><td><b>Scaling on a budget</b></td><td>Train three model sizes at fixed compute and plot your own small iso-FLOP curve.</td><td>You report each model's size, tokens, FLOPs and held-out loss, and interpret the trend, even if your sizes don't bracket the optimum or noise hides it.</td><td>Chinchilla<sup class="ref"><a href="#ref-8">8</a></sup>, Smol Training Playbook<sup class="ref"><a href="#ref-1">1</a></sup></td></tr>
+        <tr><td><b>Multi-GPU training</b></td><td>Rent two GPUs for an hour; run the same job with data parallel, then FSDP; record memory and step time.</td><td>A table of peak memory per GPU and step time for both setups, with the config and an explanation of the difference.</td><td>Ultra-Scale Playbook<sup class="ref"><a href="#ref-2">2</a></sup></td></tr>
+        <tr><td><b>Post-training</b></td><td>Fine-tune a small open model with SFT, then DPO on a preference dataset; compare answers before and after.</td><td>The same ten prompts answered by the base, SFT and DPO models side by side, with the datasets and settings, and your notes on what changed.</td><td>Hugging Face TRL<sup class="ref"><a href="#ref-49">49</a></sup>, DPO paper<sup class="ref"><a href="#ref-18">18</a></sup></td></tr>
+        <tr><td><b>Serving</b></td><td>Serve a small model with vLLM; measure time to first token and throughput as you raise concurrency, and compare with chapter 6's numbers.</td><td>A chart of time to first token and tokens per second at each concurrency level, with the model, GPU and prompt lengths, and your reading of where it saturates.</td><td>vLLM<sup class="ref"><a href="#ref-54">54</a></sup></td></tr>
+        <tr><td><b>Build a harness</b></td><td>Write a 200-line agent loop with two tools (read file, run tests) against a model API; add compaction and a budget limit.</td><td>A log of every model call and tool call for a planted bug, the total tokens used against your budget, and whether the tests passed.</td><td>Building effective agents<sup class="ref"><a href="#ref-40">40</a></sup>, MCP<sup class="ref"><a href="#ref-42">42</a></sup></td></tr>
+        <tr><td><b>Infrastructure watch</b></td><td>Track one new cluster announcement per month: chips, power, network, cooling. Plug it into chapter 14's power calculator.</td><td>A dated table of at least three clusters with sources, and your power estimate next to the announced figure with the assumptions you used.</td><td>Epoch AI data<sup class="ref"><a href="#ref-48">48</a></sup></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 class="section-title">Where to go next: a learning path</h3>
+  <p class="prose">This course gives you the map. These are some of the best places to go deeper, roughly from beginner to expert.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Level</th><th>Resource</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Beginner</td><td><a href="https://www.3blue1brown.com/topics/neural-networks">3Blue1Brown: Neural networks and transformers</a></td><td>Beautiful visual intuition for neurons, gradient descent and attention.</td></tr>
+      <tr><td>Beginner</td><td><a href="https://www.youtube.com/watch?v=zjkBMFhNj_g">Andrej Karpathy: Intro to Large Language Models</a></td><td>A one-hour tour of what LLMs are and how they're made.</td></tr>
+      <tr><td>Intermediate</td><td><a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar: The Illustrated Transformer</a></td><td>The classic diagram-by-diagram walk through a transformer.</td></tr>
+      <tr><td>Intermediate</td><td><a href="https://huggingface.co/learn/llm-course">Hugging Face LLM Course</a></td><td>Hands-on with tokenizers, models and fine-tuning in code.</td></tr>
+      <tr><td>Engineer</td><td><a href="https://karpathy.ai/zero-to-hero.html">Andrej Karpathy: Neural Networks, Zero to Hero</a></td><td>Build backprop, a tokenizer and a GPT from scratch, line by line.</td></tr>
+      <tr><td>Engineer</td><td><a href="https://www.manning.com/books/build-a-large-language-model-from-scratch">Sebastian Raschka: Build a Large Language Model (From Scratch)</a></td><td>A book-length build of a GPT-style model, including fine-tuning.</td></tr>
+      <tr><td>Engineer</td><td><a href="https://huggingface.co/spaces/HuggingFaceTB/smol-training-playbook">Hugging Face: Smol Training Playbook</a> and <a href="https://huggingface.co/spaces/nanotron/ultrascale-playbook">Ultra-Scale Playbook</a></td><td>How real models are trained, and how training is spread across thousands of GPUs.</td></tr>
+      <tr><td>Expert</td><td><a href="https://stanford-cs336.github.io/">Stanford CS336: Language Modeling from Scratch</a></td><td>A full university course: data, architectures, systems, scaling, alignment.</td></tr>
+      <tr><td>Expert</td><td><a href="https://lilianweng.github.io/">Lilian Weng's blog</a></td><td>Deep, well-referenced surveys of attention, RLHF, hallucination and more.</td></tr>
+    </tbody>
+  </table></div>
+  <h3 class="section-title">How to keep learning</h3>
+  <div class="prose"><p>Keep a short journal per chapter: the one formula that matters, one number you computed yourself, and one question you couldn't answer. Revisit the datacenter chapter every few months, since that's the part of this field changing fastest. Whenever a lab publishes a technical report or postmortem, read it against these chapters; most of it will map onto something you've already played with.</p></div>
+  <div class="callout"><div class="label">Corrections welcome</div><p>Spotted an error or a better source? Open an issue or pull request on the <a href="https://github.com/RahulSonanis/ai-under-the-hood">course's GitHub repository</a> with a link to the source.</p></div>
+</section>
+

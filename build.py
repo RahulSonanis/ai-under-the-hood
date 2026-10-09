@@ -18,8 +18,13 @@ def build():
     css = (SRC / "styles.css").read_text()
     top = (SRC / "shell-top.html").read_text()
     chapters = "\n".join(p.read_text() for p in sorted((SRC / "chapters").glob("*.html")))
+    # extra references added by chapters live in src/refs/*.html as <li id="ref-NNN" value="NNN"> items
+    extra = "\n".join(p.read_text().strip() for p in sorted((SRC / "refs").glob("*.html")))
+    if extra:
+        i = chapters.index('id="refs"'); j = chapters.index("</ol>", i)
+        chapters = chapters[:j] + extra + "\n  " + chapters[j:]
     # one <script> per file, so a mistake in one chapter's script can't take down the others
-    js = "\n</script>\n<script>\n".join(p.read_text() for p in [SRC / "js" / "core.js"] + sorted((SRC / "js").glob("c[0-9]*.js")))
+    js = "\n</script>\n<script>\n".join(p.read_text() for p in [SRC / "js" / f for f in ("core.js", "kit.js", "sim.js")] + sorted((SRC / "js").glob("ch[0-9]*.js")))
     head = f"<title>AI Under the Hood</title>\n{META}\n{FONTS}\n<style>\n{css}\n</style>"
     body = f"{top}\n{chapters}\n</main>\n</div>\n<script>\n{js}\n</script>"
     for d in ("dist", "docs"):

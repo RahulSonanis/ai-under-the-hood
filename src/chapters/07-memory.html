@@ -1,0 +1,53 @@
+<section class="chapter" id="memory" data-num="7" data-part="2" data-title="Memory">
+  <header class="ch-head">
+    <div class="ch-num">Chapter 7 · Serving millions</div>
+    <h2>Why do long chats get slower and pricier?</h2>
+    <p class="hook">While a model writes, it keeps notes on every word so far. Those notes live in the GPU's memory, and they fill it up long before the GPU runs out of maths. This chapter puts you in charge of that memory.</p>
+    <div class="meta">About 15 minutes · one simulation · you'll learn what the KV cache is, why memory limits how many people a GPU can serve, and the two tricks servers use to fit more.</div>
+  </header>
+
+  <div class="recall" data-toc="Remember">
+    <div class="beat-label">From the last chapter</div>
+    <div class="q" data-answer="1"><p>How does a model "see" a picture?</p><div class="opts"><button>It reads the picture's file name and description</button><button>It cuts the picture into small patches and turns each one into a token-like list of numbers</button><button>It uses a completely separate brain that only understands images</button></div><div class="why">Images become patches, and each patch becomes a vector the model reads just like a token. That's why a picture "costs" hundreds of tokens.</div></div>
+  </div>
+
+  <div class="beat" data-toc="Predict">
+    <div class="predict" data-answer="1"><span class="label">Predict first</span><p>A server books memory for the longest possible chat whenever someone arrives. It switches to handing out memory a little at a time as each chat grows. How many more people fit on the same GPU?</p><div class="opts"><button type="button">About the same</button><button type="button">Two or three times as many</button><button type="button">Ten times as many</button></div><div class="predict-after" hidden><p>Locked in. Now try it in the simulation below.</p><details><summary>Show the answer</summary><p>Usually two to three times as many here, depending on how long the chats are. Most of every up-front booking sits empty, so handing memory out gradually frees most of it.</p></details></div></div>
+  </div>
+
+  <div class="beat" data-toc="Play">
+    <h3>You run one GPU's memory</h3>
+    <p class="beat-intro">Each square is a slice of one GPU's 80 GB of memory. Grey is the model itself. Every colour is one conversation's notes. People keep arriving; if there isn't room for them, they wait on the left.</p>
+    <figure class="sim" id="mem-sim"></figure>
+  </div>
+
+  <div class="beat explain" data-toc="Explain">
+    <h3>What's going on</h3>
+    <p>To write each new word, the model looks back at every word before it. For each earlier word it needs two small lists of numbers, a "key" (what this word is about) and a "value" (what it contributes). Working these out again for every new word would mean re-reading the whole conversation over and over, so the server keeps them. That store of notes is the <b>KV cache</b>.</p>
+    <p>The notes are small per word but add up fast. For the model in the simulation, every token needs <b>128 KB</b> of notes. A 30,000-token document needs almost 4 GB before the model writes a single word, about a quarter of the model's own size. Right now your GPU holds <span data-live="memToks">0</span> tokens of notes (<span data-live="memGB">0 GB</span>) for <span data-live="memRun">0</span> conversations.</p>
+    <p>So the number of people a GPU can serve is set by memory, not by how fast it calculates. That makes memory management the main job of a serving system, and it explains two common facts. Long chats cost more per message, and providers charge less for text they've seen before.</p>
+    <details class="how"><summary>How it works <span class="sub">booking, paging and sharing</span></summary><div class="body">
+      <p><b>Booking the maximum.</b> Early servers didn't know how long a reply would be, so they reserved one unbroken stretch of memory for the longest allowed conversation. Most chats are far shorter, so most of each booking sat empty: the striped squares in the simulation. When the vLLM team measured real servers, 60–80% of the memory set aside for notes was wasted this way<sup class="ref"><a href="#ref-34">34</a></sup>.</p>
+      <p><b>Paging.</b> vLLM borrowed an idea from operating systems: split memory into small fixed-size blocks (typically 16 tokens) and give each conversation a block only when it needs one. A small table records which blocks belong to whom, so they don't have to sit next to each other. Waste fell below 4%, and the same GPU served two to four times as many requests<sup class="ref"><a href="#ref-34">34</a></sup>. In the simulation one square stands for 1,024 tokens so you can see it; real blocks are much smaller.</p>
+      <p><b>When paging runs out.</b> With paging, a conversation can grow until memory is full. The server then pauses the newest conversation, frees its blocks and puts it back in line, as you may have seen.</p>
+      <p><b>Sharing a beginning.</b> Apps add the same hidden instructions to the start of every chat. If several conversations start with exactly the same tokens, their notes are identical, so the server can store them once and point every conversation's table at the same blocks. This is prefix caching, and it's why providers bill repeated prompt text at a discount<sup class="ref"><a href="#ref-71">71</a></sup>.</p>
+      <p><b>Making the notes smaller.</b> Model designers shrink the notes too. This model lets 32 attention heads share 8 sets of keys and values ("grouped-query attention")<sup class="ref"><a href="#ref-9">9</a></sup>. DeepSeek compresses each token's notes into one small vector<sup class="ref"><a href="#ref-62">62</a></sup>.</p>
+      <details class="maths"><summary>The maths <span class="sub">memory per token, step by step</span></summary><div class="body">
+        <div class="mstep"><span class="mk">In words</span><p>Every layer of the model keeps a key and a value for every token. Each is a list of numbers, one per attention "head", and each number takes 2 bytes.</p></div>
+        <div class="mstep"><span class="mk">With this model's numbers</span><p class="calc">2 (key and value) × 32 layers × 8 heads × 128 numbers × 2 bytes<br>= 131,072 bytes = <b>128 KB per token</b><br>Your GPU right now: <span data-live="memToks">0</span> tokens × 128 KB = <b data-live="memGB">0 GB</b></p></div>
+        <div class="mstep"><span class="mk">In symbols</span><div><div class="eq">M = 2 · L · h · d · b · n</div><p class="sym"><i>M</i> memory for the notes · <i>L</i> layers (32) · <i>h</i> key-value heads (8) · <i>d</i> numbers per head (128) · <i>b</i> bytes per number (2) · <i>n</i> tokens stored. Everything except <i>n</i> is fixed by the model, so memory grows in a straight line with the length of every conversation, and with how many there are.</p></div></div>
+      </div></details>
+    </div></details>
+  </div>
+
+  <div class="carry" data-toc="Remember this">
+    <span class="big">128 KB</span>
+    <span class="lab">Carry this forward</span>
+    <p>Every token a model is working on needs notes in GPU memory, 128 KB each for an 8-billion-parameter model. Memory, not maths, decides how many people one GPU can serve.</p>
+  </div>
+
+  <div class="quiz" data-toc="Check yourself"><div class="label">Check yourself</div>
+    <div class="q" data-answer="0"><p>Why does doubling every conversation's length roughly halve how many people fit on a GPU?</p><div class="opts"><button>Each token's notes take memory, so twice the tokens need twice the memory</button><button>The model's weights get twice as big</button><button>Longer text needs a bigger vocabulary</button></div><div class="why">Notes grow in a straight line with tokens. The weights stay the same size.</div></div>
+    <div class="q" data-answer="1"><p>Ten thousand users all start their requests with the same 3,000-token instructions. What saves the most memory and work?</p><div class="opts"><button>A bigger batch</button><button>Sharing those 3,000 tokens' notes (prefix caching)</button><button>A faster network</button></div><div class="why">Identical beginnings produce identical notes, so they can be computed once and shared by everyone.</div></div>
+  </div>
+</section>

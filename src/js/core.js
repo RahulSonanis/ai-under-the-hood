@@ -89,39 +89,6 @@ let rzT; window.addEventListener("resize", () => { clearTimeout(rzT); rzT = setT
 try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawCurrent); } catch (e) {}
 new MutationObserver(redrawCurrent).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
-/* ---------- Concept ladders: one rung at a time ---------- */
-const LEVELS = ["Age 5", "Curious", "Engineer", "Mathematician"];
-function setupLadders(root) {
-  $$(".concept", root).forEach(card => {
-    if (card.dataset.ready) return; card.dataset.ready = 1;
-    const levels = $$(".level", card); const max = levels.length;
-    levels.forEach(l => { const lv = document.createElement("div"); lv.className = "lv"; lv.textContent = LEVELS[+l.dataset.l - 1]; l.prepend(lv); l.setAttribute("aria-live", "polite"); });
-    const head = $(".concept-head", card); const lad = document.createElement("div"); lad.className = "ladder"; lad.setAttribute("role", "group"); lad.setAttribute("aria-label", "Explanation depth for " + $("h3", card).textContent);
-    levels.forEach(l => { const b = document.createElement("button"); b.type = "button"; b.dataset.l = l.dataset.l; b.textContent = LEVELS[+l.dataset.l - 1]; b.addEventListener("click", () => show(+l.dataset.l)); lad.appendChild(b); });
-    head.appendChild(lad);
-    const nav = document.createElement("div"); nav.className = "ladder-nav";
-    const simpler = document.createElement("button"); simpler.type = "button"; simpler.className = "deeper";
-    const deeper = document.createElement("button"); deeper.type = "button"; deeper.className = "deeper";
-    const capNote = document.createElement("span"); capNote.className = "note";
-    nav.append(simpler, deeper, capNote); card.appendChild(nav);
-    simpler.addEventListener("click", () => show(card._lvl - 1)); deeper.addEventListener("click", () => show(card._lvl + 1));
-    function show(n, fromGlobal) {
-      card._lvl = Math.max(1, Math.min(max, n));
-      levels.forEach(l => l.hidden = +l.dataset.l !== card._lvl);
-      $$("button", lad).forEach(b => { const on = +b.dataset.l === card._lvl; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
-      simpler.hidden = card._lvl <= 1; simpler.textContent = `← Simpler: ${LEVELS[card._lvl - 2] || ""}`;
-      deeper.hidden = card._lvl >= max; deeper.textContent = `Go deeper: ${LEVELS[card._lvl] || ""} →`;
-      capNote.textContent = fromGlobal && n > max ? `This idea stops at ${LEVELS[max - 1]} level.` : "";
-    }
-    card._show = show; show(store.get("depth", 1), true);
-  });
-}
-function setDepth(n) {
-  store.set("depth", n); $$(".concept").forEach(c => c._show && c._show(n, true));
-  document.dispatchEvent(new CustomEvent("depthchange", { detail: n }));
-  $$("#depth button, #start-depth button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === n ? "true" : "false"));
-}
-
 /* ---------- Quizzes ---------- */
 function setupPredicts(root) {
   $$(".predict", root).forEach(pr => {
@@ -166,14 +133,32 @@ document.addEventListener("click", e => {
   if (pop && !e.target.closest(".refpop")) closePop();
 });
 
-/* ---------- Progress + router ---------- */
+/* ---------- Progress, sidebar, router ---------- */
 const scrollMemo = {};
-function markDone(id) { const d = store.get("done", {}); d[id] = 1; store.set("done", d); paintProgress(); }
+const PARTS = { 0: "", 1: "How a model answers", 2: "Serving millions", 3: "Where the model comes from", 4: "Around the model", 5: "Finale", 9: "Extras" };
+function markDone(id) { const d = store.get("done", {}); if (d[id]) return; d[id] = 1; store.set("done", d); paintProgress(); }
+const courseChapters = () => $$("section.chapter[data-num]");
 function paintProgress() {
-  const d = store.get("done", {}); const links = $$(".rail a[data-ch]").filter(a => { const s = document.getElementById(a.dataset.ch); return s && $(".q", s); });
+  const d = store.get("done", {}), chs = courseChapters();
   $$(".rail a[data-ch]").forEach(a => a.classList.toggle("done", !!d[a.dataset.ch]));
-  const n = links.filter(a => d[a.dataset.ch]).length; const p = $(".rail .progress");
-  if (p) p.innerHTML = `${n} of ${links.length} chapter checks passed<div class="bar"><i style="width:${n / links.length * 100}%"></i></div>`;
+  const n = chs.filter(s => d[s.id]).length, p = $(".rail .progress");
+  if (p) p.innerHTML = `${n} of ${chs.length} chapters completed<div class="bar"><i style="width:${chs.length ? n / chs.length * 100 : 0}%"></i></div>`;
+  const f = Object.keys(store.get("facts", {})).length, fl = $('.rail a[data-ch="facts"] .t');
+  if (fl) fl.textContent = `Fun facts (${f} found)`;
+}
+/* Sidebar is built from the chapters themselves: <section class="chapter" data-num="7" data-part="2" data-title="Memory">.
+   Only the current chapter is expanded, listing its sections (elements with data-toc="Label"). */
+function buildRail() {
+  const rail = $("#rail"); let html = "", lastPart = null;
+  $$("section.chapter").forEach(s => {
+    const part = s.dataset.part || "9";
+    if (part !== lastPart) { if (lastPart !== null) html += "</ol></div>"; html += `<div class="part"><div class="part-title">${PARTS[part] ? (part < 9 && part != 5 ? `Part ${part} · ` : "") + PARTS[part] : ""}</div><ol>`; lastPart = part; }
+    const toc = $$("[data-toc]", s).map((el, i) => { if (!el.id) el.id = s.id + "-sec-" + i; return `<li><button type="button" data-go="${el.id}">${esc(el.dataset.toc)}</button></li>`; }).join("");
+    html += `<li class="ch-item" data-ch="${s.id}"><a href="#${s.id}" data-ch="${s.id}"><span class="dot">${s.dataset.num || (s.id === "start" ? "★" : "·")}</span><span class="t">${esc(s.dataset.title || s.id)}</span></a>${toc ? `<ol class="toc">${toc}</ol>` : ""}</li>`;
+  });
+  html += "</ol></div><div class=\"progress\"></div>";
+  rail.innerHTML = html;
+  $$("[data-go]", rail).forEach(b => b.addEventListener("click", () => { const el = document.getElementById(b.dataset.go); if (el) { el.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "start" }); if (isDrawer()) setDrawer(false); } }));
 }
 const isDrawer = () => matchMedia("(max-width: 960px)").matches;
 function setDrawer(open) {
@@ -181,6 +166,12 @@ function setDrawer(open) {
   if (isDrawer()) rail.inert = !open; else rail.inert = false;
   $(".backdrop").hidden = !open;
   if (open) { const cur = $(".rail a[aria-current]") || $(".rail a"); cur && cur.focus(); }
+}
+function renderFacts() {
+  const box = $("#facts-list"); if (!box) return; const all = Object.values(store.get("facts", {})).sort((a, b) => a.at - b.at);
+  const titles = Object.fromEntries($$("section.chapter").map(s => [s.id, s.dataset.title]));
+  box.innerHTML = all.length ? all.map(f => `<li><p>${f.text}${f.ref ? ` <sup class="ref"><a href="${f.ref}">${f.ref.replace("#ref-", "")}</a></sup>` : ""}</p><span class="from">from <a href="#${f.ch}">${esc(titles[f.ch] || f.ch)}</a></span></li>`).join("")
+    : `<li class="empty"><p>No fun facts yet. They unlock while you play with the simulations; each one pops up when you cause the thing it is about.</p></li>`;
 }
 function route() {
   if (Chapters.current) scrollMemo[Chapters.current] = window.scrollY;
@@ -191,12 +182,14 @@ function route() {
   closePop();
   $$(".chapter").forEach(s => s.hidden = s.id !== h);
   Chapters.current = h;
+  $$(".rail li.ch-item").forEach(li => li.classList.toggle("open", li.dataset.ch === h));
   $$(".rail a").forEach(a => { if (a.getAttribute("href") === "#" + h) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   if ($(".rail").classList.contains("open")) setDrawer(false);
-  const el = document.getElementById(h); setupLadders(el); setupQuizzes(el); setupPredicts(el);
+  const el = document.getElementById(h); setupQuizzes(el); setupPredicts(el);
+  if (h === "facts") renderFacts();
   if (Chapters.inits[h] && !Chapters.done[h]) { Chapters.done[h] = 1; Chapters.initing = h; Chapters.inits[h].forEach(fn => { try { fn(); } catch (e) { console.error(e); } }); Chapters.initing = null; }
   else redrawCurrent();
-  $$("canvas.cv", el).forEach(c => { if (!c.hasAttribute("role")) c.setAttribute("role", "img"); });
+  $$("canvas", el).forEach(c => { if (!c.hasAttribute("role")) c.setAttribute("role", "img"); });
   if (target) { const t = document.getElementById(target); if (t) t.scrollIntoView({ block: "center" }); }
   else window.scrollTo(0, scrollMemo[h] || 0);
   const hd = el.querySelector("h2, h1"); if (hd && Route.moved) { hd.tabIndex = -1; hd.focus({ preventScroll: true }); }
@@ -215,8 +208,8 @@ function buildPagers() {
 }
 document.addEventListener("DOMContentLoaded", () => {
   const savedTheme = store.get("theme", null); if (savedTheme) document.documentElement.dataset.theme = savedTheme;
-  buildPagers(); paintProgress(); syncValueText();
-  $$("#depth, #start-depth").forEach(dp => { $$("button", dp).forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === store.get("depth", 1) ? "true" : "false")); seg(dp, v => setDepth(+v)); });
+  buildRail(); buildPagers(); paintProgress(); syncValueText();
+  document.addEventListener("factunlocked", paintProgress);
   const tb = $("#theme"); const cur = () => document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   const lab = () => tb.textContent = cur() === "dark" ? "Light" : "Dark"; lab();
   tb.addEventListener("click", () => { const t = cur() === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = t; store.set("theme", t); lab(); });
