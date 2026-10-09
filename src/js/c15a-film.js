@@ -57,7 +57,7 @@ chapter("harness", () => {
              `Compaction replaces stale tool results with summaries (here 1,200 and 2,500 tokens become 120 each), bringing the context from 9,960 to 6,500 tokens.`], link: "#ref-41" },
     { key: "cache", short: "Prompt caching", title: "The unchanged start of the page is reused", dur: 7,
       text: [`Every call starts with the same text as the call before. The server keeps its work on that part (shaded) and only processes what's new, which makes each call cheaper and faster.`,
-             `Prefix caching turns the repeated prefix into cheap cache reads: here ${CACHED.toLocaleString()} of ${IN.toLocaleString()} input tokens across five calls. Keeping stable content at the start of the prompt keeps it cached.`], link: "#ref-41" },
+             `Prefix caching turns the repeated prefix into cheap cache reads: here ${CACHED.toLocaleString()} of ${IN.toLocaleString()} input tokens across five calls. Keeping stable content at the start of the prompt keeps it cached.`], link: "#ref-71" },
     { key: "done", short: "Done", title: "The task is done; the answer goes back", dur: 5.5,
       text: [`The model sees the tests pass and writes its final answer instead of another tool request. The harness hands it back to you.`,
              `The loop ends when the model returns a final message rather than a tool call, or when the harness hits a step, time or cost budget.`] }

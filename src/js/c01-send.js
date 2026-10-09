@@ -7,8 +7,8 @@ chapter("send", () => {
   };
   const LONG = "Summarise this incident report for an executive audience. " + "At 09:14 UTC the payments service began returning elevated 5xx errors after a configuration change to the connection pool. Retries amplified load on the primary database, which hit its connection limit; the on-call engineer rolled back the change at 09:41 and error rates returned to normal by 09:52. ".repeat(30);
   const LONG_REPLY = "Summary: a configuration change to the payments service's connection pool caused 38 minutes of elevated errors. Retries overloaded the database. Rolling back fixed it; follow-ups are safer config rollout and retry limits.";
-  const sysTok = { app: 400, cli: 3000, api: 0 };
-  const sysWhat = { app: "about 400 hidden system-prompt tokens", cli: "about 3,000 tokens of hidden instructions and tool definitions", api: "no hidden tokens: your code sends only what you write" };
+  const sysTok = { app: 2000, cli: 15000, api: 0 };
+  const sysWhat = { app: "roughly 2,000 hidden system-prompt tokens (illustrative; real apps vary, often several thousand)", cli: "roughly 15,000 tokens of hidden instructions and tool definitions (illustrative)", api: "no hidden tokens: your code sends only what you write" };
   const approxTokens = s => Math.max(1, Math.ceil(s.length / 4));
   const TPOT = 22;
   const chapterOf = { map: "send", send: "send", net: "send", gw: "send", safe: "evals", queue: "sharing", route: "memory", tok: "tokens", prefill: "inside", think: "align", decode: "predict", stream: "send", done: "tokens" };

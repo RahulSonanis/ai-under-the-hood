@@ -22,7 +22,7 @@ chapter("datacenter", () => {
   const steps = [
     { key: "chip", short: "One chip", title: "It starts with one accelerator", dur: 6,
       text: [`This is one AI chip. The middle does the maths, and the stacks around it are very fast memory that keep it fed with numbers. It draws about a kilowatt.`,
-             `A Blackwell GPU package: compute dies surrounded by HBM3E stacks, about 186 GB at 8 TB/s, in a power class of about 1 kW.`], link: "#ref-22" },
+             `A Blackwell GPU package: compute dies surrounded by HBM3E stacks, about 186 GB at 8 TB/s, in a power class of about 1–1.2 kW.`], link: "#ref-22" },
     { key: "tray", short: "Tray", title: "Four GPUs share a liquid-cooled tray", dur: 6,
       text: [`Four of these chips and two ordinary processors sit on one flat tray. Cold liquid flows through metal plates pressed onto each chip and carries the heat away.`,
              `A compute tray holds two GB200 superchips, each one Grace CPU with two Blackwell GPUs, in one rack unit. Coolant flows through cold plates mounted directly on the chips.`], link: "#ref-22" },
@@ -252,7 +252,7 @@ chapter("datacenter", () => {
       L("campus", 125000, -9000, "8 buildings, one cluster", { col: C.ink });
       // readouts
       const P = f.p;
-      if (f.key === "chip") hud(k, "tr", "One accelerator (Blackwell GPU)", [["memory", "~186 GB HBM3E", C.sig], ["memory bandwidth", "8 TB/s", C.sig], ["power", "≈ 1 kW class", C.amb]]);
+      if (f.key === "chip") hud(k, "tr", "One accelerator (Blackwell GPU)", [["memory", "~186 GB HBM3E", C.sig], ["memory bandwidth", "8 TB/s", C.sig], ["power", "≈ 1–1.2 kW", C.amb]]);
       if (f.key === "tray") hud(k, "tr", "Compute tray", [["holds", "4 GPUs + 2 CPUs"], ["cooling", "cold plates", COOL], ["height", "1 rack unit"]]);
       if (f.key === "rack") hud(k, "tr", "One rack: GB200 NVL72", [["GPUs", "72 · plus 36 CPUs"], ["NVLink in the rack", "130 TB/s", C.sig], ["power", "~120 kW", C.amb], ["ordinary rack", "well under 20 kW"]]);
       if (f.key === "hall") hud(k, "tr", "Cluster", [["holds", "hundreds of racks"], ["network", f.narrow ? "IB or Ethernet" : "InfiniBand or Ethernet", C.sig], ["power", f.narrow ? "10s–100s of MW" : "tens to hundreds of MW", C.amb]]);

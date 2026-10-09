@@ -59,7 +59,7 @@ function makeFilm(root, cfg) {
       if (j === i) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
       b.classList.toggle("done", j < i);
     });
-    if (i !== strip._i) { strip._i = i; const b = $$("button", strip)[i]; if (b) { const L = b.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft, R = L + b.offsetWidth; if (L < strip.scrollLeft || R > strip.scrollLeft + strip.clientWidth) strip.scrollTo({ left: L - 24, behavior: reduceMotion() ? "auto" : "smooth" }); } }
+    if (i !== strip._i) { strip._i = i; const b = $$("button", strip)[i]; if (b) { const L = b.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft, R = L + b.offsetWidth; if (L < strip.scrollLeft + 24 || R > strip.scrollLeft + strip.clientWidth - 40) strip.scrollTo({ left: Math.max(0, L - (strip.clientWidth - b.offsetWidth) / 2), behavior: reduceMotion() ? "auto" : "smooth" }); } }
   }
   function frame() {
     const i = segAt(t);
@@ -449,7 +449,7 @@ function createJourney(cv, opt = {}) {
     lab(1238, 166, "Other replicas, full", ["route"], { minor: true });
     lab(P.srv.x + 22, 200, "GPU server · the model", ["tok", "prefill", "decode", "think"], { align: "left" });
     if (!hero && scale > 0.9) {
-      lab(Ly.x0 + (Ly.n * Ly.dx) / 2 - 8, Ly.y + Ly.h + 16, "Layers (a real model has 30 to 120+)", ["prefill", "decode", "think"]);
+      lab(Ly.x0 + (Ly.n * Ly.dx) / 2 - 8, Ly.y + Ly.h + 16, "Layers (real models have dozens, up to 120+)", ["prefill", "decode", "think"]);
       lab(P.samp.x + P.samp.w / 2, Ly.y + Ly.h + 16, "Next-token odds", ["decode"]);
       lab(K.x, K.y - 14, `KV cache: the model's notes · 1 square ≈ ${S.per} token${S.per > 1 ? "s" : ""}`, ["prefill", "decode", "think", "route"], { align: "left" });
     }
@@ -495,7 +495,7 @@ chapter("start", () => {
     ["What is 17 × 24?", "17 × 24 = 408. One way: 17 × 20 = 340, plus 17 × 4 = 68."]];
   let n = 0;
   const segsFor = () => [["map", 1.0], ["send", 1.2], ["net", 1.6], ["gw", 0.9], ["safe", 0.9], ["queue", 1.0], ["route", 0.9], ["tok", 1.0], ["prefill", 1.4], ["decode", 4.2], ["stream", 2.4], ["done", 1.4]].map(([key, dur]) => ({ key, dur, title: key }));
-  function scen() { const [p, r] = prompts[n % prompts.length]; J.setup({ prompt: p, promptShort: p, reply: r, sys: 400, cached: true, inTok: 410, think: 0, busy: 0.35 }); }
+  function scen() { const [p, r] = prompts[n % prompts.length]; J.setup({ prompt: p, promptShort: p, reply: r, sys: 2000, cached: true, inTok: 2010, think: 0, busy: 0.35 }); }
   scen(); let segs = segsFor(), a = 0; segs.forEach(s => { s.t0 = a; a += s.dur; s.t1 = a; }); const T = a; let t = reduceMotion() ? segs[9].t0 + 2.5 : 0;
   const hgt = () => Math.round(Math.max(220, Math.min(440, innerW(cv.parentElement) * 0.46)));
   const segAt = x => segs.findIndex(s => x < s.t1);

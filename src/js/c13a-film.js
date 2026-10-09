@@ -34,7 +34,7 @@ chapter("evals", () => {
   const steps = [
     { key: "bench", short: "A benchmark", title: "A benchmark is an exam with known answers", dur: 5,
       text: [`Each dot is one question whose right answer we already know. We let a model answer all 300 and count how many it gets right.`,
-             `A benchmark is a fixed set of questions with reference answers, scored as accuracy. Sizes vary a lot: HumanEval has 164 problems, MMLU about 14,000.`], link: "#ref-1" },
+             `A benchmark is a fixed set of questions with reference answers, scored as accuracy. Sizes vary a lot: HumanEval has 164 problems, MMLU about 14,000.`], link: "#ref-20" },
     { key: "modelA", short: "Model A", title: "Model A gets 62% right", dur: 5.5,
       text: [`Model A works through the test. Teal dots are right answers, grey ones are wrong. It gets 186 of 300 right: 62%.`,
              `The observed accuracy p̂ = 186 / 300 = 0.62 is an estimate of the model's true accuracy on questions like these.`] },

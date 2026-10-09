@@ -190,7 +190,7 @@ chapter("predict", () => {
         if (!dimGen) {
           const head = key === "context" ? "Raw scores (logits)" : key === "softmax" ? (e < 0.5 ? "Raw scores (logits)" : "Probabilities") : key === "sample" || key === "loop" ? "Probabilities" : "Probabilities";
           k.label(B.lx - 60, B.y0 - 26, head, { col: C.ink, weight: "600", align: "left", alpha: key === "sample" || key === "loop" ? 0.5 : 1 });
-          k.label(B.lx - 60, rowY(NR) + 8, "… and about 128k more tokens", { col: C.muted, size: 11, align: "left", alpha: (key === "sample" || key === "loop" ? 0.5 : 1) * (key === "context" ? clamp01((f.p - 0.8) / 0.1) : 1) });
+          k.label(B.lx - 60, rowY(NR) + 8, "12 of ~128k tokens shown, rescaled to 100%", { col: C.muted, size: 11, align: "left", alpha: (key === "sample" || key === "loop" ? 0.5 : 1) * (key === "context" ? clamp01((f.p - 0.8) / 0.1) : 1) });
         }
         if (key === "context" && f.p > 0.6) k.line(B.LZ, B.y0 - 8, B.LZ, rowY(NR - 1) + B.h + 8, { col: C.muted, alpha: 0.6, dash: [3, 4] });
         if (key === "softmax" && e < 0.5) k.line(B.LZ, B.y0 - 8, B.LZ, rowY(NR - 1) + B.h + 8, { col: C.muted, alpha: 0.6 * (1 - e * 2), dash: [3, 4] });

@@ -68,7 +68,7 @@ chapter("tokens", () => {
              `Training stops when the vocabulary reaches its target size: around 50k for English-only models, about 128k for Llama 3. Encoding applies the merges in learned order. Here 22 bytes become 6 tokens.`], link: "#ref-1" },
     { key: "ids", short: "IDs", title: "Each token becomes an ID number", dur: 5.5,
       text: [`Every piece in the vocabulary has its own number, like a page number in a dictionary. Now the sentence is just six numbers.`,
-             `The tokenizer outputs integer IDs from 0 to |V| − 1. These IDs are illustrative; every tokenizer numbers its vocabulary differently. "the" and "·the" are different tokens with different IDs.`] },
+             `The tokenizer outputs integer IDs from 0 to |V| − 1. These happen to be GPT-2's IDs; every tokenizer numbers its vocabulary differently (Llama 3's vocabulary has 128,256 entries). "the" and "·the" are different tokens with different IDs.`] },
     { key: "lookup", short: "Look up", title: "Each ID reads one row of a big table", dur: 7,
       text: [`The model keeps a huge table with one row per token. The ID says which row to read, and that row is a long list of numbers.`,
              `The embedding table is vocabulary × d_model: 128,256 × 4,096 in Llama 3 8B, about 525 million numbers. Looking up token i just reads row i (x = e_iᵀE). Values shown are made up.`], link: "#ref-1" },

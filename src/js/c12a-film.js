@@ -39,7 +39,7 @@ chapter("align", () => {
              `SFT continues training on carefully written conversations (thousands to millions) instead of raw web text. Chat templates mark system, user and assistant turns, and the loss is usually computed only on the assistant's tokens.`], link: "#ref-16" },
     { key: "prefs", short: "Preferences", title: "People pick the better of two answers", dur: 6.5,
       text: [`It's hard to write the perfect answer but easy to say which of two is better. So people look at two answers and pick the one they prefer.`,
-             `Each comparison yields a preferred reply y_w and a rejected reply y_l for the same prompt. Feedback training rewards answers people prefer: accurate, appropriately short, honest rather than flattering.`] },
+             `Each comparison yields a preferred reply y_w and a rejected reply y_l for the same prompt. Feedback training aims to reward answers people prefer: accurate, appropriately short, honest rather than flattering.`] },
     { key: "rm", short: "Reward model", title: "A reward model learns to score answers", dur: 6.5,
       text: [`A second model learns to predict those choices. Then it can score any answer: high for answers people would pick, low for the rest.`,
              `Reward models are usually fitted with the Bradley–Terry model: P(y_w ≻ y_l) = σ(r(y_w) − r(y_l)). The candidate replies and scores here are the chapter's illustrative ones.`], link: "#ref-16" },

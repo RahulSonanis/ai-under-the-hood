@@ -51,7 +51,7 @@ chapter("data", () => {
              `Gopher-style heuristics (word count, symbol ratio, repeated lines) plus a classifier score like FineWeb-Edu's educational-value rating. Here the cut-off is 2.5 out of 5.`], link: "#ref-3" },
     { key: "dedup", short: "Deduplicate", title: "Merge the near-copies", dur: 6,
       text: [`The web is full of copies: the same article on many sites with a different footer. Near-identical pages are merged into one, so the model doesn't read the same thing again and again.`,
-             `MinHash estimates the Jaccard overlap of 3-word shingle sets, and locality-sensitive hashing finds likely pairs without comparing every pair. FineWeb deduplicated each snapshot this way.`], link: "#ref-3" },
+             `MinHash estimates the Jaccard overlap of word-shingle sets, and locality-sensitive hashing finds likely pairs without comparing every pair. The demo below uses 3-word shingles; FineWeb used 5-grams with 112 hashes, deduplicating each snapshot separately.`], link: "#ref-3" },
     { key: "clean", short: "Privacy and tests", title: "Mask private details, remove test questions", dur: 5.5,
       text: [`Email addresses and similar private details are blanked out. Pages that contain the answers to well-known tests are removed, so test scores stay honest.`,
              `FineWeb anonymised email and IP addresses. Labs also respect robots.txt opt-outs and decontaminate by n-gram matching against benchmark sets.`], link: "#ref-3" },

@@ -37,7 +37,7 @@ chapter("inside", () => {
              `A pre-norm block: h ← h + Attn(Norm(h)), then h ← h + MLP(Norm(h)). The residual stream keeps the same width d all the way up.`] },
     { key: "stack", short: "The stack", title: "The same two steps repeat, layer after layer", dur: 6,
       text: [`The same "look around, then think" pair repeats in every layer. Each pass makes every column a little richer.`,
-             `Llama 3 8B stacks 32 such layers at width 4,096; the 70B has 80 layers at width 8,192. A forward pass costs roughly 2 FLOPs per parameter per token.`], link: "#ref-7" },
+             `Llama 3 8B stacks 32 such layers at width 4,096; the 70B has 80 layers at width 8,192. A forward pass costs roughly 2 FLOPs per parameter per token.`], link: "#ref-9" },
     { key: "out", short: "Next token", title: "The last column becomes next-token odds", dur: 6.5,
       text: [`At the top, only the last word's column is used. It gets a score for every token the model knows, and the scores become probabilities for the next one.`,
              `The final hidden state at the last position is normalised and multiplied by the unembedding matrix (|V| × d) to give one logit per vocabulary entry; softmax turns them into P(next token). Probabilities shown are illustrative.`] }

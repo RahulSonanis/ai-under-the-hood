@@ -16,7 +16,7 @@ chapter("memory", () => {
       text: [`To write each new word, attention needs a "label" and "message" (key and value) for every earlier word. Without notes, the model would recompute them all, every single step. Watch the work pile up.`,
              `Without caching, step t recomputes K = XW_K and V = XW_V for all t earlier tokens: Θ(t) projection work per step and Θ(T²) over a T-token reply.`] },
     { key: "cache", short: "Keep notes", title: "Keep notes instead: the KV cache", dur: 6,
-      text: [`So the model keeps a note card for each word the first time it reads it. Each new word computes only its own card, then looks at the saved ones. The work per step stays flat.`,
+      text: [`So the model keeps a note card for each word the first time it reads it. Each new word computes only its own card, then looks at the saved ones. The recomputing disappears; only the reading of saved notes grows.`,
              `Keys and values don't change once computed, so the server stores them. Each step computes K and V for one new token and attends over the cached ones.`] },
     { key: "grow", short: "Notes need memory", title: "The notes live in GPU memory", dur: 5.5,
       text: [`Those notes aren't free. They sit in the GPU's memory next to the model itself, and they grow with every word.`,
@@ -125,7 +125,7 @@ chapter("memory", () => {
         return;
       }
       if (f.key === "reserve") {
-        const RES = 32, used = [6, 3, 9, 4, 7, 2, 5, 8];
+        const RES = 32, used = [9, 6, 11, 7, 10, 5, 8, 8];
         const fits = Math.floor(free / RES); let c0 = W_CELLS;
         const reveal = Math.ceil(easeIO(f.p / 0.7) * fits);
         memoryGrid(k, c => weights(c) || null);

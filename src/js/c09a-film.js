@@ -42,7 +42,7 @@ chapter("scale", () => {
              `Llama 3 8B saw about 15T tokens, close to 1,900 per parameter, and SmolLM3 saw 11T at 3B. The same compute at 20:1 would buy a ~${Math.round(LL.Nopt / 1e9)}B model, and a forward pass costs about 2 FLOPs per parameter per token.`], link: "#ref-9" },
     { key: "hours", short: "GPU-hours", title: "From FLOPs to GPU-hours and dollars", dur: 7,
       text: [`Divide the total work by how fast the chips really run, and you get GPU-hours. Multiply by the price per hour, and you get the bill.`,
-             `DeepSeek-V3: 6 × 37B active × 14.8T ≈ ${sci(DS.F)} FLOPs. At 989 TFLOPS and an assumed 38% utilisation that is ≈ ${(DS.hours / 1e6).toFixed(2)}M GPU-hours, ≈ $${(DS.cost / 1e6).toFixed(1)}M at $2/hour. The report's official total: 2.788M GPU-hours, $5.6M.`], link: "#ref-10" },
+             `DeepSeek-V3: 6 × 37B active × 14.8T ≈ ${sci(DS.F)} FLOPs. At 989 TFLOPS and an assumed 38% utilisation that is ≈ ${(DS.hours / 1e6).toFixed(2)}M GPU-hours, ≈ $${(DS.cost / 1e6).toFixed(1)}M at $2/hour. The report: 2.664M GPU-hours for pre-training (2.788M in total with later stages), $5.6M. V3 trained mostly in FP8, so the utilisation here is only an assumed effective rate.`], link: "#ref-10" },
     { key: "hidden", short: "Hidden bill", title: "The final run is only part of the bill", dur: 6,
       text: [`Before the big run, teams train lots of small test models, and things break along the way. That extra work can add more than half again.`,
              `SmolLM3: about 276k H100-hours for the main run plus 161k for ablations and recovering from a mid-run problem. DeepSeek's $5.6M excludes prior research and ablation experiments.`], link: "#ref-1" }

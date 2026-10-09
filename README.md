@@ -2,7 +2,7 @@
 
 **What really happens when you talk to an AI?** An interactive course that starts with you pressing *send* and works backwards: tokens, the model, the GPU serving your reply, the months of training before it, the datacenters underneath, and the software that turns a model into an agent.
 
-Every idea is explained as a ladder that goes as deep as you want: **Age 5 → Curious → Engineer → Mathematician**. Every chapter is built around something you can play with, and every claim links to a primary source.
+Every chapter opens with a short animated film you can play, pause and step through, showing the machinery at work: packets crossing a datacenter, tokens flowing through layers, gradients flowing back, GPUs failing and restarting. Every idea is explained as a ladder that goes as deep as you want: **Age 5 → Curious → Engineer → Mathematician**. Every chapter is built around something you can play with, and every claim links to a primary source.
 
 ## The course
 
@@ -25,7 +25,7 @@ Every idea is explained as a ladder that goes as deep as you want: **Age 5 → C
 | **4 · Around the model** | 15. How does a chatbot become an agent? | Agent terminal with live context, compaction and prompt-caching accounting |
 | | 16. Build it yourself | Hands-on follow-up projects, then 60 references |
 
-Each chapter opens with a one-sentence answer, has 2–3 concept ladders, optional engineer tools, and a two-question check. Progress is saved in your browser.
+Each chapter opens with a one-sentence answer and a step-by-step film, then has hands-on experiments, 2–3 concept ladders, optional engineer tools, and a two-question check. Progress is saved in your browser.
 
 ## View it
 
@@ -41,7 +41,9 @@ src/
   shell-top.html      top bar and course outline
   chapters/NN-*.html  one file per chapter
   js/core.js          router, concept ladders, quizzes, progress, plotting helpers
-  js/cNN-*.js         each chapter's simulations (initialised when first opened)
+  js/c00-scene.js     film engine: playback controls, camera, drawing kit (storyFilm)
+  js/cNNa-film.js     each chapter's film (steps, captions at two depths, drawing)
+  js/cNN-*.js         each chapter's hands-on experiments (initialised when first opened)
 build.py              assembles src/ into docs/index.html
 ```
 

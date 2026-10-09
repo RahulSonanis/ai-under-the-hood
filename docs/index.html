@@ -1981,7 +1981,7 @@ function makeFilm(root, cfg) {
       if (j === i) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
       b.classList.toggle("done", j < i);
     });
-    if (i !== strip._i) { strip._i = i; const b = $$("button", strip)[i]; if (b) { const L = b.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft, R = L + b.offsetWidth; if (L < strip.scrollLeft || R > strip.scrollLeft + strip.clientWidth) strip.scrollTo({ left: L - 24, behavior: reduceMotion() ? "auto" : "smooth" }); } }
+    if (i !== strip._i) { strip._i = i; const b = $$("button", strip)[i]; if (b) { const L = b.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft, R = L + b.offsetWidth; if (L < strip.scrollLeft + 24 || R > strip.scrollLeft + strip.clientWidth - 40) strip.scrollTo({ left: Math.max(0, L - (strip.clientWidth - b.offsetWidth) / 2), behavior: reduceMotion() ? "auto" : "smooth" }); } }
   }
   function frame() {
     const i = segAt(t);
@@ -2371,7 +2371,7 @@ function createJourney(cv, opt = {}) {
     lab(1238, 166, "Other replicas, full", ["route"], { minor: true });
     lab(P.srv.x + 22, 200, "GPU server · the model", ["tok", "prefill", "decode", "think"], { align: "left" });
     if (!hero && scale > 0.9) {
-      lab(Ly.x0 + (Ly.n * Ly.dx) / 2 - 8, Ly.y + Ly.h + 16, "Layers (a real model has 30 to 120+)", ["prefill", "decode", "think"]);
+      lab(Ly.x0 + (Ly.n * Ly.dx) / 2 - 8, Ly.y + Ly.h + 16, "Layers (real models have dozens, up to 120+)", ["prefill", "decode", "think"]);
       lab(P.samp.x + P.samp.w / 2, Ly.y + Ly.h + 16, "Next-token odds", ["decode"]);
       lab(K.x, K.y - 14, `KV cache: the model's notes · 1 square ≈ ${S.per} token${S.per > 1 ? "s" : ""}`, ["prefill", "decode", "think", "route"], { align: "left" });
     }
@@ -2417,7 +2417,7 @@ chapter("start", () => {
     ["What is 17 × 24?", "17 × 24 = 408. One way: 17 × 20 = 340, plus 17 × 4 = 68."]];
   let n = 0;
   const segsFor = () => [["map", 1.0], ["send", 1.2], ["net", 1.6], ["gw", 0.9], ["safe", 0.9], ["queue", 1.0], ["route", 0.9], ["tok", 1.0], ["prefill", 1.4], ["decode", 4.2], ["stream", 2.4], ["done", 1.4]].map(([key, dur]) => ({ key, dur, title: key }));
-  function scen() { const [p, r] = prompts[n % prompts.length]; J.setup({ prompt: p, promptShort: p, reply: r, sys: 400, cached: true, inTok: 410, think: 0, busy: 0.35 }); }
+  function scen() { const [p, r] = prompts[n % prompts.length]; J.setup({ prompt: p, promptShort: p, reply: r, sys: 2000, cached: true, inTok: 2010, think: 0, busy: 0.35 }); }
   scen(); let segs = segsFor(), a = 0; segs.forEach(s => { s.t0 = a; a += s.dur; s.t1 = a; }); const T = a; let t = reduceMotion() ? segs[9].t0 + 2.5 : 0;
   const hgt = () => Math.round(Math.max(220, Math.min(440, innerW(cv.parentElement) * 0.46)));
   const segAt = x => segs.findIndex(s => x < s.t1);
@@ -2438,8 +2438,8 @@ chapter("send", () => {
   };
   const LONG = "Summarise this incident report for an executive audience. " + "At 09:14 UTC the payments service began returning elevated 5xx errors after a configuration change to the connection pool. Retries amplified load on the primary database, which hit its connection limit; the on-call engineer rolled back the change at 09:41 and error rates returned to normal by 09:52. ".repeat(30);
   const LONG_REPLY = "Summary: a configuration change to the payments service's connection pool caused 38 minutes of elevated errors. Retries overloaded the database. Rolling back fixed it; follow-ups are safer config rollout and retry limits.";
-  const sysTok = { app: 400, cli: 3000, api: 0 };
-  const sysWhat = { app: "about 400 hidden system-prompt tokens", cli: "about 3,000 tokens of hidden instructions and tool definitions", api: "no hidden tokens: your code sends only what you write" };
+  const sysTok = { app: 2000, cli: 15000, api: 0 };
+  const sysWhat = { app: "roughly 2,000 hidden system-prompt tokens (illustrative; real apps vary, often several thousand)", cli: "roughly 15,000 tokens of hidden instructions and tool definitions (illustrative)", api: "no hidden tokens: your code sends only what you write" };
   const approxTokens = s => Math.max(1, Math.ceil(s.length / 4));
   const TPOT = 22;
   const chapterOf = { map: "send", send: "send", net: "send", gw: "send", safe: "evals", queue: "sharing", route: "memory", tok: "tokens", prefill: "inside", think: "align", decode: "predict", stream: "send", done: "tokens" };
@@ -2737,7 +2737,7 @@ chapter("tokens", () => {
              `Training stops when the vocabulary reaches its target size: around 50k for English-only models, about 128k for Llama 3. Encoding applies the merges in learned order. Here 22 bytes become 6 tokens.`], link: "#ref-1" },
     { key: "ids", short: "IDs", title: "Each token becomes an ID number", dur: 5.5,
       text: [`Every piece in the vocabulary has its own number, like a page number in a dictionary. Now the sentence is just six numbers.`,
-             `The tokenizer outputs integer IDs from 0 to |V| − 1. These IDs are illustrative; every tokenizer numbers its vocabulary differently. "the" and "·the" are different tokens with different IDs.`] },
+             `The tokenizer outputs integer IDs from 0 to |V| − 1. These happen to be GPT-2's IDs; every tokenizer numbers its vocabulary differently (Llama 3's vocabulary has 128,256 entries). "the" and "·the" are different tokens with different IDs.`] },
     { key: "lookup", short: "Look up", title: "Each ID reads one row of a big table", dur: 7,
       text: [`The model keeps a huge table with one row per token. The ID says which row to read, and that row is a long list of numbers.`,
              `The embedding table is vocabulary × d_model: 128,256 × 4,096 in Llama 3 8B, about 525 million numbers. Looking up token i just reads row i (x = e_iᵀE). Values shown are made up.`], link: "#ref-1" },
@@ -3258,7 +3258,7 @@ chapter("predict", () => {
         if (!dimGen) {
           const head = key === "context" ? "Raw scores (logits)" : key === "softmax" ? (e < 0.5 ? "Raw scores (logits)" : "Probabilities") : key === "sample" || key === "loop" ? "Probabilities" : "Probabilities";
           k.label(B.lx - 60, B.y0 - 26, head, { col: C.ink, weight: "600", align: "left", alpha: key === "sample" || key === "loop" ? 0.5 : 1 });
-          k.label(B.lx - 60, rowY(NR) + 8, "… and about 128k more tokens", { col: C.muted, size: 11, align: "left", alpha: (key === "sample" || key === "loop" ? 0.5 : 1) * (key === "context" ? clamp01((f.p - 0.8) / 0.1) : 1) });
+          k.label(B.lx - 60, rowY(NR) + 8, "12 of ~128k tokens shown, rescaled to 100%", { col: C.muted, size: 11, align: "left", alpha: (key === "sample" || key === "loop" ? 0.5 : 1) * (key === "context" ? clamp01((f.p - 0.8) / 0.1) : 1) });
         }
         if (key === "context" && f.p > 0.6) k.line(B.LZ, B.y0 - 8, B.LZ, rowY(NR - 1) + B.h + 8, { col: C.muted, alpha: 0.6, dash: [3, 4] });
         if (key === "softmax" && e < 0.5) k.line(B.LZ, B.y0 - 8, B.LZ, rowY(NR - 1) + B.h + 8, { col: C.muted, alpha: 0.6 * (1 - e * 2), dash: [3, 4] });
@@ -3464,7 +3464,7 @@ chapter("inside", () => {
              `A pre-norm block: h ← h + Attn(Norm(h)), then h ← h + MLP(Norm(h)). The residual stream keeps the same width d all the way up.`] },
     { key: "stack", short: "The stack", title: "The same two steps repeat, layer after layer", dur: 6,
       text: [`The same "look around, then think" pair repeats in every layer. Each pass makes every column a little richer.`,
-             `Llama 3 8B stacks 32 such layers at width 4,096; the 70B has 80 layers at width 8,192. A forward pass costs roughly 2 FLOPs per parameter per token.`], link: "#ref-7" },
+             `Llama 3 8B stacks 32 such layers at width 4,096; the 70B has 80 layers at width 8,192. A forward pass costs roughly 2 FLOPs per parameter per token.`], link: "#ref-9" },
     { key: "out", short: "Next token", title: "The last column becomes next-token odds", dur: 6.5,
       text: [`At the top, only the last word's column is used. It gets a score for every token the model knows, and the scores become probabilities for the next one.`,
              `The final hidden state at the last position is normalised and multiplied by the unembedding matrix (|V| × d) to give one logit per vocabulary entry; softmax turns them into P(next token). Probabilities shown are illustrative.`] }
@@ -3862,7 +3862,7 @@ chapter("memory", () => {
       text: [`To write each new word, attention needs a "label" and "message" (key and value) for every earlier word. Without notes, the model would recompute them all, every single step. Watch the work pile up.`,
              `Without caching, step t recomputes K = XW_K and V = XW_V for all t earlier tokens: Θ(t) projection work per step and Θ(T²) over a T-token reply.`] },
     { key: "cache", short: "Keep notes", title: "Keep notes instead: the KV cache", dur: 6,
-      text: [`So the model keeps a note card for each word the first time it reads it. Each new word computes only its own card, then looks at the saved ones. The work per step stays flat.`,
+      text: [`So the model keeps a note card for each word the first time it reads it. Each new word computes only its own card, then looks at the saved ones. The recomputing disappears; only the reading of saved notes grows.`,
              `Keys and values don't change once computed, so the server stores them. Each step computes K and V for one new token and attends over the cached ones.`] },
     { key: "grow", short: "Notes need memory", title: "The notes live in GPU memory", dur: 5.5,
       text: [`Those notes aren't free. They sit in the GPU's memory next to the model itself, and they grow with every word.`,
@@ -3971,7 +3971,7 @@ chapter("memory", () => {
         return;
       }
       if (f.key === "reserve") {
-        const RES = 32, used = [6, 3, 9, 4, 7, 2, 5, 8];
+        const RES = 32, used = [9, 6, 11, 7, 10, 5, 8, 8];
         const fits = Math.floor(free / RES); let c0 = W_CELLS;
         const reveal = Math.ceil(easeIO(f.p / 0.7) * fits);
         memoryGrid(k, c => weights(c) || null);
@@ -4466,7 +4466,7 @@ chapter("data", () => {
              `Gopher-style heuristics (word count, symbol ratio, repeated lines) plus a classifier score like FineWeb-Edu's educational-value rating. Here the cut-off is 2.5 out of 5.`], link: "#ref-3" },
     { key: "dedup", short: "Deduplicate", title: "Merge the near-copies", dur: 6,
       text: [`The web is full of copies: the same article on many sites with a different footer. Near-identical pages are merged into one, so the model doesn't read the same thing again and again.`,
-             `MinHash estimates the Jaccard overlap of 3-word shingle sets, and locality-sensitive hashing finds likely pairs without comparing every pair. FineWeb deduplicated each snapshot this way.`], link: "#ref-3" },
+             `MinHash estimates the Jaccard overlap of word-shingle sets, and locality-sensitive hashing finds likely pairs without comparing every pair. The demo below uses 3-word shingles; FineWeb used 5-grams with 112 hashes, deduplicating each snapshot separately.`], link: "#ref-3" },
     { key: "clean", short: "Privacy and tests", title: "Mask private details, remove test questions", dur: 5.5,
       text: [`Email addresses and similar private details are blanked out. Pages that contain the answers to well-known tests are removed, so test scores stay honest.`,
              `FineWeb anonymised email and IP addresses. Labs also respect robots.txt opt-outs and decontaminate by n-gram matching against benchmark sets.`], link: "#ref-3" },
@@ -5085,7 +5085,7 @@ chapter("scale", () => {
              `Llama 3 8B saw about 15T tokens, close to 1,900 per parameter, and SmolLM3 saw 11T at 3B. The same compute at 20:1 would buy a ~${Math.round(LL.Nopt / 1e9)}B model, and a forward pass costs about 2 FLOPs per parameter per token.`], link: "#ref-9" },
     { key: "hours", short: "GPU-hours", title: "From FLOPs to GPU-hours and dollars", dur: 7,
       text: [`Divide the total work by how fast the chips really run, and you get GPU-hours. Multiply by the price per hour, and you get the bill.`,
-             `DeepSeek-V3: 6 × 37B active × 14.8T ≈ ${sci(DS.F)} FLOPs. At 989 TFLOPS and an assumed 38% utilisation that is ≈ ${(DS.hours / 1e6).toFixed(2)}M GPU-hours, ≈ $${(DS.cost / 1e6).toFixed(1)}M at $2/hour. The report's official total: 2.788M GPU-hours, $5.6M.`], link: "#ref-10" },
+             `DeepSeek-V3: 6 × 37B active × 14.8T ≈ ${sci(DS.F)} FLOPs. At 989 TFLOPS and an assumed 38% utilisation that is ≈ ${(DS.hours / 1e6).toFixed(2)}M GPU-hours, ≈ $${(DS.cost / 1e6).toFixed(1)}M at $2/hour. The report: 2.664M GPU-hours for pre-training (2.788M in total with later stages), $5.6M. V3 trained mostly in FP8, so the utilisation here is only an assumed effective rate.`], link: "#ref-10" },
     { key: "hidden", short: "Hidden bill", title: "The final run is only part of the bill", dur: 6,
       text: [`Before the big run, teams train lots of small test models, and things break along the way. That extra work can add more than half again.`,
              `SmolLM3: about 276k H100-hours for the main run plus 161k for ablations and recovering from a mid-run problem. DeepSeek's $5.6M excludes prior research and ablation experiments.`], link: "#ref-1" }
@@ -6027,7 +6027,7 @@ chapter("align", () => {
              `SFT continues training on carefully written conversations (thousands to millions) instead of raw web text. Chat templates mark system, user and assistant turns, and the loss is usually computed only on the assistant's tokens.`], link: "#ref-16" },
     { key: "prefs", short: "Preferences", title: "People pick the better of two answers", dur: 6.5,
       text: [`It's hard to write the perfect answer but easy to say which of two is better. So people look at two answers and pick the one they prefer.`,
-             `Each comparison yields a preferred reply y_w and a rejected reply y_l for the same prompt. Feedback training rewards answers people prefer: accurate, appropriately short, honest rather than flattering.`] },
+             `Each comparison yields a preferred reply y_w and a rejected reply y_l for the same prompt. Feedback training aims to reward answers people prefer: accurate, appropriately short, honest rather than flattering.`] },
     { key: "rm", short: "Reward model", title: "A reward model learns to score answers", dur: 6.5,
       text: [`A second model learns to predict those choices. Then it can score any answer: high for answers people would pick, low for the rest.`,
              `Reward models are usually fitted with the Bradley–Terry model: P(y_w ≻ y_l) = σ(r(y_w) − r(y_l)). The candidate replies and scores here are the chapter's illustrative ones.`], link: "#ref-16" },
@@ -6330,7 +6330,7 @@ chapter("evals", () => {
   const steps = [
     { key: "bench", short: "A benchmark", title: "A benchmark is an exam with known answers", dur: 5,
       text: [`Each dot is one question whose right answer we already know. We let a model answer all 300 and count how many it gets right.`,
-             `A benchmark is a fixed set of questions with reference answers, scored as accuracy. Sizes vary a lot: HumanEval has 164 problems, MMLU about 14,000.`], link: "#ref-1" },
+             `A benchmark is a fixed set of questions with reference answers, scored as accuracy. Sizes vary a lot: HumanEval has 164 problems, MMLU about 14,000.`], link: "#ref-20" },
     { key: "modelA", short: "Model A", title: "Model A gets 62% right", dur: 5.5,
       text: [`Model A works through the test. Teal dots are right answers, grey ones are wrong. It gets 186 of 300 right: 62%.`,
              `The observed accuracy p̂ = 186 / 300 = 0.62 is an estimate of the model's true accuracy on questions like these.`] },
@@ -6647,7 +6647,7 @@ chapter("datacenter", () => {
   const steps = [
     { key: "chip", short: "One chip", title: "It starts with one accelerator", dur: 6,
       text: [`This is one AI chip. The middle does the maths, and the stacks around it are very fast memory that keep it fed with numbers. It draws about a kilowatt.`,
-             `A Blackwell GPU package: compute dies surrounded by HBM3E stacks, about 186 GB at 8 TB/s, in a power class of about 1 kW.`], link: "#ref-22" },
+             `A Blackwell GPU package: compute dies surrounded by HBM3E stacks, about 186 GB at 8 TB/s, in a power class of about 1–1.2 kW.`], link: "#ref-22" },
     { key: "tray", short: "Tray", title: "Four GPUs share a liquid-cooled tray", dur: 6,
       text: [`Four of these chips and two ordinary processors sit on one flat tray. Cold liquid flows through metal plates pressed onto each chip and carries the heat away.`,
              `A compute tray holds two GB200 superchips, each one Grace CPU with two Blackwell GPUs, in one rack unit. Coolant flows through cold plates mounted directly on the chips.`], link: "#ref-22" },
@@ -6877,7 +6877,7 @@ chapter("datacenter", () => {
       L("campus", 125000, -9000, "8 buildings, one cluster", { col: C.ink });
       // readouts
       const P = f.p;
-      if (f.key === "chip") hud(k, "tr", "One accelerator (Blackwell GPU)", [["memory", "~186 GB HBM3E", C.sig], ["memory bandwidth", "8 TB/s", C.sig], ["power", "≈ 1 kW class", C.amb]]);
+      if (f.key === "chip") hud(k, "tr", "One accelerator (Blackwell GPU)", [["memory", "~186 GB HBM3E", C.sig], ["memory bandwidth", "8 TB/s", C.sig], ["power", "≈ 1–1.2 kW", C.amb]]);
       if (f.key === "tray") hud(k, "tr", "Compute tray", [["holds", "4 GPUs + 2 CPUs"], ["cooling", "cold plates", COOL], ["height", "1 rack unit"]]);
       if (f.key === "rack") hud(k, "tr", "One rack: GB200 NVL72", [["GPUs", "72 · plus 36 CPUs"], ["NVLink in the rack", "130 TB/s", C.sig], ["power", "~120 kW", C.amb], ["ordinary rack", "well under 20 kW"]]);
       if (f.key === "hall") hud(k, "tr", "Cluster", [["holds", "hundreds of racks"], ["network", f.narrow ? "IB or Ethernet" : "InfiniBand or Ethernet", C.sig], ["power", f.narrow ? "10s–100s of MW" : "tens to hundreds of MW", C.amb]]);
@@ -7006,7 +7006,7 @@ chapter("harness", () => {
              `Compaction replaces stale tool results with summaries (here 1,200 and 2,500 tokens become 120 each), bringing the context from 9,960 to 6,500 tokens.`], link: "#ref-41" },
     { key: "cache", short: "Prompt caching", title: "The unchanged start of the page is reused", dur: 7,
       text: [`Every call starts with the same text as the call before. The server keeps its work on that part (shaded) and only processes what's new, which makes each call cheaper and faster.`,
-             `Prefix caching turns the repeated prefix into cheap cache reads: here ${CACHED.toLocaleString()} of ${IN.toLocaleString()} input tokens across five calls. Keeping stable content at the start of the prompt keeps it cached.`], link: "#ref-41" },
+             `Prefix caching turns the repeated prefix into cheap cache reads: here ${CACHED.toLocaleString()} of ${IN.toLocaleString()} input tokens across five calls. Keeping stable content at the start of the prompt keeps it cached.`], link: "#ref-71" },
     { key: "done", short: "Done", title: "The task is done; the answer goes back", dur: 5.5,
       text: [`The model sees the tests pass and writes its final answer instead of another tool request. The harness hands it back to you.`,
              `The loop ends when the model returns a final message rather than a tool call, or when the harness hits a step, time or cost budget.`] }
