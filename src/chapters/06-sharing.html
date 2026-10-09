@@ -4,6 +4,8 @@
   <div class="answer"><span class="label">Short answer</span><p>To write one token, a GPU must read all the model weights it uses from its memory. Reading is the slow part, so it writes the next token for many conversations in one go. When conversations are short and memory is free, each extra person barely slows the step, which is what makes AI affordable to serve. Long conversations and very large batches change that.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 12 min read · 3 interactives</span></div><ul><li>Explain why generating text is limited by memory reads</li><li>Say when batching stops being nearly free</li><li>Compare static and continuous batching</li></ul></div>
 
+  <figure class="scene" id="bt-film" data-start="Play: one GPU, many conversations"></figure>
+
   <div class="predict" data-answer="1"><span class="label">Predict first</span><p>Raise the batch from 1 to 64 people with short conversations. What happens?</p><div class="opts"><button type="button">Each person gets much slower; total output stays the same</button><button type="button">Each person's speed barely changes; total output rises a lot</button><button type="button">Everyone gets faster</button></div><div class="predict-after" hidden><p>Locked in. Now try it below and check.</p><details><summary>Show the answer</summary><p>The step is dominated by reading the weights once, so it is shared. Then raise the conversation length and watch the KV reads take over.</p></details></div></div>
   <div class="inst" id="ds">
     <div class="inst-head"><h4>One decode step, up close</h4><span class="label">Simulation · roofline arithmetic</span></div>

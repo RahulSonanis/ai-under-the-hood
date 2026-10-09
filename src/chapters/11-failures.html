@@ -4,6 +4,8 @@
   <div class="answer"><span class="label">Short answer</span><p>Constantly. With tens of thousands of chips in one tightly coupled job, something fails every few hours and the whole job stops. Teams save progress regularly, restart automatically, and design everything assuming failure is normal.</p></div>
   <div class="outcomes"><div class="outcomes-head"><span class="label">You will be able to</span><span class="mins">≈ 5 min read · 1 interactive</span></div><ul><li>Estimate how often a large job is interrupted</li><li>Choose a checkpoint interval</li><li>Explain goodput</li></ul></div>
 
+  <figure class="scene" id="fl-film" data-start="Play: when chips break"></figure>
+
   <div class="predict" data-answer="2"><span class="label">Predict first</span><p>A training job runs on 16,384 GPUs. How often does something break it?</p><div class="opts"><button type="button">About once a month</button><button type="button">About once a day</button><button type="button">Every few hours</button></div><div class="predict-after" hidden><p>Locked in. Now try it below and check.</p><details><summary>Show the answer</summary><p>Every few hours. Meta logged 419 unexpected interruptions in 54 days of Llama 3 training, about one every three hours.</p></details></div></div>
   <div class="inst" id="fg">
     <div class="inst-head"><h4>Keep a 16,384-GPU training run alive</h4><span class="label">Simulation · failure rate and causes from Meta's Llama 3 run</span></div>
