@@ -47,3 +47,4 @@ Files: src/chapters/00-start.html 01-send.html 02-tokens.html 03-predict.html, s
 - [ ] A37 [minor] Define neural network, long tail, miscompiled; "rolls a die".
 - [ ] A38 [minor] "Read new" should clear the text or show a divider.
 - [ ] A39 [nitpick] Fallback sentence: it mixes in last-word-only and overall frequencies on every step (interpolation), not only for unseen pairs. T=0: "tiny numeric differences can still make replies differ".
+- [ ] A40 [error] Landing map: broken `#finale` link → `#company`; sync map questions with chapter h2s (6, 9, 11, 17, 18); "About 4 to 5 hours"; "12 to 20 minutes"; define GPU in the hero paragraph.
