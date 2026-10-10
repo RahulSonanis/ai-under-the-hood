@@ -48,7 +48,7 @@ function makeSim(fig, spec) {
     </div>
     <div class="stats sim-stats"></div>`;
   const cv = $("canvas", fig), stage = $(".sim-stage", fig), k = sceneKit(cv), chap = fig.closest(".chapter");
-  const S = { state: null, v: {}, kit: k, rand: null, narrow: false, time: 0, speed: 1, playing: !reduceMotion(), tour: null, seen: {}, noticeId: null };
+  const S = { state: null, v: {}, kit: k, rand: null, narrow: false, time: 0, speed: 1, playing: !reduceMotion(), tour: null, seen: {}, factSeen: {}, noticeId: null };
   const seed = spec.seed || 7;
   const height = () => { const w = innerW(stage); return spec.height ? spec.height(w) : (w < 640 ? Math.round(Math.max(300, w * 0.95)) : Math.round(Math.min(580, Math.max(380, w * 0.52)))); };
   let camCur = null;
@@ -131,12 +131,12 @@ function makeSim(fig, spec) {
   function say(html) { const el = $(".sim-notice", fig); el.innerHTML = html; $(".sim-live", fig).innerHTML = html; el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
   function facts() {
     for (const f of spec.facts || []) {
-      if (S.time < (spec.factDelay || 6) || S.seen["f:" + f.id] || !f.when(S.state)) continue; S.seen["f:" + f.id] = 1;
+      if (S.time < (spec.factDelay || 6) || S.factSeen[f.id] || !f.when(S.state)) continue; S.factSeen[f.id] = 1;
       unlockFact(chap ? chap.id : "", f.id, f.text, f.ref);
       const t = document.createElement("div"); t.className = "fact-toast";
       t.innerHTML = `<b>Fun fact</b><p>${f.text}${f.ref ? ` <sup class="ref"><a href="${f.ref}">${f.ref.replace("#ref-", "")}</a></sup>` : ""}</p><button type="button" aria-label="Dismiss">×</button>`;
       $("button", t).addEventListener("click", () => t.remove());
-      $(".sim-toasts", fig).appendChild(t); setTimeout(() => t.remove(), 20000);
+      const box = $(".sim-toasts", fig); box.innerHTML = ""; box.appendChild(t); setTimeout(() => t.remove(), 20000); // one fact at a time
       break;
     }
   }

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>AI Under the Hood</title>
-<meta name="description" content="An interactive, referenced course on what happens when you talk to an AI: tokens, models, serving, training, datacenters and agents, explained from age 5 to mathematician.">
+<meta name="description" content="An interactive, referenced course on what happens when you talk to an AI: tokens, models, serving, training, datacenters and agents, played as live simulations, from curious beginner to engineer.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400&display=swap">
 <style>
 /* Layout concept: a machine-room field manual you walk through one question at a time.
@@ -555,6 +555,18 @@ details.maths { margin: 1rem 0 0.2rem; background: var(--bg); }
 .facts-list li.empty { border-left-color: var(--line); color: var(--muted); }
 
 @media (max-width: 640px) { .sim-goal { border-radius: 14px; display: block; } .sim-goal .dot { display: inline-block; margin-right: 0.4rem; } .sim-goal .gp { display: block; } }
+/* v4.1 engine fixes: maths never widens the page; anchors clear the sticky bar; glossary terms */
+.mstep > * { min-width: 0; }
+.mstep .eq { white-space: normal; overflow-wrap: anywhere; line-height: 1.8; }
+.mstep .eq br + * { display: inline; }
+.mstep .sym, .mstep .calc { overflow-wrap: anywhere; }
+details.how, details.maths, .explain { min-width: 0; max-width: 100%; }
+@media (max-width: 640px) { .mstep { grid-template-columns: 1fr; } }
+.sim, .beat, section.chapter, .recall, .quiz, .carry { scroll-margin-top: calc(var(--bar-h) + 14px); }
+dfn[data-g] { font-style: normal; text-decoration: underline dotted; text-decoration-color: var(--muted); text-underline-offset: 3px; cursor: help; }
+dfn[data-g]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+.refpop.gloss { font-size: 0.92rem; }
+.refpop.gloss b { font-family: var(--f-display); display: block; margin-bottom: 0.2rem; }
 
 </style>
 </head>
@@ -1143,7 +1155,7 @@ details.maths { margin: 1rem 0 0.2rem; background: var(--bg); }
 
   <div class="beat explain" data-toc="Explain">
     <h3>What's going on</h3>
-    <p>A GPU has two parts that matter here: a large memory that holds the model, and maths units that do the sums. A pipe joins them, and the pipe is the slow part. To write one token, every weight has to travel through it. For the 8-billion-weight model in the simulation (Meta's open Llama 3 8B<sup class="ref"><a href="#ref-9">9</a></sup>) that's 16 GB per token. On an H100, a common data-centre GPU, reading it takes about 7 ms while the sums take a few hundredths of a millisecond. With one person, the maths units sit idle almost all the time.</p>
+    <p>A GPU has two parts that matter here: a large memory that holds the model, and maths units that do the sums. A pipe joins them, and the pipe is the slow part. To write one token, every weight has to travel through it. For the 8-billion-weight model in the simulation (Meta's open Llama 3 8B<sup class="ref"><a href="#ref-9">9</a></sup>) that's 16 GB per token. On an H100, a common datacenter GPU, reading it takes about 7 ms while the sums take a few hundredths of a millisecond. With one person, the maths units sit idle almost all the time.</p>
     <p><b>Batching</b> means serving many conversations in the same step. The weights are read once and used for everyone. Right now your GPU serves <span data-live="btPeopleTxt">–</span> at a time. Each step reads <span data-live="btRead">–</span>, takes <span data-live="btStep">–</span> and gives everyone one token, so each person gets <span data-live="btPer">–</span> tokens a second. A million tokens cost <span data-live="btCost">–</span>, against <span data-live="btCost1">–</span> if the GPU served one person at a time.</p>
     <p>Two things end the free ride. Each person's notes are private, so they must be read too, and they grow with every token; long chats make the notes outweigh the model. And memory runs out: no room for notes means no seat. The other lever is the size of each number. Storing weights in 8 or 4 bits instead of 16 halves or quarters what has to be read, and frees memory for more people, at a small cost in accuracy.</p>
     <details class="how"><summary>How it works <span class="sub">rooflines, scheduling and quantisation</span></summary><div class="body">
@@ -1203,7 +1215,7 @@ details.maths { margin: 1rem 0 0.2rem; background: var(--bg); }
       <p><b>Queueing.</b> Waiting at a busy service follows the maths of queues. With many seats, a GPU can run quite full before anyone waits, because the chance that all 64 are busy at once stays tiny. Past about 85% that chance grows fast, and the average wait grows roughly as 1 ÷ (1 − how full), which heads to infinity as the GPU approaches 100%. That's why services keep headroom and why an autoscaler's target is a trade-off between cost and waiting.</p>
       <p><b>Selling spare time.</b> Requests that can wait an hour, like summarising a pile of documents overnight, are a perfect fit for spare seats. Anthropic, for example, charges half price for requests sent as a batch; they finish within 24 hours, and usually in under one<sup class="ref"><a href="#ref-902">902</a></sup>. The provider gets paid for time that would otherwise be wasted, and the customer gets a discount for not being in a hurry.</p>
       <p><b>Why tokens are priced differently.</b> The price list follows the GPU time each kind of token uses. Reading your prompt (input) happens in one big parallel pass, so each input token is a small slice of busy maths. Writing (output) takes a whole step per token, and each step is mostly the memory read from the last chapter, so output tokens hold a seat far longer. That's why output usually costs several times more than input: five times, on Anthropic's price list<sup class="ref"><a href="#ref-904">904</a></sup>. Cached input is cheaper still. If the start of your prompt matches one the server saw recently, its notes are already stored (chapter 7), so they don't need working out again; reading them from the cache is billed at a tenth of the normal input price or less<sup class="ref"><a href="#ref-904">904</a></sup>.</p>
-      <p><b>Energy.</b> Google measured the median text prompt to its Gemini assistant at 0.24 watt-hours, counting the whole datacentre, including the host computers, idle spare machines and the building's overheads such as cooling<sup class="ref"><a href="#ref-901">901</a></sup>. The simulation counts the GPU alone for a smaller model, so its figure is lower. The same lesson holds: idle machines still use power, so a fuller fleet uses less energy per reply.</p>
+      <p><b>Energy.</b> Google measured the median text prompt to its Gemini assistant at 0.24 watt-hours, counting the whole datacenter, including the host computers, idle spare machines and the building's overheads such as cooling<sup class="ref"><a href="#ref-901">901</a></sup>. The simulation counts the GPU alone for a smaller model, so its figure is lower. The same lesson holds: idle machines still use power, so a fuller fleet uses less energy per reply.</p>
       <details class="maths"><summary>The maths <span class="sub">cost per reply and waiting</span></summary><div class="body">
         <div class="mstep"><span class="mk">In words</span><p>A reply costs the GPU's hourly price divided by how many replies the GPU finishes in an hour. That number is its seats, times how many replies each seat finishes an hour, times how full the seats are kept. Waiting depends on how full they are too: the closer to full, the longer the wait.</p></div>
         <div class="mstep"><span class="mk">With your numbers</span><p class="calc">Full: 64 seats × (3,600 s ÷ 20 s per reply) = 11,520 replies per GPU-hour<br>$3 ÷ 11,520 × 1,000 = <b>$0.26 per 1,000 replies</b> when every seat is used<br>Your day so far: <b data-live="cstPer">–</b> per 1,000, with <span data-live="cstIdle">–</span> of paid time on empty seats</p></div>
@@ -2187,6 +2199,42 @@ function setupQuizzes(root) {
 /* ---------- Footnote popovers ---------- */
 let pop = null;
 function closePop() { if (pop) { pop.remove(); pop = null; } }
+/* Glossary: <dfn data-g="gpu">GPU</dfn> shows a plain-language definition on tap or hover. */
+const GLOSS = {
+  token: "A small piece of text, often a word or part of a word. Models read and write tokens, not letters or words.",
+  gpu: "Graphics processing unit: a chip with thousands of small maths units working at once. AI models run on GPUs (or similar AI chips).",
+  parameter: "One of the numbers the model learned during training (also called a weight). A large model has billions of them.",
+  weight: "One of the numbers the model learned during training (also called a parameter). A large model has billions of them.",
+  vector: "A list of numbers. Models turn every token into a vector of thousands of numbers that describes it.",
+  softmax: "A rule that turns any list of scores into chances that add up to 100%: bigger scores get bigger shares.",
+  compute: "The amount of calculation a job needs, usually counted in operations (multiply-and-add steps).",
+  layer: "One stage of the model. The model passes every token through dozens of layers, one after another.",
+  "kv-cache": "The model's notes about the tokens it has already read, kept in GPU memory so it never has to re-read them.",
+  prefill: "The first phase of a reply: the model reads the whole prompt in one parallel pass.",
+  decode: "The second phase of a reply: the model writes the answer one token at a time.",
+  context: "Everything the model can see at once: instructions, the conversation so far, documents and tool results.",
+  latency: "How long something takes from the user's point of view, for example the wait before the first word appears.",
+  throughput: "How much work gets done per second in total, for example tokens per second across everyone.",
+  bandwidth: "How fast data can move, for example from a GPU's memory to its maths units (in bytes per second).",
+  watt: "A unit of power. A kilowatt (kW) is roughly a microwave oven running; a megawatt (MW) is 1,000 of those; a gigawatt (GW) is 1,000 MW, the output of a large power station.",
+  byte: "The basic unit of computer storage: 8 bits, enough for one English letter. A KB is about a thousand bytes (a short email), a GB about a billion (a film), a TB a thousand GB.",
+  flops: "Floating-point operations: the multiply-and-add sums AI chips do. A modern AI chip does around a thousand trillion a second.",
+  benchmark: "A fixed test with known answers, used to compare models.",
+  harness: "The ordinary program around the model that sends it text, runs the tools it asks for, and adds the results back."
+};
+function openGloss(d) {
+  closePop(); const key = d.dataset.g || d.textContent.trim().toLowerCase(); const txt = GLOSS[key]; if (!txt) return;
+  pop = document.createElement("div"); pop.className = "refpop gloss"; pop.setAttribute("role", "tooltip");
+  pop.innerHTML = `<b>${esc(d.textContent.trim())}</b><div>${txt}</div>`; document.body.appendChild(pop);
+  const r = d.getBoundingClientRect(), pw = Math.min(320, window.innerWidth - 24); pop.style.width = pw + "px";
+  pop.style.left = Math.max(12, Math.min(window.innerWidth - pw - 12, r.left + r.width / 2 - pw / 2)) + "px";
+  const below = r.bottom + 8 + pop.offsetHeight < window.innerHeight; pop.style.top = (below ? r.bottom + 8 : Math.max(8, r.top - pop.offsetHeight - 8)) + "px";
+}
+document.addEventListener("click", e => { const d = e.target.closest("dfn[data-g]"); if (d) { e.stopPropagation(); openGloss(d); } }, true);
+document.addEventListener("mouseover", e => { const d = e.target.closest("dfn[data-g]"); if (d && matchMedia("(hover: hover)").matches) openGloss(d); });
+document.addEventListener("mouseout", e => { const d = e.target.closest("dfn[data-g]"); if (d && pop && pop.classList.contains("gloss") && matchMedia("(hover: hover)").matches) closePop(); });
+document.addEventListener("keydown", e => { const d = e.target.closest && e.target.closest("dfn[data-g]"); if (d && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openGloss(d); } });
+document.addEventListener("DOMContentLoaded", () => $$("dfn[data-g]").forEach(d => { d.tabIndex = 0; d.setAttribute("role", "button"); }));
 function openPop(a) {
   closePop(); const id = a.getAttribute("href").slice(1); const li = document.getElementById(id); if (!li) return;
   pop = document.createElement("div"); pop.className = "refpop"; pop.setAttribute("role", "dialog"); pop.setAttribute("aria-label", "Source " + a.textContent);
@@ -2434,7 +2482,7 @@ function makeSim(fig, spec) {
     </div>
     <div class="stats sim-stats"></div>`;
   const cv = $("canvas", fig), stage = $(".sim-stage", fig), k = sceneKit(cv), chap = fig.closest(".chapter");
-  const S = { state: null, v: {}, kit: k, rand: null, narrow: false, time: 0, speed: 1, playing: !reduceMotion(), tour: null, seen: {}, noticeId: null };
+  const S = { state: null, v: {}, kit: k, rand: null, narrow: false, time: 0, speed: 1, playing: !reduceMotion(), tour: null, seen: {}, factSeen: {}, noticeId: null };
   const seed = spec.seed || 7;
   const height = () => { const w = innerW(stage); return spec.height ? spec.height(w) : (w < 640 ? Math.round(Math.max(300, w * 0.95)) : Math.round(Math.min(580, Math.max(380, w * 0.52)))); };
   let camCur = null;
@@ -2517,12 +2565,12 @@ function makeSim(fig, spec) {
   function say(html) { const el = $(".sim-notice", fig); el.innerHTML = html; $(".sim-live", fig).innerHTML = html; el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
   function facts() {
     for (const f of spec.facts || []) {
-      if (S.time < (spec.factDelay || 6) || S.seen["f:" + f.id] || !f.when(S.state)) continue; S.seen["f:" + f.id] = 1;
+      if (S.time < (spec.factDelay || 6) || S.factSeen[f.id] || !f.when(S.state)) continue; S.factSeen[f.id] = 1;
       unlockFact(chap ? chap.id : "", f.id, f.text, f.ref);
       const t = document.createElement("div"); t.className = "fact-toast";
       t.innerHTML = `<b>Fun fact</b><p>${f.text}${f.ref ? ` <sup class="ref"><a href="${f.ref}">${f.ref.replace("#ref-", "")}</a></sup>` : ""}</p><button type="button" aria-label="Dismiss">×</button>`;
       $("button", t).addEventListener("click", () => t.remove());
-      $(".sim-toasts", fig).appendChild(t); setTimeout(() => t.remove(), 20000);
+      const box = $(".sim-toasts", fig); box.innerHTML = ""; box.appendChild(t); setTimeout(() => t.remove(), 20000); // one fact at a time
       break;
     }
   }
@@ -5169,7 +5217,7 @@ chapter("cost", () => {
       { id: "calm", when: () => true, say: s => `It's ${clock(hourOf(s))} and ${Math.round(s.lam)} replies a second are being asked for. Traffic peaks in the afternoon at about three times the night-time low, and a spike hits at 11:00.` }
     ],
     facts: [
-      { id: "energy", when: s => s.t > 3, text: "Google measured the energy for a typical text prompt to its Gemini assistant at 0.24 watt-hours, counting the whole datacentre: less than a TV uses in nine seconds.", ref: "#ref-901" },
+      { id: "energy", when: s => s.t > 3, text: "Google measured the energy for a typical text prompt to its Gemini assistant at 0.24 watt-hours, counting the whole datacenter: less than a TV uses in nine seconds.", ref: "#ref-901" },
       { id: "batch", when: s => s.batch, text: "Providers sell spare capacity this way. Anthropic, for example, charges half price for requests sent as a batch, which finish within 24 hours and usually in under one.", ref: "#ref-902" }
     ],
     tour: [

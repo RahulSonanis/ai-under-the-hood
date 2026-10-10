@@ -194,7 +194,7 @@ chapter("cost", () => {
       { id: "calm", when: () => true, say: s => `It's ${clock(hourOf(s))} and ${Math.round(s.lam)} replies a second are being asked for. Traffic peaks in the afternoon at about three times the night-time low, and a spike hits at 11:00.` }
     ],
     facts: [
-      { id: "energy", when: s => s.t > 3, text: "Google measured the energy for a typical text prompt to its Gemini assistant at 0.24 watt-hours, counting the whole datacentre: less than a TV uses in nine seconds.", ref: "#ref-901" },
+      { id: "energy", when: s => s.t > 3, text: "Google measured the energy for a typical text prompt to its Gemini assistant at 0.24 watt-hours, counting the whole datacenter: less than a TV uses in nine seconds.", ref: "#ref-901" },
       { id: "batch", when: s => s.batch, text: "Providers sell spare capacity this way. Anthropic, for example, charges half price for requests sent as a batch, which finish within 24 hours and usually in under one.", ref: "#ref-902" }
     ],
     tour: [

@@ -117,6 +117,42 @@ function setupQuizzes(root) {
 /* ---------- Footnote popovers ---------- */
 let pop = null;
 function closePop() { if (pop) { pop.remove(); pop = null; } }
+/* Glossary: <dfn data-g="gpu">GPU</dfn> shows a plain-language definition on tap or hover. */
+const GLOSS = {
+  token: "A small piece of text, often a word or part of a word. Models read and write tokens, not letters or words.",
+  gpu: "Graphics processing unit: a chip with thousands of small maths units working at once. AI models run on GPUs (or similar AI chips).",
+  parameter: "One of the numbers the model learned during training (also called a weight). A large model has billions of them.",
+  weight: "One of the numbers the model learned during training (also called a parameter). A large model has billions of them.",
+  vector: "A list of numbers. Models turn every token into a vector of thousands of numbers that describes it.",
+  softmax: "A rule that turns any list of scores into chances that add up to 100%: bigger scores get bigger shares.",
+  compute: "The amount of calculation a job needs, usually counted in operations (multiply-and-add steps).",
+  layer: "One stage of the model. The model passes every token through dozens of layers, one after another.",
+  "kv-cache": "The model's notes about the tokens it has already read, kept in GPU memory so it never has to re-read them.",
+  prefill: "The first phase of a reply: the model reads the whole prompt in one parallel pass.",
+  decode: "The second phase of a reply: the model writes the answer one token at a time.",
+  context: "Everything the model can see at once: instructions, the conversation so far, documents and tool results.",
+  latency: "How long something takes from the user's point of view, for example the wait before the first word appears.",
+  throughput: "How much work gets done per second in total, for example tokens per second across everyone.",
+  bandwidth: "How fast data can move, for example from a GPU's memory to its maths units (in bytes per second).",
+  watt: "A unit of power. A kilowatt (kW) is roughly a microwave oven running; a megawatt (MW) is 1,000 of those; a gigawatt (GW) is 1,000 MW, the output of a large power station.",
+  byte: "The basic unit of computer storage: 8 bits, enough for one English letter. A KB is about a thousand bytes (a short email), a GB about a billion (a film), a TB a thousand GB.",
+  flops: "Floating-point operations: the multiply-and-add sums AI chips do. A modern AI chip does around a thousand trillion a second.",
+  benchmark: "A fixed test with known answers, used to compare models.",
+  harness: "The ordinary program around the model that sends it text, runs the tools it asks for, and adds the results back."
+};
+function openGloss(d) {
+  closePop(); const key = d.dataset.g || d.textContent.trim().toLowerCase(); const txt = GLOSS[key]; if (!txt) return;
+  pop = document.createElement("div"); pop.className = "refpop gloss"; pop.setAttribute("role", "tooltip");
+  pop.innerHTML = `<b>${esc(d.textContent.trim())}</b><div>${txt}</div>`; document.body.appendChild(pop);
+  const r = d.getBoundingClientRect(), pw = Math.min(320, window.innerWidth - 24); pop.style.width = pw + "px";
+  pop.style.left = Math.max(12, Math.min(window.innerWidth - pw - 12, r.left + r.width / 2 - pw / 2)) + "px";
+  const below = r.bottom + 8 + pop.offsetHeight < window.innerHeight; pop.style.top = (below ? r.bottom + 8 : Math.max(8, r.top - pop.offsetHeight - 8)) + "px";
+}
+document.addEventListener("click", e => { const d = e.target.closest("dfn[data-g]"); if (d) { e.stopPropagation(); openGloss(d); } }, true);
+document.addEventListener("mouseover", e => { const d = e.target.closest("dfn[data-g]"); if (d && matchMedia("(hover: hover)").matches) openGloss(d); });
+document.addEventListener("mouseout", e => { const d = e.target.closest("dfn[data-g]"); if (d && pop && pop.classList.contains("gloss") && matchMedia("(hover: hover)").matches) closePop(); });
+document.addEventListener("keydown", e => { const d = e.target.closest && e.target.closest("dfn[data-g]"); if (d && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openGloss(d); } });
+document.addEventListener("DOMContentLoaded", () => $$("dfn[data-g]").forEach(d => { d.tabIndex = 0; d.setAttribute("role", "button"); }));
 function openPop(a) {
   closePop(); const id = a.getAttribute("href").slice(1); const li = document.getElementById(id); if (!li) return;
   pop = document.createElement("div"); pop.className = "refpop"; pop.setAttribute("role", "dialog"); pop.setAttribute("aria-label", "Source " + a.textContent);

@@ -546,3 +546,15 @@ details.maths { margin: 1rem 0 0.2rem; background: var(--bg); }
 .facts-list li.empty { border-left-color: var(--line); color: var(--muted); }
 
 @media (max-width: 640px) { .sim-goal { border-radius: 14px; display: block; } .sim-goal .dot { display: inline-block; margin-right: 0.4rem; } .sim-goal .gp { display: block; } }
+/* v4.1 engine fixes: maths never widens the page; anchors clear the sticky bar; glossary terms */
+.mstep > * { min-width: 0; }
+.mstep .eq { white-space: normal; overflow-wrap: anywhere; line-height: 1.8; }
+.mstep .eq br + * { display: inline; }
+.mstep .sym, .mstep .calc { overflow-wrap: anywhere; }
+details.how, details.maths, .explain { min-width: 0; max-width: 100%; }
+@media (max-width: 640px) { .mstep { grid-template-columns: 1fr; } }
+.sim, .beat, section.chapter, .recall, .quiz, .carry { scroll-margin-top: calc(var(--bar-h) + 14px); }
+dfn[data-g] { font-style: normal; text-decoration: underline dotted; text-decoration-color: var(--muted); text-underline-offset: 3px; cursor: help; }
+dfn[data-g]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+.refpop.gloss { font-size: 0.92rem; }
+.refpop.gloss b { font-family: var(--f-display); display: block; margin-bottom: 0.2rem; }
