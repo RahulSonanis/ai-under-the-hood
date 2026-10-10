@@ -1,0 +1,54 @@
+<section class="chapter" id="agents" data-num="16" data-part="4" data-title="Agents and tools">
+  <header class="ch-head">
+    <div class="ch-num">Chapter 16 · Around the model</div>
+    <h2>How does a chatbot become an agent that does things?</h2>
+    <p class="hook">A language model can only read text and write text. Put it in a loop with a few tools and a program that runs them, and it can find and fix a bug by itself. In this chapter you are that program.</p>
+    <div class="meta">About 15 minutes · one simulation · you'll learn the agent loop, why the context window is the main thing to manage, how search and summarising keep it small, how prompt caching cuts the bill, and what MCP is.</div>
+  </header>
+
+  <div class="recall" data-toc="Remember">
+    <div class="beat-label">From the last chapter</div>
+    <div class="q" data-answer="1"><p>How does an assistant learn which of two possible answers is better?</p><div class="opts"><button>It copies whichever answer is most common on the web</button><button>People (or a judging model) compare pairs of answers, and training nudges the model toward the preferred one</button><button>Engineers write a rule for every possible question</button></div><div class="why">Examples teach the format, comparisons teach what's better, and a leash keeps the model close to where it started.</div></div>
+  </div>
+
+  <div class="beat" data-toc="Predict">
+    <div class="predict" data-answer="1"><span class="label">Predict first</span><p>An agent fixes a bug in 5 model calls. Each call re-reads the whole conversation so far, which ends up about 8,700 tokens long. How many tokens did the model read in total?</p><div class="opts"><button type="button">About 8,700, the length of the conversation</button><button type="button">About 35,000</button><button type="button">About a million</button></div><div class="predict-after" hidden><p>Locked in. Now try it in the simulation below.</p><details><summary>Show the answer</summary><p>About 35,000. The first call reads about 5,000 tokens, the last about 8,700, and every call in between reads everything again. Reading grows much faster than the conversation does, which is why prompt caching matters so much for agents.</p></details></div></div>
+  </div>
+
+  <div class="beat" data-toc="Play">
+    <h3>You are the harness</h3>
+    <p class="beat-intro">A bug report arrives. The model (centre) asks for one tool at a time (right), and the harness, the program around the model, runs it and pastes the result into the <b>context window</b>, the bar at the bottom: everything the model reads on every call. It holds 12,000 tokens. You decide how the model gets to see the code, whether old output gets summarised, and whether repeated text is cached. The chance gauge is illustrative.</p>
+    <figure class="sim" id="agent-sim"></figure>
+  </div>
+
+  <div class="beat explain" data-toc="Explain">
+    <h3>What's going on</h3>
+    <p>An <b>agent</b> is a model inside a loop run by ordinary software, the <b>harness</b>. The harness tells the model which tools exist, such as "run the tests" or "edit a file". When the model wants one, it writes a short structured request instead of a reply. The harness runs the tool, adds the result to the conversation and calls the model again. The loop ends when the model answers instead of asking<sup class="ref"><a href="#ref-40">40</a></sup>.</p>
+    <p>The model remembers nothing between calls. Everything it knows about the task must be in its context window, and that window has a hard limit. So the harness's main job is choosing what goes in. Too little and the model guesses. Too much and it overflows, or the one important line gets lost among unrelated text<sup class="ref"><a href="#ref-41">41</a></sup>.</p>
+    <p>That's why harnesses <b>search</b> instead of pasting everything. Ahead of time the code is cut into chunks, and each chunk becomes a list of numbers called an <b>embedding</b>, so chunks with similar meaning get similar numbers (the dots on the right). The model's query becomes numbers the same way, and the nearest chunks are pasted in. This is retrieval-augmented generation, or RAG<sup class="ref"><a href="#ref-1601">1601</a></sup>.</p>
+    <p>Re-reading is also what makes agents expensive. Your last task made <span data-live="agCalls">0</span> calls that read <span data-live="agIn">0</span> tokens in total, though the context never held more than <span data-live="agPeak">0</span>. Each call starts with exactly the same text as the one before, so the server can keep its work on that part and charge about a tenth for it<sup class="ref"><a href="#ref-71">71</a></sup>. That task billed <span data-live="agBilled">0</span> tokens; without caching it would have been <span data-live="agNoCache">0</span>.</p>
+    <details class="how"><summary>How it works <span class="sub">tool calls, MCP, retrieval, compaction, caching</span></summary><div class="body">
+      <p><b>Tool calls.</b> Each tool is described to the model by a name, a sentence about what it does and a schema for its inputs. The model replies with a structured request such as <code>edit_file(path, change)</code>. The harness checks permissions, runs it (often in a sandbox) and appends the result. Anthropic separates <b>workflows</b>, where code fixes the order of steps, from <b>agents</b>, where the model picks its own next step, and recommends the simplest one that works<sup class="ref"><a href="#ref-40">40</a></sup>. Real harnesses also set budgets on steps, time and money, which is the role of the token budget in the simulation.</p>
+      <p><b>MCP.</b> Every harness used to wire up each tool its own way. The <b>Model Context Protocol</b>, an open standard Anthropic released in November 2024, defines one way for a tool or data source to describe itself and be called, so something written once as an "MCP server" plugs into any harness that speaks the protocol<sup class="ref"><a href="#ref-1604">1604</a></sup><sup class="ref"><a href="#ref-42">42</a></sup>.</p>
+      <p><b>Retrieval.</b> The original RAG paper paired a text generator with a searchable index of Wikipedia passages: question and passages were turned into vectors, the closest passages were fetched, and the generator wrote its answer from them<sup class="ref"><a href="#ref-1601">1601</a></sup>. The design choices are the ones you played with: chunk size, and how many results to paste. Coding agents often skip the index and let the model search with ordinary tools like file listing and text search, fetching files only when needed<sup class="ref"><a href="#ref-41">41</a></sup>.</p>
+      <p><b>Compaction.</b> When the window fills, harnesses summarise old tool output, keep notes in files the agent can re-read, or hand a sub-task to a sub-agent with a fresh context<sup class="ref"><a href="#ref-41">41</a></sup>. Summaries keep the gist and lose details, as you may have seen when the broken code got squashed. Position matters too: models use facts at the start or end of a long context more reliably than facts in the middle<sup class="ref"><a href="#ref-1603">1603</a></sup>.</p>
+      <p><b>Caching.</b> The cache only matches an identical beginning. Change anything early, for example by summarising an old output, and everything after it is billed fresh again. Writing to the cache costs a little more than a normal read, and entries expire after a few minutes unless they are reused<sup class="ref"><a href="#ref-71">71</a></sup>. That's why harnesses keep stable text (instructions, tool descriptions) at the start.</p>
+      <details class="maths"><summary>The maths <span class="sub">why agents read so much, and what caching saves</span></summary><div class="body">
+        <div class="mstep"><span class="mk">In words</span><p>Every call reads the whole conversation so far, and the conversation grows a little with each step. So the total reading grows much faster than the conversation, roughly with the square of the number of steps. Caching charges about a tenth for the part that is identical to the previous call.</p></div>
+        <div class="mstep"><span class="mk">With your numbers</span><p class="calc">Your last task's calls read <span data-live="agList">0</span><br>= <b data-live="agIn">0</b> tokens read in total<br>billed = <span data-live="agFresh">0</span> fresh + <span data-live="agCachedTenth">0</span> (a tenth of <span data-live="agCached">0</span> cached) + <span data-live="agOut">0</span> written<br>= <b data-live="agBilled">0</b> tokens, versus <span data-live="agNoCache">0</span> with no caching</p></div>
+        <div class="mstep"><span class="mk">In symbols</span><div><div class="eq">B = Σ (nᵢ − cᵢ) + r · Σ cᵢ + Σ oᵢ</div><p class="sym"><i>B</i> tokens billed for the task · <i>nᵢ</i> tokens in the context at call <i>i</i> · <i>cᵢ</i> the part identical to the start of the previous call, served from the cache · <i>r</i> the price of a cached token compared with a fresh one (0.1 here) · <i>oᵢ</i> tokens the model writes at call <i>i</i>. If the context starts at <i>n</i>₁ and grows by about <i>g</i> per call, <i>k</i> calls read Σ <i>nᵢ</i> ≈ <i>k</i>·<i>n</i>₁ + <i>g</i>·<i>k</i>(<i>k</i>−1)/2 tokens: the second term is the one that grows with the square of the steps.</p></div></div>
+      </div></details>
+    </div></details>
+  </div>
+
+  <div class="carry" data-toc="Remember this">
+    <span class="big">A loop with tools</span>
+    <span class="lab">Carry this forward</span>
+    <p>An agent is a loop: the model asks for a tool, the harness runs it and adds the result to the context, and every call re-reads it all.</p>
+  </div>
+
+  <div class="quiz" data-toc="Check yourself"><div class="label">Check yourself</div>
+    <div class="q" data-answer="1"><p>Why does a harness paste the 3 best-matching chunks of code rather than every file?</p><div class="opts"><button>The files are secret</button><button>It keeps the context small and focused: everything pasted is re-read on every call, and unrelated text makes mistakes likelier</button><button>Models can't read whole files</button></div><div class="why">The window is limited and every token in it is paid for on every call. A few relevant chunks give the model what it needs without the clutter.</div></div>
+    <div class="q" data-answer="0"><p>What does prompt caching rely on?</p><div class="opts"><button>Each call starting with exactly the same text as the call before</button><button>The model remembering earlier calls by itself</button><button>The model writing shorter replies</button></div><div class="why">The model remembers nothing between calls. The server reuses its work on an identical beginning; change anything early and the cache breaks from that point on.</div></div>
+  </div>
+</section>

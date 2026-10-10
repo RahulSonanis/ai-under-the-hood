@@ -1,0 +1,54 @@
+<section class="chapter" id="data" data-num="12" data-part="3" data-title="Data">
+  <header class="ch-head">
+    <div class="ch-num">Chapter 12 · Where the model comes from</div>
+    <h2>Where does a model's knowledge come from?</h2>
+    <p class="hook">Before it could answer a single question, Meta's Llama 3 model read about 15 trillion tokens of text<sup class="ref"><a href="#ref-9">9</a></sup>, more than a person reading non-stop would get through in 80,000 years. Most of it came from the public web, and most of the web is junk, copies or private details. In this chapter you decide what the model gets to read.</p>
+    <div class="meta">About 15 minutes · one simulation · you'll learn how web text is cleaned, how copies are found, and why the mix of sources matters as much as the filters.</div>
+  </header>
+
+  <div class="recall" data-toc="Remember">
+    <div class="beat-label">From the last chapter</div>
+    <div class="q" data-answer="2"><p>Roughly how much power does one AI chip in a datacenter draw?</p><div class="opts"><button>About as much as a phone charger, 10 watts</button><button>About as much as a laptop, 100 watts</button><button>About a kilowatt, like a microwave oven running non-stop</button></div><div class="why">Each AI chip draws around a kilowatt and turns nearly all of it into heat, so power and cooling set the limits of a datacenter.</div></div>
+  </div>
+
+  <div class="beat" data-toc="Predict">
+    <div class="predict" data-answer="1"><span class="label">Predict first</span><p>You set the quality filter so strict that only the most textbook-like pages survive. What happens to a model trained on what's left?</p><div class="opts"><button type="button">It gets better: only the best text is left</button><button type="button">It gets worse: too little text, and too narrow</button><button type="button">Nothing changes: the model ignores bad pages anyway</button></div><div class="predict-after" hidden><p>Locked in. Now try it in the simulation below.</p><details><summary>Show the answer</summary><p>It gets worse. A very strict filter also throws out recipes, reviews and everyday writing that teach a model how people actually write. Too loose lets junk in; too strict starves the model. The best setting is in between.</p></details></div></div>
+  </div>
+
+  <div class="beat" data-toc="Play">
+    <h3>You run the cleaning pipeline</h3>
+    <p class="beat-intro">Pages from one copy of the web (a "crawl snapshot") flow left to right through four filters you control. Pages a filter drops fall into the bin underneath. The pages that survive fill the training set on the right, coloured by what they really are. The band behind the pages shrinks as fewer survive. Click any page to read it and see why it was kept or dropped.</p>
+    <figure class="sim" id="data-sim"></figure>
+  </div>
+
+  <div class="beat explain" data-toc="Explain">
+    <h3>What's going on</h3>
+    <p>Training text starts with a <b>crawl</b>: a program that follows links and saves copies of web pages. A page is mostly menus, ads and code, so the first step keeps only the main writing. Then filters decide which pages a model should learn from. In your snapshot, <span data-live="dKept">0</span> of <span data-live="dIn">0</span> pages survive (<span data-live="dKeptPct">0%</span>).</p>
+    <p>Each filter catches a different problem. A language check counts common words. Quality rules catch pages that are too short, full of symbols or stuffed with the same keyword, and a scoring model rates the rest. Copy removal finds pages that say almost the same thing: the web is full of articles reposted with a new footer, and reading them twice wastes training time and makes the model more likely to memorise them word for word. Masking hides email addresses and phone numbers so the model can't learn and repeat them.</p>
+    <p>Every filter can be too loose or too strict. Right now you keep <span data-live="dGood">0%</span> of the good pages, and <span data-live="dProb">0%</span> of what you keep is junk, a copy or personal data. Push the bar too high and the model loses useful everyday writing; too low and it learns from spam. The test score (<span data-live="dScore">0</span> out of 100, illustrative) reacts to both.</p>
+    <p>Then comes the <b>mix</b>: how much web text, code, maths and books the model reads. A model that never sees code can't write it. Teams choose the mix by training small models on different mixes and comparing them.</p>
+    <details class="how"><summary>How it works <span class="sub">a real pipeline, copies, scoring and the mix</span></summary><div class="body">
+      <p><b>A real pipeline.</b> Most open training sets start from Common Crawl, a free public archive of the web saved several times a year. Hugging Face, a company that hosts open models and datasets, built FineWeb from 96 of those snapshots: extract the text from each page's HTML, identify its language, apply quality rules, remove near-copies, apply more filters, and anonymise email and IP addresses. The result is 15 trillion tokens of English<sup class="ref"><a href="#ref-3">3</a></sup>. Even after the first round of filters left about 36 trillion tokens, later steps cut that by more than half.</p>
+      <p><b>Quality rules</b> are simple tests that DeepMind popularised for its Gopher model: minimum and maximum word counts, the share of symbols, lines that repeat, and whether common words such as "the" and "and" appear at all<sup class="ref"><a href="#ref-1201">1201</a></sup>. The ones in the simulation are a few of these, run for real on each page.</p>
+      <p><b>Finding copies.</b> Comparing every page with every other page is impossible at web scale, so pipelines use <b>MinHash</b><sup class="ref"><a href="#ref-1202">1202</a></sup>: each page is cut into overlapping 5-word snippets ("shingles") and summarised by a short fingerprint of numbers. Two fingerprints that agree in many places belong to pages that share many snippets. FineWeb used 112 numbers per fingerprint and targeted pages about 75% similar. It deduplicated each snapshot on its own, because deduplicating all of them together kept worse pages and trained worse models<sup class="ref"><a href="#ref-3">3</a></sup>. The simulation does the same: 5-word shingles, 112 numbers, one snapshot at a time.</p>
+      <p><b>Scoring pages.</b> Rules can't tell a good explanation from fluent filler. FineWeb-Edu asked a large model to rate pages from 0 to 5 for educational value, trained a small classifier on those ratings, and kept pages scoring 3 or more: 1.3 trillion tokens. Small models trained on it scored higher on school science questions<sup class="ref"><a href="#ref-3">3</a></sup>. The scores in the simulation stand in for such a classifier and are illustrative.</p>
+      <p><b>The mix.</b> Meta's final mix for Llama 3 was roughly 50% general knowledge, 25% maths and reasoning, 17% code and 8% other languages<sup class="ref"><a href="#ref-9">9</a></sup>. Intuition is a poor guide: Hugging Face found that scientific papers, full of knowledge, can hurt small models, so teams run many small experiments ("ablations") before a big run<sup class="ref"><a href="#ref-1">1</a></sup>. Labs also respect sites that opt out, remove whole websites that hold a lot of personal data<sup class="ref"><a href="#ref-9">9</a></sup>, and remove known test questions so benchmark scores stay honest.</p>
+      <details class="maths"><summary>The maths <span class="sub">how similar are two pages?</span></summary><div class="body">
+        <div class="mstep"><span class="mk">In words</span><p>Cut each page into every run of 5 words in a row. The similarity of two pages is the number of runs they share divided by the number of different runs they have between them. Counting that exactly for billions of pages is too slow, so MinHash shuffles all possible runs in a random order and asks: do both pages have the same first run? The chance of a yes is exactly their similarity. Repeat with 112 different shuffles and count the yeses.</p></div>
+        <div class="mstep"><span class="mk">With your numbers</span><p class="calc">The closest near-copy in your snapshot shares <b data-live="dShared">–</b> runs out of <b data-live="dUnion">–</b> different runs<br>True similarity = <span data-live="dShared">–</span> ÷ <span data-live="dUnion">–</span> = <b data-live="dJ">–</b><br>MinHash: the fingerprints agree in <b data-live="dMatch">–</b> of 112 places → <b data-live="dEst">–</b><br>Your cut-off is <span data-live="dCut">–</span>, so this page is <b data-live="dVerdict">–</b></p></div>
+        <div class="mstep"><span class="mk">In symbols</span><div><div class="eq">J(A, B) = |A ∩ B| ÷ |A ∪ B|  ≈  (1/k) · #{ i : min hᵢ(A) = min hᵢ(B) }</div><p class="sym"><i>A</i>, <i>B</i> the sets of 5-word runs in two pages · <i>|A ∩ B|</i> how many runs they share · <i>|A ∪ B|</i> how many different runs they have together · <i>J</i> their similarity, from 0 (nothing shared) to 1 (identical) · <i>hᵢ</i> the i-th random shuffle, and <i>min hᵢ(A)</i> the run of A that comes first in it · <i>k</i> the number of shuffles (112) · <i>#{…}</i> how many shuffles agree. The estimate is usually within about ±0.05 of the truth with 112 shuffles, close enough to sort copies from different pages.</p></div></div>
+      </div></details>
+    </div></details>
+  </div>
+
+  <div class="carry" data-toc="Remember this">
+    <span class="big">Most of the web is thrown away</span>
+    <span class="lab">Carry this forward</span>
+    <p>Training text is filtered, deduplicated and mixed down to trillions of good tokens. Too loose lets junk in, too strict starves the model, and the mix decides what it can do.</p>
+  </div>
+
+  <div class="quiz" data-toc="Check yourself"><div class="label">Check yourself</div>
+    <div class="q" data-answer="2"><p>Why remove near-copies of pages, not just exact copies?</p><div class="opts"><button>Near-copies are always spam</button><button>Near-copies confuse the language check</button><button>The same article with a new footer is really one page; reading it many times wastes training and encourages memorising it</button></div><div class="why">Mirrored and lightly edited copies would be over-represented. Similarity measures like MinHash catch them even when a few words differ.</div></div>
+    <div class="q" data-answer="0"><p>How do teams usually decide how much web text, code and maths to mix?</p><div class="opts"><button>They train small models on different mixes and compare the results</button><button>They use the most prestigious sources only</button><button>They use every page they have, in equal amounts</button></div><div class="why">Intuition about data is often wrong, so mixes are chosen by experiments called ablations.</div></div>
+  </div>
+</section>

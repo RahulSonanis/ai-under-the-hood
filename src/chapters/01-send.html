@@ -1,0 +1,55 @@
+<section class="chapter" id="send" data-num="1" data-part="1" data-title="Press send">
+  <style>
+    @media (min-width: 641px) {
+      #send .sim-controls { grid-template-columns: repeat(6, 1fr); }
+      #send .sim-controls > :nth-child(1), #send .sim-controls > :nth-child(2) { grid-column: span 3; }
+      #send .sim-controls > :nth-child(n+3) { grid-column: span 2; }
+    }
+  </style>
+  <header class="ch-head">
+    <div class="ch-num">Chapter 1 · How a model answers</div>
+    <h2>What happens when you press send?</h2>
+    <p class="hook">Between your click and the first word of the reply, your message crosses the internet, passes three checkpoints, waits in line and is read by a chip in a datacenter. It usually all takes well under a second. This chapter lets you run that machine and find out what makes it slow.</p>
+    <div class="meta">About 12 minutes · one simulation · you'll learn the path a message takes, why the model reads your prompt all at once but writes one piece at a time, and what decides how long you wait.</div>
+  </header>
+
+  <div class="beat" data-toc="Predict">
+    <div class="predict" data-answer="1"><span class="label">Predict first</span><p>Instead of a one-line question, you paste a 30-page report and ask for a summary. What happens?</p><div class="opts"><button type="button">Nothing changes: computers read instantly</button><button type="button">You wait longer for the first word, then the words arrive as fast as before</button><button type="button">Everything slows down, including how fast the words appear</button></div><div class="predict-after" hidden><p>Locked in. Now try it in the simulation below.</p><details><summary>Show the answer</summary><p>The wait before the first word grows, because the model must read all 12,000 tokens of the report before it can write anything. Once it starts writing, each new word takes about the same time as before.</p></details></div></div>
+  </div>
+
+  <div class="beat" data-toc="Play">
+    <h3>Follow your message</h3>
+    <p class="beat-intro">On the left is your screen; on the right, a datacenter. Your message is the bright teal dot. The grey dots are other people using the same service. Change what you send, where you send it from, how busy the service is, and whether the model "thinks" first, then watch the clock. The animation runs five times slower than real life, and the timings are made up but realistic in size. Click any part of the machine to learn what it does.</p>
+    <figure class="sim" id="send-sim"></figure>
+  </div>
+
+  <div class="beat explain" data-toc="Explain">
+    <h3>What's going on</h3>
+    <p>When you press send, your app packs your message into a <b>request</b>: the conversation so far, plus any hidden instructions the app adds. The request crosses the internet to a datacenter, a building full of computers. A gateway checks who you are, a quick safety check screens the message, and then it waits in line until a copy of the model has room for it.</p>
+    <p>The model then works in two very different ways. First it <b>reads</b>. Your text is cut into <b>tokens</b>, small pieces of words (the next chapter shows how), and every token goes through the model at the same time, in one pass. Your last message was <span data-live="inTok">–</span> tokens, read in <span data-live="pre">–</span>. Then it <b>writes</b>, one token at a time: each new token is fed back in to make the next, about one every <span data-live="tpot">–</span>. Every token is sent to you the moment it exists, which is why replies appear word by word.</p>
+    <p>So the wait for the first word is the trip, the line and the reading, plus any thinking. Yours was <span data-live="ttft">–</span> with the service <span data-live="busy">–</span> busy. A long prompt makes the reading longer. A busy service makes the line longer, and much longer near full. A thinking model writes hundreds of hidden tokens before the first one you see. After the first word, the writing pace barely changes.</p>
+    <details class="how"><summary>How it works <span class="sub">requests, queues, caching, two phases</span></summary><div class="body">
+      <p><b>The request.</b> Apps send an HTTPS request to the provider's API (the address programs use to talk to the service). Its body is a list of messages (hidden "system" instructions, your turns, the model's turns), the model's name, a length limit and a flag asking for the reply to be streamed. The model keeps nothing between requests, so the whole conversation is sent again every turn<sup class="ref"><a href="#ref-70">70</a></sup>. With streaming on, the reply comes back as server-sent events: one long-lived response that delivers small chunks as they are made<sup class="ref"><a href="#ref-55">55</a></sup>.</p>
+      <p><b>Hidden instructions.</b> A chat app adds its own instructions, and a coding agent adds even more: rules, tool descriptions and project files. The simulation uses 2,000 and 15,000 tokens; these are illustrative, and real apps vary. Your own code sends only what you write.</p>
+      <p><b>The line.</b> Each copy of the model works on a limited number of conversations at once. The simulation's line is a classic single-queue model, M/M/1: requests arrive at random, and places free up at random. Its average wait is the time to free one place (60 ms here) times ρ/(1 − ρ), where ρ is how busy the service is. At 50% busy that is 60 ms; at 95% it is over a second. Providers keep spare capacity because waits explode near full.</p>
+      <p><b>Caching the start.</b> If a request begins with exactly the same tokens as a recent one, the server can reuse the notes it made while reading them instead of reading again. Routers try to send you to a copy that has your conversation's start stored. Providers bill cached text at a discount<sup class="ref"><a href="#ref-71">71</a></sup><sup class="ref"><a href="#ref-72">72</a></sup>. Chapter 7 shows where those notes live.</p>
+      <p><b>Two phases.</b> Engineers call reading <i>prefill</i> and writing <i>decode</i>, and measure them as time to first token (TTFT) and time per output token. Prefill is limited by how fast the chips calculate, since every token can be processed in parallel. Decode is limited by how fast the chips can read the model's weights from memory, once per token. The two are so different that some systems run them on separate groups of GPUs<sup class="ref"><a href="#ref-36">36</a></sup><sup class="ref"><a href="#ref-37">37</a></sup>.</p>
+      <details class="maths"><summary>The maths <span class="sub">adding up the wait, step by step</span></summary><div class="body">
+        <div class="mstep"><span class="mk">In words</span><p>The wait for the first word is a sum: the trip there, the checks, the line, the reading, any thinking, writing one token, and the trip back. The whole reply then adds one more token's time for every remaining token.</p></div>
+        <div class="mstep"><span class="mk">With your numbers</span><p class="calc">40 ms (internet) + 12 ms (gateway) + 25 ms (safety) + <span data-live="qwait">–</span> (line) + 6 ms (router and tokens)<br>+ <span data-live="pre">–</span> (reading) + <span data-live="thinkT">–</span> (thinking) + <span data-live="tpot">–</span> (first token) + 40 ms (trip back)<br>= <b data-live="ttft">–</b> until the first word<br>Writing pace: one token per <span data-live="tpot">–</span> = <span data-live="tps">–</span> tokens a second, about <span data-live="wps">–</span> words a second</p></div>
+        <div class="mstep"><span class="mk">In symbols</span><div><div class="eq">T<sub>first</sub> = t<sub>trip</sub> + t<sub>check</sub> + W + t<sub>read</sub> + n<sub>think</sub>·t<sub>tok</sub> + t<sub>tok</sub><br>W = s · ρ / (1 − ρ) &nbsp;&nbsp; t<sub>read</sub> ≈ 30 ms + n<sub>new</sub> × 0.08 ms<br>T<sub>all</sub> = T<sub>first</sub> + (n<sub>out</sub> − 1) · t<sub>tok</sub></div><p class="sym"><i>T<sub>first</sub></i> time until the first word · <i>t<sub>trip</sub></i> the internet both ways (80 ms) · <i>t<sub>check</sub></i> gateway, safety check, router and tokenizing (43 ms) · <i>W</i> average wait in line · <i>s</i> time for one place to free up (60 ms) · <i>ρ</i> how busy the service is, from 0 to 1 · <i>t<sub>read</sub></i> reading time · <i>n<sub>new</sub></i> tokens not already cached · <i>n<sub>think</sub></i> hidden thinking tokens (300 or 0) · <i>t<sub>tok</sub></i> time to write one token (18–26 ms, slower when busier) · <i>T<sub>all</sub></i> time for the whole reply · <i>n<sub>out</sub></i> tokens in the reply. All the constants are illustrative.</p></div></div>
+      </div></details>
+    </div></details>
+  </div>
+
+  <div class="carry" data-toc="Remember this">
+    <span class="big">Read, then write</span>
+    <span class="lab">Carry this forward</span>
+    <p>The model reads your whole prompt in one parallel pass, then writes the reply one token at a time.</p>
+  </div>
+
+  <div class="quiz" data-toc="Check yourself"><div class="label">Check yourself</div>
+    <div class="q" data-answer="1"><p>Your prompt is 3,000 tokens long and the reply is 50 tokens. Ignoring the line, what mostly decides the wait before the first word?</p><div class="opts"><button>Writing the 50 reply tokens</button><button>Reading the 3,000-token prompt</button><button>Encrypting the request</button></div><div class="why">The first word can't appear until the whole prompt has been read. The other 49 reply tokens come after the first one, and encryption is cheap.</div></div>
+    <div class="q" data-answer="1"><p>A service goes from 50% busy to 95% busy. What happens to the average wait in line?</p><div class="opts"><button>It roughly doubles, like the busyness</button><button>It grows far more, about twenty times</button><button>It stays the same until the service is completely full</button></div><div class="why">The wait grows like ρ/(1 − ρ): 1 at 50% busy, 19 at 95%. That's why providers keep spare capacity.</div></div>
+  </div>
+</section>

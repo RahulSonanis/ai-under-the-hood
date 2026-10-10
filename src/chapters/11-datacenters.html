@@ -1,0 +1,54 @@
+<section class="chapter" id="datacenters" data-num="11" data-part="2" data-title="Datacenters and power">
+  <style>#dc-sim .sim-controls { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }</style>
+  <header class="ch-head">
+    <div class="ch-num">Chapter 11 · Serving millions</div>
+    <h2>Why are AI companies building power plants?</h2>
+    <p class="hook">In 2024, Microsoft, which runs some of the world's largest datacenters, agreed to buy 20 years of electricity from a nuclear reactor being restarted at Three Mile Island in Pennsylvania<sup class="ref"><a href="#ref-1104">1104</a></sup>. That reactor makes about 835 MW, as much as roughly 680,000 American homes use<sup class="ref"><a href="#ref-1101">1101</a></sup>. This chapter gives you a power budget and an empty site, and asks you to build an AI cluster.</p>
+    <div class="meta">About 14 minutes · one simulation · you'll learn why every chip is also a heater, why AI racks are cooled with liquid, what PUE measures, and why datacenters are built where the power is.</div>
+  </header>
+
+  <div class="recall" data-toc="Remember">
+    <div class="beat-label">From the last chapter</div>
+    <div class="q" data-answer="2"><p>A team has a new version of its model ready. What should happen first?</p><div class="opts"><button>Switch everyone over at night, when traffic is low</button><button>Switch everyone over, and roll back if people complain</button><button>Send a small slice of traffic to it, compare it closely with the old version, then widen step by step</button></div><div class="why">Canary first. A small, watched slice limits how many people a hidden bug can reach. This chapter steps back from the software to the building it all runs in.</div></div>
+  </div>
+
+  <div class="beat" data-toc="Predict">
+    <div class="predict" data-answer="2"><span class="label">Predict first</span><p>One AI chip draws about 1 kW, close to the average power an American home draws<sup class="ref"><a href="#ref-1101">1101</a></sup>. How much of that electricity ends up as heat?</p><div class="opts"><button type="button">About a tenth</button><button type="button">About half</button><button type="button">Nearly all of it</button></div><div class="predict-after" hidden><p>Locked in. Now try it in the simulation below.</p><details><summary>Show the answer</summary><p>Nearly all of it. Calculating doesn't store energy anywhere: the electricity a chip uses comes out as heat, so a datacenter has to remove as much heat as it takes in power.</p></details></div></div>
+  </div>
+
+  <div class="beat" data-toc="Play">
+    <h3>You plan an AI cluster</h3>
+    <p class="beat-intro">This is a site plan. Power (amber) arrives from the grid on the left, through a substation, into four halls. Each small square is a space for one rack, a cabinet of servers about the size of a wardrobe. Heat (blue) leaves through the cooling plant on the right. Choose how much power you have, how the racks are cooled, how much the building itself uses, and what the cluster is for. Chips appear until the power runs out or the halls are full. When the cluster is training, the readouts show how long it would take to train an example large model. Figures are illustrative where marked, and time is sped up: one second is one hour.</p>
+    <figure class="sim" id="dc-sim"></figure>
+  </div>
+
+  <div class="beat explain" data-toc="Explain">
+    <h3>What's going on</h3>
+    <p><b>Every chip is a heater.</b> An AI chip draws about 1 kW. With its share of the processors, memory and network around it, each chip in your cluster needs about 1.65 kW<sup class="ref"><a href="#ref-60">60</a></sup>. Your <span data-live="dcGpus">0</span> chips draw <span data-live="dcIT">0 MW</span>, and every bit of that becomes heat the building must carry away.</p>
+    <p><b>Cooling sets how tightly chips can be packed.</b> Fans blowing cold air can cool an ordinary rack: the most common ones hold 4–6 kW of equipment<sup class="ref"><a href="#ref-1103">1103</a></sup>. The newest AI racks hold 72 chips and about 120 kW, which only works with liquid piped straight onto the chips<sup class="ref"><a href="#ref-60">60</a></sup>. Packing matters because chips that work together need to sit close, joined by short, fast cables. With air, your halls fill up long before your power runs out.</p>
+    <p><b>The building takes its share.</b> PUE (power usage effectiveness) is the site's total power divided by the power that reaches the computers. At your PUE of <span data-live="dcPue">1.5</span>, <span data-live="dcOvh">0 MW</span> goes to chillers, fans and power conversion. The industry average in 2024 was 1.56<sup class="ref"><a href="#ref-1103">1103</a></sup>; Google reports about 1.09 for its own datacenters<sup class="ref"><a href="#ref-45">45</a></sup>.</p>
+    <p><b>So power is the limit.</b> Your site draws <span data-live="dcSite">0 MW</span>, as much as <span data-live="dcHomes">0</span> homes, the size of <span data-live="dcPlace">a town</span>. The International Energy Agency estimates that a typical AI datacenter uses as much electricity as 100,000 households, and the largest being built will use 20 times that. Connecting that much to the grid takes years: new power lines take four to eight years to build in rich countries<sup class="ref"><a href="#ref-1102">1102</a></sup>. So companies build where power already is, and pay for new power plants.</p>
+    <details class="how"><summary>How it works <span class="sub">from chip to campus</span></summary><div class="body">
+      <p><b>From chip to rack.</b> NVIDIA, the largest maker of AI chips, sells a rack called the GB200 NVL72: 72 GPUs and 36 processors wired together so tightly they act as one large accelerator<sup class="ref"><a href="#ref-22">22</a></sup>. It draws about 120 kW and requires direct-to-chip liquid cooling: metal cold plates sit on the chips, and a coolant distribution unit pumps liquid through them<sup class="ref"><a href="#ref-60">60</a></sup>. An older H100 chip is rated up to 700 W<sup class="ref"><a href="#ref-23">23</a></sup>; newer ones draw more.</p>
+      <p><b>Why liquid.</b> A litre of water soaks up about 3,500 times as much heat as a litre of air for the same rise in temperature, so a thin pipe of water can do the work of a gale of air. Water use depends on the design: Microsoft's Fairwater AI datacenter in Wisconsin cools over 90% of its capacity with a closed loop of liquid that is filled once and recirculated<sup class="ref"><a href="#ref-31">31</a></sup>.</p>
+      <p><b>Training and serving use power differently.</b> A training run keeps every chip busy in step, so its draw is flat until the whole job pauses at once. Meta, the company behind the open Llama models, reported that such pauses swung its datacenter's power by tens of megawatts, "stretching the limits of the power grid"<sup class="ref"><a href="#ref-9">9</a></sup>. Serving follows people's day, so the site is built for the afternoon peak and sits partly idle at night.</p>
+      <p><b>Campuses.</b> Sites now come in gigawatts. One being built in Abilene, Texas, for OpenAI, the maker of ChatGPT, is designed for 1.2 GW across eight buildings and over 450,000 chips<sup class="ref"><a href="#ref-32">32</a></sup>, close to a million homes' worth of power<sup class="ref"><a href="#ref-1101">1101</a></sup>. Worldwide, datacenters used about 1.5% of all electricity in 2024, and the International Energy Agency expects that to more than double by 2030, to slightly more than Japan uses today<sup class="ref"><a href="#ref-1102">1102</a></sup>.</p>
+      <details class="maths"><summary>The maths <span class="sub">from a power budget to chips, homes and days</span></summary><div class="body">
+        <div class="mstep"><span class="mk">In words</span><p>The site's power is the number of chips, times the power each chip needs with its share of the rack, times the building's overhead (PUE). Turn it around to find how many chips a power budget buys. The training time is the job's total work divided by how much work all the chips do per second.</p></div>
+        <div class="mstep"><span class="mk">With your numbers</span><p class="calc"><span data-live="dcGpus">0</span> chips × 1.65 kW = <span data-live="dcIT">0</span> for the computers<br>× PUE <span data-live="dcPue">1.5</span> = <b data-live="dcSite">0</b> for the whole site<br>÷ 1.23 kW per average US home = <span data-live="dcHomes">0</span> homes<br>Example model: 3.8 × 10²⁵ calculations ÷ (<span data-live="dcGpus">0</span> chips × 10¹⁵ per second) ≈ <b data-live="dcDays">0</b> days</p></div>
+        <div class="mstep"><span class="mk">In symbols</span><div><div class="eq">P = N · w · PUE &nbsp;·&nbsp; T = W / (N · r)</div><p class="sym"><i>P</i> the site's power · <i>N</i> number of chips · <i>w</i> power per chip including its share of the rack (1.65 kW, from a 120 kW rack of 72) · <i>PUE</i> site power ÷ computer power · <i>T</i> training time · <i>W</i> the job's total calculations (3.8 × 10²⁵, the published work of Meta's largest Llama 3 model<sup class="ref"><a href="#ref-9">9</a></sup>) · <i>r</i> useful calculations per chip per second (10¹⁵, illustrative). An average US home uses 10,791 kWh a year, about 1.23 kW around the clock<sup class="ref"><a href="#ref-1101">1101</a></sup>.</p></div></div>
+      </div></details>
+    </div></details>
+  </div>
+
+  <div class="carry" data-toc="Remember this">
+    <span class="big">≈ 1 kW per chip</span>
+    <span class="lab">Carry this forward</span>
+    <p>Each AI chip draws about a kilowatt, roughly a home's average draw, and turns all of it into heat; power and cooling, not floor space or money alone, set how big an AI cluster can be.</p>
+  </div>
+
+  <div class="quiz" data-toc="Check yourself"><div class="label">Check yourself</div>
+    <div class="q" data-answer="1"><p>Why are the newest AI racks cooled with liquid?</p><div class="opts"><button>Liquid makes the chips calculate faster</button><button>At around 120 kW per rack, air can't carry the heat away fast enough</button><button>Air cooling isn't allowed in datacenters</button></div><div class="why">Water carries far more heat per litre than air, so it can cool racks many times denser than ordinary ones.</div></div>
+    <div class="q" data-answer="2"><p>A site has a PUE of 1.2 and its computers draw 100 MW. What does the whole site draw?</p><div class="opts"><button>83 MW</button><button>100 MW</button><button>120 MW</button></div><div class="why">PUE is the site's power divided by the computers' power, so 100 MW × 1.2 = 120 MW.</div></div>
+  </div>
+</section>

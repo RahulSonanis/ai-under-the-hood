@@ -1,0 +1,52 @@
+<section class="chapter" id="predict" data-num="3" data-part="1" data-title="Next word">
+  <header class="ch-head">
+    <div class="ch-num">Chapter 3 · How a model answers</div>
+    <h2>How does it pick the next word?</h2>
+    <p class="hook">A language model never knows the next word. It has a hunch about every word it knows, and then it rolls a dice. In this chapter a real model, small enough to run in your browser, writes in front of you while you rig the dice.</p>
+    <div class="meta">About 14 minutes · one simulation · you'll learn what the model actually outputs, what temperature, top-k and top-p do, and how "surprise" (the loss) measures how good a model is.</div>
+  </header>
+
+  <div class="recall" data-toc="Remember">
+    <div class="beat-label">From the last chapter</div>
+    <div class="q" data-answer="1"><p>In English, roughly how much text is one token?</p><div class="opts"><button>Always exactly one word</button><button>About three-quarters of a word on average</button><button>One letter</button></div><div class="why">Models read tokens: common words are one token, rarer words are split into pieces. In English that averages out to about three-quarters of a word per token.</div></div>
+  </div>
+
+  <div class="beat" data-toc="Predict">
+    <div class="predict" data-answer="1"><span class="label">Predict first</span><p>Suppose a model always writes the single word it thinks is most likely. What does its writing look like?</p><div class="opts"><button type="button">The best text it can possibly write</button><button type="button">Sensible at first, then stuck repeating itself</button><button type="button">Random nonsense</button></div><div class="predict-after" hidden><p>Locked in. The simulation starts in exactly this mode.</p><details><summary>Show the answer</summary><p>It gets stuck. The same words always lead to the same "most likely" next word, so once it returns to a phrase it has written before, it goes round the same loop for ever. A little randomness is what keeps writing fresh.</p></details></div></div>
+  </div>
+
+  <div class="beat" data-toc="Play">
+    <h3>Rig the dice of a real language model</h3>
+    <p class="beat-intro">At the top, the model writes one word at a time. Below, the bars show how likely it thinks each possible next word is, and the coloured strip is the dice roll that picks one. Change the temperature and watch the bars reshape while it keeps writing. Click any word in the bars to make it write that word. Then switch to reading to see how surprised it is by real sentences.</p>
+    <figure class="sim" id="pred-sim"></figure>
+  </div>
+
+  <div class="beat explain" data-toc="Explain">
+    <h3>What's going on</h3>
+    <p>At every step the model looks at the text so far and gives <b>every word it knows a probability</b>, a chance between 0 and 100%. Those are the bars. Then a random number picks one word, with each word's chance equal to its slice of the strip. The chosen word is added to the text and the whole thing repeats. That's all "writing" is: predict, pick, append, again. Words still in the running right now: <span data-live="pdKept">0</span>.</p>
+    <p>The dice matter. With <b>temperature</b> 0 the top word always wins, and the model loops. Raising the temperature flattens the odds so less likely words get a turn; too high and it writes word pairs it never saw (<span data-live="pdUn">0</span> in its last 40 words). <b>Top-k</b> and <b>top-p</b> fix that from the other side: they throw away the long tail of unlikely words before the roll. Chatbots use these same knobs, usually set by the company running them.</p>
+    <p>When the model reads a sentence instead of writing, we can measure how <b>surprised</b> it is by each true word: a word it gave 90% costs about 0.1, a word it gave 1% costs about 4.6. The average surprise is called the <b>loss</b>. On sentences it studied, your model's loss is <span data-live="pdLossA">–</span>; on new sentences it is <span data-live="pdLossB">–</span>. Training a model means nudging it, again and again, so that this number goes down.</p>
+    <details class="how"><summary>How it works <span class="sub">logits, samplers and loss</span></summary><div class="body">
+      <p><b>Your tiny model.</b> It is a genuine language model, just a very small one. It learned from 49 short sentences written for this course, 155 different words in all, by counting which word follows each pair of words. When it has never seen a pair, it falls back to what follows the last word alone, and then to how common each word is. That fallback is where the "word pairs it never saw" come from. A large model replaces counting with a neural network that can generalise, and its vocabulary is far larger: Meta's open Llama 3 models choose among about 128,000 tokens at every step<sup class="ref"><a href="#ref-9">9</a></sup>. The sampling step works the same way.</p>
+      <p><b>Logits and softmax.</b> A real model's last layer outputs one score, called a <b>logit</b>, for every token in its vocabulary. A function called softmax turns those scores into probabilities that add up to 100%. Temperature divides every score before the softmax. A component called the <b>sampler</b> then applies top-k (keep the k best), top-p, also called nucleus sampling (keep the smallest set of top tokens whose chances reach p), and draws one<sup class="ref"><a href="#ref-39">39</a></sup>. Sampling is the only random step: at temperature 0 the same prompt gives the same reply, apart from tiny differences in how a server adds up numbers.</p>
+      <p><b>Loss.</b> The surprise −ln p of the true next token, averaged over all the text, is the <b>cross-entropy loss</b>. It is the one number every training run watches go down, and lower loss on held-out text (text the model never trained on) generally tracks a more capable model<sup class="ref"><a href="#ref-1">1</a></sup>. Your model's loss on its own sentences is low because it has nearly memorised them. That's why researchers always measure on text the model has not seen.</p>
+      <p><b>Why models make things up.</b> Next-word prediction rewards text that sounds right. Usually that is also true. When the model hasn't learned a fact, a fluent guess can still look likely, and the model doesn't notice. Your tiny model shows the root cause: at temperature 1 it happily writes grammatical sentences that were never in its training text.</p>
+      <details class="maths"><summary>The maths <span class="sub">temperature and surprise, step by step</span></summary><div class="body">
+        <div class="mstep"><span class="mk">In words</span><p>Each word's chance comes from a score. Temperature divides every score before the scores are turned into chances, which stretches or squashes the gaps between words. Surprise is minus the natural log of the chance the model gave the true word.</p></div>
+        <div class="mstep"><span class="mk">With your numbers</span><p class="calc">After <span data-live="pdCtx">…</span> the top two words are "<span data-live="pdW1">?</span>" (<span data-live="pdP1">?</span>) and "<span data-live="pdW2">?</span>" (<span data-live="pdP2">?</span>).<br>At temperature 1 the first is <b data-live="pdR1">?</b>× as likely as the second.<br>At your temperature <span data-live="pdT">?</span> that gap becomes (<span data-live="pdR1">?</span>)<sup>1/T</sup> = <b data-live="pdRT">?</b>.<br>Last word: "<span data-live="pdLastW">?</span>" with p = <span data-live="pdLastP">?</span>, surprise −ln p = <b data-live="pdLastS">?</b></p></div>
+        <div class="mstep"><span class="mk">In symbols</span><div><div class="eq">pᵢ = exp(zᵢ / T) / Σⱼ exp(zⱼ / T)</div><div class="eq" style="margin-top:0.4rem">L = −(1/N) Σₜ ln p(xₜ)</div><p class="sym"><i>pᵢ</i> chance of word <i>i</i> · <i>zᵢ</i> its score (logit) · <i>T</i> temperature · <i>Σⱼ</i> add up over every word <i>j</i> in the vocabulary, so the chances total 1 · <i>exp</i> the exponential function, which makes every score positive · <i>L</i> the loss · <i>N</i> number of words read · <i>xₜ</i> the true word at position <i>t</i> · <i>ln</i> natural logarithm. As <i>T</i> shrinks to 0 the top word takes everything; at <i>T</i> = 1 the model's own odds are untouched; as <i>T</i> grows every word tends to the same chance.</p></div></div>
+      </div></details>
+    </div></details>
+  </div>
+
+  <div class="carry" data-toc="Remember this">
+    <span class="big">One token at a time</span>
+    <span class="lab">Carry this forward</span>
+    <p>The model gives every possible next token a probability; sampling picks one, and the loop repeats.</p>
+  </div>
+
+  <div class="quiz" data-toc="Check yourself"><div class="label">Check yourself</div>
+    <div class="q" data-answer="2"><p>You set the temperature to 0. What happens?</p><div class="opts"><button>It picks randomly among the top few words</button><button>Every word becomes equally likely</button><button>It always picks the single most likely word</button></div><div class="why">Low temperature sharpens the odds; at 0 the top word always wins. That's called greedy decoding, and it tends to repeat itself.</div></div>
+    <div class="q" data-answer="0"><p>A model gave the true next word a probability of 1%. How much does that add to its loss?</p><div class="opts"><button>A lot: −ln(0.01) ≈ 4.6, far more than a confident correct guess</button><button>Almost nothing, because 1% is close to zero</button><button>Nothing, the loss only counts words it actually picked</button></div><div class="why">Loss is the surprise −ln p of the true word. A 90% guess costs about 0.1; a 1% guess costs about 4.6.</div></div>
+  </div>
+</section>

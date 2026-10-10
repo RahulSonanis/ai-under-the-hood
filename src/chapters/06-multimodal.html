@@ -1,0 +1,52 @@
+<section class="chapter" id="multimodal" data-num="6" data-part="1" data-title="Beyond text">
+  <header class="ch-head">
+    <div class="ch-num">Chapter 6 · How a model answers</div>
+    <h2>How can a chatbot see a photo?</h2>
+    <p class="hook">The model you've met so far only reads tokens. Yet you can show it a photo of a pill bottle and ask what the label says, or send it a voice note. The trick is to turn pictures and sound into tokens too. In this chapter you do the cutting, and pay for it.</p>
+    <div class="meta">About 13 minutes · one simulation · you'll learn how a picture becomes patches, why sharper pictures cost far more tokens, and how sound joins in the same way.</div>
+  </header>
+
+  <div class="recall" data-toc="Remember">
+    <div class="beat-label">From the last chapter</div>
+    <div class="q" data-answer="2"><p>A reasoning model “thinks” before it answers. What does that cost?</p><div class="opts"><button>Nothing: the thinking happens for free inside the chip</button><button>Only accuracy: thinking makes answers worse</button><button>Tokens: it writes hidden tokens first, which takes time and money</button></div><div class="why">Thinking is the model writing extra tokens you don't see. More thinking usually buys accuracy, paid for with waiting time and the price of those tokens.</div></div>
+  </div>
+
+  <div class="beat" data-toc="Predict">
+    <div class="predict" data-answer="2"><span class="label">Predict first</span><p>You send the same photo again, but twice as wide and twice as tall. How many more tokens does it cost?</p><div class="opts"><button type="button">The same: it's still one photo</button><button type="button">Twice as many</button><button type="button">Four times as many</button></div><div class="predict-after" hidden><p>Locked in. Now try it in the simulation below.</p><details><summary>Show the answer</summary><p>Four times as many. The picture is cut into small squares, and each square is one token. Doubling the width doubles the squares across; doubling the height doubles them down; 2 × 2 = 4.</p></details></div></div>
+  </div>
+
+  <div class="beat" data-toc="Play">
+    <h3>Cut a picture into tokens</h3>
+    <p class="beat-intro">First is the picture you're sending, with the grid that cuts it into squares called <b>patches</b>. Next to it is what the model actually gets at the resolution you chose, with a close-up of the label. Then comes the model's input: the six tokens of your question, then one token per patch. You have a budget of 300 tokens. Change the resolution and patch size, add a voice note, or click a patch to follow it.</p>
+    <figure class="sim" id="mm-sim"></figure>
+  </div>
+
+  <div class="beat explain" data-toc="Explain">
+    <h3>What's going on</h3>
+    <p>A language model reads a list of <b>vectors</b> (lists of numbers), one per token (chapter 2 showed how each word piece becomes a row of numbers). To read a picture, the model needs the picture as vectors too. So the picture is cut into a grid of small squares, the <b>patches</b>, and each patch is turned into one vector the same size as a word's. From then on the model reads patches exactly like words, after the text of your question.</p>
+    <p>Your picture is <span data-live="mmRes">224×224</span> pixels cut into <span data-live="mmPatch">16</span>-pixel patches: <span data-live="mmGrid">14</span> across and <span data-live="mmGrid">14</span> down, so <b data-live="mmImgTok">196</b> tokens, about as long as <span data-live="mmWords">147</span> words of text. Doubling the width and height gives four times the patches. That is the trade-off you played with: a sharper picture keeps small text readable (your label's letters are about <span data-live="mmLetter">–</span> tall) but costs many more tokens, and tokens are what you pay for and what fills the model's memory.</p>
+    <p>Sound works the same way. A voice note is first drawn as a <b>spectrogram</b>, a picture of which pitches are loud at each moment. That picture is cut into thin time slices, one token for every 20 milliseconds, so 4 seconds of speech becomes 200 tokens.</p>
+    <details class="how"><summary>How it works <span class="sub">patches, encoders, adapters, sound</span></summary><div class="body">
+      <p><b>Patches.</b> The idea comes from the Vision Transformer, a 2020 model from Google whose paper was titled “An Image is Worth 16x16 Words”. It cut a 224×224 image into 16×16-pixel patches, flattened each patch into a list of its 768 colour values (16 × 16 × 3), multiplied it by a learned table to get a vector, and added a learned vector for the patch's position, so the model knows where each piece came from<sup class="ref"><a href="#ref-601">601</a></sup>.</p>
+      <p><b>An encoder and an adapter.</b> Many assistants don't feed raw patches to the language model. A separate image model (the encoder) reads the patches first and produces one vector per patch. A small adapter then reshapes those vectors to the size of the language model's word vectors. LLaVA, an open research model, did exactly this with a single learned matrix<sup class="ref"><a href="#ref-604">604</a></sup>. To the language model, the result looks like a stretch of extra tokens.</p>
+      <p><b>Resolution and cost.</b> Apps shrink large photos before sending them, and providers count picture tokens much like the simulation. Anthropic, the company that makes the Claude assistant, says in its documentation that each 28×28-pixel block is one token for Claude, so a 1,000 × 1,000-pixel photo costs 1,296 tokens. It advises keeping important text legible rather than shrinking it too far<sup class="ref"><a href="#ref-602">602</a></sup>. In the simulation, the rule for when letters become readable (about 8 pixels tall) and the loss of detail with 32-pixel patches are illustrative, as is the price.</p>
+      <p><b>Sound.</b> OpenAI's Whisper speech recogniser turns audio into a spectrogram with one column every 10 milliseconds, then a first layer halves that to one vector every 20 milliseconds. It learned from 680,000 hours of audio paired with transcripts<sup class="ref"><a href="#ref-603">603</a></sup>. The voice note in the simulation is drawn, not recorded.</p>
+      <details class="maths"><summary>The maths <span class="sub">counting patches</span></summary><div class="body">
+        <div class="mstep"><span class="mk">In words</span><p>Count how many patches fit across the picture, rounding up because a partial patch at the edge still needs a token. Do the same down. Multiply. Add the words of your question, and one token per 20 ms of sound.</p></div>
+        <div class="mstep"><span class="mk">With your numbers</span><p class="calc">Across: <span data-live="mmResN">224</span> ÷ <span data-live="mmPatch">16</span>, rounded up = <span data-live="mmGrid">14</span> patches; down: the same<br><span data-live="mmGrid">14</span> × <span data-live="mmGrid">14</span> = <b data-live="mmImgTok">196</b> picture tokens<br>Total input: <span data-live="mmPrompt">6</span> words + <span data-live="mmImgTok">196</span> picture<span data-live="mmVoice"></span> = <b data-live="mmTotal">202</b> tokens</p></div>
+        <div class="mstep"><span class="mk">In symbols</span><div><div class="eq">N = ⌈W / P⌉ × ⌈H / P⌉<br>N<sub>sound</sub> = t ÷ 0.02 s</div><p class="sym"><i>N</i> picture tokens · <i>W</i>, <i>H</i> the picture's width and height in pixels · <i>P</i> the patch size in pixels · ⌈ ⌉ round up to a whole number · <i>N<sub>sound</sub></i> sound tokens · <i>t</i> the length of the recording in seconds. Because both W and H appear, doubling the resolution multiplies N by four.</p></div></div>
+      </div></details>
+    </div></details>
+  </div>
+
+  <div class="carry" data-toc="Remember this">
+    <span class="big">Patches</span>
+    <span class="lab">Carry this forward</span>
+    <p>Images and sound are cut into patches that become token-like vectors, so one model can read them all.</p>
+  </div>
+
+  <div class="quiz" data-toc="Check yourself"><div class="label">Check yourself</div>
+    <div class="q" data-answer="1"><p>A model gets one token for every 20 milliseconds of sound. How many tokens is a 10-second voice note?</p><div class="opts"><button>10</button><button>500</button><button>20,000</button></div><div class="why">10 seconds is 10,000 milliseconds, and 10,000 ÷ 20 = 500 tokens.</div></div>
+    <div class="q" data-answer="0"><p>A model misreads the small print in your photo. What is the most likely reason?</p><div class="opts"><button>The photo was shrunk so far that each letter covers only a few pixels</button><button>Models can't read text inside pictures at all</button><button>The question had too many words</button></div><div class="why">Pictures are shrunk to save tokens. Once letters are only a few pixels tall, the detail needed to tell them apart is gone.</div></div>
+  </div>
+</section>

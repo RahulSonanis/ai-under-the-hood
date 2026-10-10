@@ -1,3 +1,161 @@
 <section class="chapter" id="start" data-title="Start here" data-part="0">
-  <div class="hero"><h1>What really happens when you talk to an AI?</h1><p class="lede">Placeholder landing page (rebuilt at the end).</p><div class="btn-row"><a class="btn big" href="#memory">Try chapter 7</a></div></div>
+  <style>
+    #start { scroll-margin-top: 240px; } /* loading with #start in the URL must not jump past the title */
+    #start .st-hero { margin: 0.6rem 0 1.2rem; max-width: 920px; }
+    #start .st-kicker { font-family: var(--f-display); font-size: 0.88rem; font-weight: 600; color: var(--accent); margin-bottom: 0.7rem; }
+    #start .st-hero h1 { font-size: clamp(2.3rem, 4.8vw, 3.7rem); max-width: 15em; }
+    #start .st-hero .lede { color: var(--ink); font-size: clamp(1.08rem, 1.8vw, 1.24rem); line-height: 1.5; margin: 1rem 0 0; max-width: 40em; }
+    #start .st-hero .lede .muted { color: var(--muted); }
+    #start .st-cta { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin: 1.6rem 0 0; }
+    #start .st-cta .btn { text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; }
+    #start .st-cta .btn.ghost { border-color: var(--line); color: var(--ink); background: var(--surface); }
+    #start .st-cta .btn.ghost:hover { border-color: var(--ink); }
+    #start .st-sec { margin: 3.2rem 0 0; }
+    #start .st-sec > h3 { font-size: clamp(1.45rem, 2.6vw, 1.85rem); margin: 0 0 0.4rem; }
+    #start .st-sec > p { max-width: 62ch; margin: 0.3rem 0 1.1rem; color: var(--muted); }
+    /* how a chapter works */
+    #start .st-steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); overflow: hidden; counter-reset: st; }
+    #start .st-steps li { padding: 0.9rem 1rem 1rem; border-left: 1px solid var(--line); counter-increment: st; position: relative; }
+    #start .st-steps li:first-child { border-left: 0; }
+    #start .st-steps b { display: block; font-family: var(--f-display); font-weight: 650; font-size: 1.02rem; margin-bottom: 0.2rem; }
+    #start .st-steps b::before { content: counter(st); display: inline-grid; place-items: center; width: 1.35rem; height: 1.35rem; margin-right: 0.45rem; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 0.72rem; font-weight: 700; vertical-align: 0.08em; }
+    #start .st-steps li:nth-child(2) b::before { background: var(--signal); color: var(--stage); }
+    #start .st-steps span { font-size: 0.9rem; line-height: 1.45; color: var(--muted); display: block; }
+    /* course map */
+    #start .st-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    #start .st-part { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.1rem 0.6rem; min-width: 0; }
+    #start .st-part header { margin-bottom: 0.5rem; }
+    #start .st-part .pn { font-family: var(--f-display); font-size: 0.8rem; font-weight: 650; color: var(--heat); }
+    #start .st-part h4 { font-size: 1.15rem; margin: 0.1rem 0 0.2rem; }
+    #start .st-part header p { margin: 0; font-size: 0.9rem; color: var(--muted); line-height: 1.4; }
+    #start .st-part ol { list-style: none; padding: 0; margin: 0; }
+    #start .st-part li { border-top: 1px solid var(--line); }
+    #start .st-part a { display: grid; grid-template-columns: 1.9rem 1fr; gap: 0 0.6rem; padding: 0.6rem 0.2rem; text-decoration: none; color: var(--ink); border-radius: 8px; }
+    #start .st-part a[href]:hover .q-text { color: var(--accent); }
+    #start .st-part a .n { grid-row: span 2; display: grid; place-items: center; width: 1.7rem; height: 1.7rem; border-radius: 50%; border: 1.5px solid var(--line); font-family: var(--f-display); font-size: 0.74rem; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 0.05rem; }
+    #start .st-part a .q-text { font-family: var(--f-display); font-weight: 600; font-size: 0.98rem; line-height: 1.3; }
+    #start .st-part a .t-text { font-family: var(--f-display); font-size: 0.8rem; color: var(--muted); }
+    #start .st-part a.done .n { border-color: var(--ok); background: var(--ok-soft); color: var(--ok); }
+    #start .st-part a.soon { opacity: 0.55; cursor: default; }
+    #start .st-part a.soon .t-text::after { content: " · being written"; }
+    #start .st-finale { grid-column: 1 / -1; background: var(--stage); border-color: var(--stage-line); color: var(--stage-ink); }
+    #start .st-finale .pn { color: var(--amber); }
+    #start .st-finale header p, #start .st-finale a .t-text { color: var(--stage-muted); }
+    #start .st-finale li { border-top-color: var(--stage-line); }
+    #start .st-finale a { color: var(--stage-ink); }
+    #start .st-finale a .n { border-color: var(--signal); color: var(--signal); }
+    #start .st-finale a[href]:hover .q-text { color: var(--signal); }
+    /* the two notes */
+    #start .st-notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+    #start .st-note { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.1rem; }
+    #start .st-note h4 { font-size: 1.05rem; margin: 0 0 0.35rem; }
+    #start .st-note p { margin: 0.35rem 0 0; font-size: 0.95rem; line-height: 1.5; }
+    #start .st-note .eg { display: inline-block; font-family: var(--f-display); font-size: 0.78rem; font-weight: 650; color: var(--heat); background: var(--heat-soft); border-radius: 999px; padding: 0.05rem 0.55rem; }
+    #start .sim-goal[hidden] { display: none; }
+    @media (min-width: 700px) { #start-sim .sim-controls > .sim-choice { grid-column: span 2; } }
+    @media (max-width: 640px) { #start-sim .sim-controls .seg { flex-wrap: wrap; border-radius: 14px; } #start-sim .sim-controls .seg button { flex: 1 1 auto; } }
+    #start .st-sim-cap { font-family: var(--f-display); font-size: 0.84rem; color: var(--muted); margin: 0.5rem 0 0; }
+    @media (max-width: 900px) {
+      #start .st-steps { grid-template-columns: 1fr; }
+      #start .st-steps li { border-left: 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 7.6rem 1fr; gap: 0.6rem; align-items: baseline; padding: 0.75rem 1rem; }
+      #start .st-steps li:first-child { border-top: 0; }
+      #start .st-map, #start .st-notes { grid-template-columns: 1fr; }
+    }
+  </style>
+
+  <div class="st-hero">
+    <div class="st-kicker">AI Under the Hood · a course you play</div>
+    <h1>What really happens when you talk to an AI?</h1>
+    <p class="lede">Seventeen short chapters and a finale, each built around one live simulation you control: from the moment you press send, through the chips and datacenters that serve the reply, to how the model was trained and how it uses tools. <span class="muted">Written for a curious beginner, deep enough for an engineer. About 3 to 4 hours, and every claim is referenced.</span></p>
+  </div>
+
+  <figure class="sim" id="start-sim"></figure>
+  <p class="st-sim-cap">A simplified picture, in slow motion, with made-up token numbers. Chapter 1 shows the full machine with realistic timings.</p>
+
+  <div class="st-cta">
+    <a class="btn big" id="st-continue" href="#send">Start with chapter 1</a>
+    <button type="button" class="btn big ghost" data-scroll="st-map-h">See the whole course</button>
+  </div>
+
+  <div class="st-sec">
+    <h3>How every chapter works</h3>
+    <p>Each chapter answers one question a person would actually ask, in five short beats. It takes 12 to 18 minutes.</p>
+    <ol class="st-steps">
+      <li><b>Predict</b><span>Make a quick guess first. Being wrong is the point: it makes the answer stick.</span></li>
+      <li><b>Play</b><span>Drive the simulation. Change one thing, watch what happens. "Show me" gives a guided tour.</span></li>
+      <li><b>Notice</b><span>A line under the simulation explains what you just caused, with your own numbers.</span></li>
+      <li><b>Explain</b><span>A short explanation for everyone, then "How it works" and "The maths" if you want to go deeper.</span></li>
+      <li><b>Remember</b><span>One idea to carry forward, two quick questions, and a recap question at the start of the next chapter.</span></li>
+    </ol>
+  </div>
+
+  <div class="st-sec">
+    <h3 id="st-map-h" tabindex="-1">The course map</h3>
+    <p>Four parts and a finale. Each part builds on the one before, but every chapter makes sense on its own, so you can jump to any question that interests you.</p>
+    <div class="st-map">
+      <section class="st-part" aria-labelledby="st-p1">
+        <header><div class="pn">Part 1</div><h4 id="st-p1">How a model answers</h4><p>What the model does with your words, from tokens to the reply.</p></header>
+        <ol>
+          <li><a data-n="1" href="#send"><span class="n">1</span><span class="q-text">What happens when you press send?</span><span class="t-text">Press send</span></a></li>
+          <li><a data-n="2" href="#tokens"><span class="n">2</span><span class="q-text">How does text become numbers?</span><span class="t-text">Tokens</span></a></li>
+          <li><a data-n="3" href="#predict"><span class="n">3</span><span class="q-text">How does it pick the next word?</span><span class="t-text">Next word</span></a></li>
+          <li><a data-n="4" href="#attention"><span class="n">4</span><span class="q-text">How does it understand what "it" refers to?</span><span class="t-text">Attention</span></a></li>
+          <li><a data-n="5" href="#thinking"><span class="n">5</span><span class="q-text">What do "thinking" models do differently?</span><span class="t-text">Thinking models</span></a></li>
+          <li><a data-n="6" href="#multimodal"><span class="n">6</span><span class="q-text">How can it read pictures and hear speech?</span><span class="t-text">Beyond text</span></a></li>
+        </ol>
+      </section>
+      <section class="st-part" aria-labelledby="st-p2">
+        <header><div class="pn">Part 2</div><h4 id="st-p2">Serving millions</h4><p>What it takes to answer millions of people at once, quickly and affordably.</p></header>
+        <ol>
+          <li><a data-n="7" href="#memory"><span class="n">7</span><span class="q-text">Why do long chats get slower and pricier?</span><span class="t-text">Memory</span></a></li>
+          <li><a data-n="8" href="#batching"><span class="n">8</span><span class="q-text">How does one GPU serve many people at once?</span><span class="t-text">Batching</span></a></li>
+          <li><a data-n="9" href="#cost"><span class="n">9</span><span class="q-text">What does one reply really cost?</span><span class="t-text">Cost</span></a></li>
+          <li><a data-n="10" href="#production"><span class="n">10</span><span class="q-text">What happens when something goes wrong in production?</span><span class="t-text">Running it in production</span></a></li>
+          <li><a data-n="11" href="#datacenters"><span class="n">11</span><span class="q-text">What is inside an AI datacenter?</span><span class="t-text">Datacenters</span></a></li>
+        </ol>
+      </section>
+      <section class="st-part" aria-labelledby="st-p3">
+        <header><div class="pn">Part 3</div><h4 id="st-p3">Where the model comes from</h4><p>Data, learning, training at enormous scale, and turning a predictor into an assistant.</p></header>
+        <ol>
+          <li><a data-n="12" href="#data"><span class="n">12</span><span class="q-text">Where does a model's knowledge come from?</span><span class="t-text">Data</span></a></li>
+          <li><a data-n="13" href="#learning"><span class="n">13</span><span class="q-text">How does a model learn?</span><span class="t-text">Learning</span></a></li>
+          <li><a data-n="14" href="#scale"><span class="n">14</span><span class="q-text">How do thousands of chips train one model?</span><span class="t-text">Training at scale</span></a></li>
+          <li><a data-n="15" href="#assistant"><span class="n">15</span><span class="q-text">How does a text predictor become a helpful assistant, and how do we know it's better?</span><span class="t-text">From predictor to assistant</span></a></li>
+        </ol>
+      </section>
+      <section class="st-part" aria-labelledby="st-p4">
+        <header><div class="pn">Part 4</div><h4 id="st-p4">Around the model</h4><p>Tools, agents, and the ways text can be turned against them.</p></header>
+        <ol>
+          <li><a data-n="16" href="#agents"><span class="n">16</span><span class="q-text">How does a chatbot become an agent that does things?</span><span class="t-text">Agents and tools</span></a></li>
+          <li><a data-n="17" href="#security"><span class="n">17</span><span class="q-text">Can an AI be tricked into doing the wrong thing?</span><span class="t-text">Tricks and the black box</span></a></li>
+        </ol>
+      </section>
+      <section class="st-part st-finale" aria-labelledby="st-p5">
+        <header><div class="pn">Finale</div><h4 id="st-p5">Put it all together</h4><p>Everything you've played with, working as one system.</p></header>
+        <ol>
+          <li><a data-n="18" href="#finale"><span class="n">18</span><span class="q-text">Can you follow one message through the whole system?</span><span class="t-text">Finale</span></a></li>
+        </ol>
+      </section>
+    </div>
+  </div>
+
+  <div class="st-sec">
+    <h3>Before you start</h3>
+    <div class="st-notes">
+      <div class="st-note">
+        <h4>Fun facts unlock as you play</h4>
+        <p>Cause the right situation in a simulation and a fun fact pops up, with its source. Every one you find is kept on the <a href="#facts">Fun facts</a> page.</p>
+      </div>
+      <div class="st-note">
+        <h4>Why you can trust it</h4>
+        <p>Every factual claim links to its source: tap a small number like this one<sup class="ref"><a href="#ref-5">5</a></sup> to see it. All sources are on the <a href="#refs">References</a> page.</p>
+        <p>The simulations are simplified models. When a number is made up for illustration, it says so.</p>
+      </div>
+      <div class="st-note">
+        <h4>Your progress stays with you</h4>
+        <p>Finished chapters get a tick in the sidebar and on the map above. Progress is saved in this browser only; nothing is sent anywhere.</p>
+        <p>Spotted a mistake? <a href="https://github.com/RahulSonanis/ai-under-the-hood">Corrections are welcome on GitHub</a>.</p>
+      </div>
+    </div>
+  </div>
 </section>

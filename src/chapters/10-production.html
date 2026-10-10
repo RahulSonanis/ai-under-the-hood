@@ -1,0 +1,53 @@
+<section class="chapter" id="production" data-num="10" data-part="2" data-title="Running it in production">
+  <style>#prod-sim .sim-controls { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }</style>
+  <header class="ch-head">
+    <div class="ch-num">Chapter 10 · Serving millions</div>
+    <h2>What happens when something goes wrong in production?</h2>
+    <p class="hook">At Google, most incidents begin with a change someone made on purpose<sup class="ref"><a href="#ref-1001">1001</a></sup>. In August 2025, three separate bugs made some replies from Claude, Anthropic's AI assistant, quietly worse for weeks. The servers kept answering; some answers were just worse. This chapter puts you in charge of shipping a new version without letting that happen.</p>
+    <div class="meta">About 14 minutes · one simulation · you'll learn what a canary release is, why the worst bugs don't show up as errors, and how a rollback limits the damage.</div>
+  </header>
+
+  <div class="recall" data-toc="Remember">
+    <div class="beat-label">From the last chapter</div>
+    <div class="q" data-answer="1"><p>What mostly decides what one reply costs a provider?</p><div class="opts"><button>The size of the model's file on disk</button><button>The GPU time it uses, which depends on keeping GPUs busy without making people wait</button><button>The number of words in the question only</button></div><div class="why">A reply's cost is GPU time. Busy GPUs share their cost over many replies; too busy, and people wait. Running that fleet day to day is what this chapter is about.</div></div>
+  </div>
+
+  <div class="beat" data-toc="Predict">
+    <div class="predict" data-answer="2"><span class="label">Predict first</span><p>A new version of the model sometimes writes garbled replies, but only on one of three kinds of chip. Which chart on the team's dashboard shows it first?</p><div class="opts"><button type="button">The error rate</button><button type="button">The time until a reply starts</button><button type="button">An automatic quality check that reads a sample of replies</button><button type="button">Thumbs-down from people</button></div><div class="predict-after" hidden><p>Locked in. Now try it in the simulation below.</p><details><summary>Show the answer</summary><p>The quality check. A garbled reply still arrives on time and without an error, so the error and speed charts stay calm. Thumbs-down does rise, but slowly and noisily, because people dislike replies for many reasons.</p></details></div></div>
+  </div>
+
+  <div class="beat" data-toc="Play">
+    <h3>You ship a new version</h3>
+    <p class="beat-intro">People's requests (teal) reach a router, which sends each one to a server. Servers turn amber when they run the new version. On the right, a dashboard compares the new version (amber lines) with the old one (grey) on four measures. The new version has a hidden fault: try shipping it to everyone at once, then try small steps. Your goal is to get the new version to all traffic while letting no more than 20 garbled replies reach people. Numbers are illustrative and time is sped up.</p>
+    <figure class="sim" id="prod-sim"></figure>
+  </div>
+
+  <div class="beat explain" data-toc="Explain">
+    <h3>What's going on</h3>
+    <p>Running a model for millions of people means changing it all the time: new versions, new settings, faster code. Each change is a risk. Google's reliability engineers report that most of their incidents are triggered by pushing new code or new settings<sup class="ref"><a href="#ref-1001">1001</a></sup>. So the new version first goes to a small slice of traffic, the <b>canary</b> (named after the birds miners carried to warn of bad air). Its numbers are compared with the old version's at the same moment, on the same kind of traffic.</p>
+    <p>The hard part is choosing what to watch. Error counts and speed catch crashes and slowdowns. A reply full of wrong characters is neither: it arrives on time and counts as a success. Only something that reads replies, an automatic quality check, sees it quickly. Right now <span data-live="prShare">0%</span> of traffic is on the new version and <span data-live="prGarbled">0</span> garbled replies have reached people, out of the <span data-live="prLimit">20</span> you're allowed.</p>
+    <p>The slice also has to be the right shape. In the simulation, the first 1% and 5% land only on chip types A and B, so a fault on chip C can't appear there. Real providers run the same model on several kinds of chip, and a bug can live on one of them.</p>
+    <p>When a watched line crosses its limit, the router sends everyone back to the old version: a <b>rollback</b>. It doesn't fix anything. It stops the damage and buys engineers time to find the cause.</p>
+    <details class="how"><summary>How it works <span class="sub">canaries, signals and a real incident</span></summary><div class="body">
+      <p><b>Canary releases.</b> Google's reliability engineers define canarying as "a partial and time-limited deployment of a change in a service and its evaluation". They advise comparing the canary with a control group running the old version, and picking a handful of measures that reflect what users experience, not internal ones like processor load<sup class="ref"><a href="#ref-1001">1001</a></sup>. The simulation's "in steps" plan (1%, 5%, 25%, 50%, 100%, pausing at each step) is one common shape.</p>
+      <p><b>What happened in 2025.</b> Anthropic, the company that makes Claude, published a postmortem (a write-up of what went wrong and why) of three bugs from August and September 2025<sup class="ref"><a href="#ref-30">30</a></sup>. One sent some requests to servers set up for a different context length; in the worst hour it touched 16% of requests to one model. A second, a misconfiguration on some of its TPU servers (Google's AI chips), made the model sometimes pick tokens that should almost never appear, such as Thai or Chinese characters in English replies. A third was a compiler bug on the same chips that sometimes dropped the most likely next token. Anthropic serves Claude on three chip families, and the bugs showed up differently on each, which made reports confusing.</p>
+      <p><b>Why it was hard to see.</b> Anthropic says its usual changes go to small canary groups first, yet "the evaluations we ran simply didn't capture the degradation users were reporting", partly because the model often recovers from a single bad token. Privacy rules also limit engineers' access to conversations people haven't sent as feedback. Its fixes match the lesson of the simulation: more sensitive quality checks, and running them continuously on live production traffic, not just before release<sup class="ref"><a href="#ref-30">30</a></sup>.</p>
+      <details class="maths"><summary>The maths <span class="sub">how many people a bug reaches</span></summary><div class="body">
+        <div class="mstep"><span class="mk">In words</span><p>The bad replies that reach people are: replies per second, times the share of traffic on the new version, times how often the new version gets a reply wrong, times how many seconds pass before someone rolls back.</p></div>
+        <div class="mstep"><span class="mk">With the simulation's numbers</span><p class="calc">The new version garbles about <span data-live="prF">1 in 75</span> replies once it reaches chip C.<br>Canary at <span data-live="prSlice">25%</span>: <span data-live="prSliceN">100</span> replies a second × 1/75 × <span data-live="prT">10 s</span> to roll back ≈ <b data-live="prBad">13</b> garbled replies<br>Everyone at once: <span data-live="prR">400</span> replies a second × 1/75 × <span data-live="prT">10 s</span> ≈ <b data-live="prBadAll">53</b> garbled replies</p></div>
+        <div class="mstep"><span class="mk">In symbols</span><div><div class="eq">B = R · a · f · T</div><p class="sym"><i>B</i> bad replies that reach people · <i>R</i> replies per second across the whole service · <i>a</i> share of traffic on the new version · <i>f</i> share of the new version's replies that are bad · <i>T</i> seconds until rollback. A canary shrinks <i>a</i>; watching the right signal shrinks <i>T</i>. If nothing watches the right signal, <i>T</i> keeps growing and so does <i>B</i>.</p></div></div>
+      </div></details>
+    </div></details>
+  </div>
+
+  <div class="carry" data-toc="Remember this">
+    <span class="big">Canary first</span>
+    <span class="lab">Carry this forward</span>
+    <p>New versions go to a small slice of traffic first, watched closely against the old version, before reaching everyone; the watching has to include the quality of the replies, not just errors and speed.</p>
+  </div>
+
+  <div class="quiz" data-toc="Check yourself"><div class="label">Check yourself</div>
+    <div class="q" data-answer="0"><p>A new version garbles some replies, yet the error-rate chart stays flat. Why?</p><div class="opts"><button>A garbled reply still arrives on time, so it counts as a success</button><button>The error chart only updates once a day</button><button>Garbled replies are deleted before they are counted</button></div><div class="why">Error counters see crashes and timeouts. Bad content needs a check that actually reads replies.</div></div>
+    <div class="q" data-answer="1"><p>Why should the first small slice of traffic include every kind of hardware the service runs on?</p><div class="opts"><button>So the new version runs faster</button><button>A bug that only happens on one kind of chip can't show up in a slice that never touches it</button><button>So the rollback is quicker</button></div><div class="why">A canary only tests what it runs on. If it skips a chip type, it can pass while that chip's bug waits for the full rollout.</div></div>
+  </div>
+</section>

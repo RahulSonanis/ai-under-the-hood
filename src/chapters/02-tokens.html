@@ -1,0 +1,59 @@
+<section class="chapter" id="tokens" data-num="2" data-part="1" data-title="Tokens">
+  <style>
+    @media (min-width: 641px) {
+      #tokens .sim-controls { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+  <header class="ch-head">
+    <div class="ch-num">Chapter 2 · How a model answers</div>
+    <h2>How does text become numbers?</h2>
+    <p class="hook">Chatbots that could write a sonnet in seconds used to insist that “strawberry” has two r's<sup class="ref"><a href="#ref-201">201</a></sup>. Part of the reason comes before the model does any thinking: it never sees the letters. In this chapter you build the machine that hides them.</p>
+    <div class="meta">About 12 minutes · one simulation · you'll learn how a tokenizer learns its vocabulary, why some languages cost more tokens than others, and how each token becomes a list of numbers.</div>
+  </header>
+
+  <div class="recall" data-toc="Remember">
+    <div class="beat-label">From the last chapter</div>
+    <div class="q" data-answer="1"><p>You send a message. How does the model handle it?</p><div class="opts"><button>It reads one word, writes one word, and alternates</button><button>It reads your whole message in one parallel pass, then writes the reply one token at a time</button><button>It writes the whole reply at once, then sends it</button></div><div class="why">Reading happens all at once, which is fast. Writing is a loop: each new token is fed back in to make the next one, which is why replies appear piece by piece.</div></div>
+  </div>
+
+  <div class="beat" data-toc="Predict">
+    <div class="predict" data-answer="2"><span class="label">Predict first</span><p>A tokenizer that learned only from English meets a sentence in Hindi. Compared with the same sentence in English, how many tokens does it need?</p><div class="opts"><button type="button">About the same</button><button type="button">A few more</button><button type="button">Many times as many</button></div><div class="predict-after" hidden><p>Locked in. Now try it in the simulation below: pick <b>Hindi</b>.</p><details><summary>Show the answer</summary><p>Many times as many. An English-trained vocabulary has no pieces for Hindi letters, so it falls back to raw bytes, three per letter. Real tokenizers learn from many languages, so the gap is smaller, but languages that are rare in their training text still need more tokens for the same meaning.</p></details></div></div>
+  </div>
+
+  <div class="beat" data-toc="Play">
+    <h3>Train a tokenizer</h3>
+    <p class="beat-intro">At the top is your text, cut into tokens. Grey boxes are single bytes (for English, single letters); coloured boxes are bigger pieces the tokenizer has learned. Next to it is its list of merge rules, newest first. Along the bottom, the model reads the tokens one by one: each becomes an ID number, and the number picks a row from a table. Drag <b>Merges learned</b>, switch the text, type your own, or click any token.</p>
+    <figure class="sim" id="tok-sim"></figure>
+  </div>
+
+  <div class="beat explain" data-toc="Explain">
+    <h3>What's going on</h3>
+    <p>A model can only do arithmetic, so text has to become numbers first. A <b>tokenizer</b> cuts text into <b>tokens</b>, pieces taken from a fixed list called the <b>vocabulary</b>, and swaps each piece for its ID number. It starts from bytes: computers store every character as one to four small numbers between 0 and 255, so 256 starting tokens can spell any text in any language, emoji included.</p>
+    <p>The rest of the vocabulary is learned by <b>byte-pair encoding</b>: count every pair of neighbouring tokens in a large training text, glue the most common pair into a new token, and repeat. Your tokenizer has learned <span data-live="tkMerges">0</span> merges from <span data-live="tkSrc">everyday English</span>; the latest glued <span data-live="tkPair">–</span> into <span data-live="tkPairNew">–</span>. It cuts your <span data-live="tkChars">0</span> characters into <span data-live="tkTok">0</span> tokens, <span data-live="tkTpw">–</span> per word. Real tokenizers learn from billions of words and keep tens of thousands of merges, so most common English words become a single token. On average an English token is about three-quarters of a word<sup class="ref"><a href="#ref-202">202</a></sup>.</p>
+    <p>Then each ID picks one row of the <b>embedding table</b>: a list of numbers the model learned for that token during training. From here on the model works only with those numbers. That's the catch with “strawberry”: the model receives one or a few IDs, not ten letters, so it can only count the r's if it has learned how each piece is spelled.</p>
+    <details class="how"><summary>How it works <span class="sub">bytes, merges, vocabulary size, embeddings</span></summary><div class="body">
+      <p><b>Bytes first.</b> Text is stored as UTF-8: English letters take one byte each, accented letters two, Hindi letters three, most emoji four. GPT-2, OpenAI's 2019 model, ran byte-pair encoding on bytes instead of characters, so its tokenizer could encode any input without an “unknown” token. Its vocabulary stopped at 50,257 tokens<sup class="ref"><a href="#ref-63">63</a></sup>. The dashed boxes in the simulation are bytes that are only part of a character.</p>
+      <p><b>Words first, then merges.</b> Before merging, text is split into rough words with a fixed pattern, so a merge never glues the end of one word to the start of the next. The space goes with the word after it, which is why you see “·the”. The simulation uses GPT-2's pattern<sup class="ref"><a href="#ref-63">63</a></sup>. Byte-pair encoding itself began as a 1994 file-compression trick, and was adapted for language in 2015 to split rare words into common pieces<sup class="ref"><a href="#ref-4">4</a></sup>.</p>
+      <p><b>How big a vocabulary?</b> More merges make text shorter, so more fits in the model's working memory and each reply needs fewer steps. But every token adds a row to the embedding table and a choice to every prediction, and late merges glue rare pairs that save little, as you can see in the simulation. Meta's Llama 3 models use about 128,000 tokens<sup class="ref"><a href="#ref-9">9</a></sup>.</p>
+      <p><b>Languages cost differently.</b> A tokenizer learns most merges for the languages that fill its training text. Text in rarer languages is split into more, smaller tokens, and how many tokens a word needs on average varies widely between languages<sup class="ref"><a href="#ref-64">64</a></sup>. Prices, speed limits and the model's maximum input are all counted in tokens, so the same message can cost more in one language than another.</p>
+      <p><b>Spelling is hidden.</b> Because the model sees token IDs, anything about letters (spelling, rhymes, counting characters) has to be learned indirectly. A 2024 study found models can usually tell which letters a word contains but often miscount them, especially letters that appear more than twice<sup class="ref"><a href="#ref-201">201</a></sup>.</p>
+      <p><b>Embeddings.</b> Looking a token up is just reading one row of the table. The rows start random and are adjusted during training (chapter 13) until tokens used in similar ways end up with similar rows. With older word-level models, researchers found that even directions in this space carried meaning, like a consistent step from “man” to “woman”<sup class="ref"><a href="#ref-56">56</a></sup>.</p>
+      <details class="maths"><summary>The maths <span class="sub">one merge, step by step</span></summary><div class="body">
+        <div class="mstep"><span class="mk">In words</span><p>Count every pair of neighbouring tokens in the training text. Glue the most common pair into one new token. Everywhere that pair appeared, two tokens become one, so the training text gets shorter by that many tokens. Add the new token to the vocabulary and repeat.</p></div>
+        <div class="mstep"><span class="mk">With your numbers</span><p class="calc">Training text (<span data-live="tkSrc">everyday English</span>): <span data-live="tkTrainStart">0</span> bytes, so <span data-live="tkTrainStart">0</span> tokens to start<br>Latest merge: <span data-live="tkPair">–</span> → <span data-live="tkPairNew">–</span>, which removed <span data-live="tkPairCount">0</span> tokens<br>After <span data-live="tkMerges">0</span> merges: <span data-live="tkTrainStart">0</span> − <span data-live="tkTrainSaved">0</span> = <b data-live="tkTrainNow">0</b> tokens<br>Vocabulary: 256 + <span data-live="tkMerges">0</span> = <b data-live="tkVocab">256</b> tokens</p></div>
+        <div class="mstep"><span class="mk">In symbols</span><div><div class="eq">(a, b) = argmax count(x, y)<br>N<sub>m</sub> = N<sub>m−1</sub> − c<sub>m</sub><br>|V| = 256 + m</div><p class="sym"><i>x, y</i> any two tokens that sit next to each other · <i>count(x, y)</i> how often they do, across the whole training text · <i>argmax</i> “the pair that makes this largest” · <i>(a, b)</i> the winning pair, which becomes the new token “ab” · <i>m</i> the number of merges learned so far · <i>N<sub>m</sub></i> tokens in the training text after m merges (N<sub>0</sub> is its number of bytes) · <i>c<sub>m</sub></i> how many places merge m glued · <i>|V|</i> the size of the vocabulary. Each merge is chosen greedily: the best pair now, with no look-ahead.</p></div></div>
+      </div></details>
+    </div></details>
+  </div>
+
+  <div class="carry" data-toc="Remember this">
+    <span class="big">≈ ¾ of a word</span>
+    <span class="lab">Carry this forward</span>
+    <p>Models read tokens, not words; in English a token averages about three-quarters of a word.</p>
+  </div>
+
+  <div class="quiz" data-toc="Check yourself"><div class="label">Check yourself</div>
+    <div class="q" data-answer="0"><p>Why can a model that writes fluent poems still miscount the letters in a word?</p><div class="opts"><button>It receives the word as one or a few token IDs, not as letters</button><button>Its vocabulary has no letter r</button><button>It can only read words shorter than five letters</button></div><div class="why">The tokenizer hands the model ID numbers for chunks. The letters inside a chunk are not part of what the model receives.</div></div>
+    <div class="q" data-answer="2"><p>A byte-pair tokenizer learns one more merge. Which pair does it glue together?</p><div class="opts"><button>The two longest tokens in the vocabulary</button><button>A pair picked at random</button><button>The pair of neighbouring tokens that appears most often in its training text</button></div><div class="why">Each merge picks the most frequent neighbouring pair, so common words get built first and rare ones stay in pieces.</div></div>
+  </div>
+</section>

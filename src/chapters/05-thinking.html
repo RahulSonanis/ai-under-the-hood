@@ -1,0 +1,53 @@
+<section class="chapter" id="thinking" data-num="5" data-part="1" data-title="Thinking models">
+  <header class="ch-head">
+    <div class="ch-num">Chapter 5 · How a model answers</div>
+    <h2>What do "thinking" models do differently?</h2>
+    <p class="hook">Some assistants pause before they answer, sometimes for a minute or more. They are writing, just not to you: thousands of hidden tokens of working-out before the first visible word. This chapter lets you decide how much thinking a model gets, and shows what that buys and what it costs.</p>
+    <div class="meta">About 15 minutes · one simulation · you'll learn what reasoning tokens are, why more thinking helps hard problems but levels off, how voting spends compute differently, and why thinking makes answers slower and pricier.</div>
+  </header>
+
+  <div class="recall" data-toc="Remember">
+    <div class="beat-label">From the last chapter</div>
+    <div class="q" data-answer="1"><p>When the model works out its next token, which earlier tokens can it draw information from?</p><div class="opts"><button>Only the token just before it</button><button>Any earlier token, weighted by how relevant it is</button><button>Every token, including ones it hasn't written yet</button></div><div class="why">Attention lets each token look back at every earlier token and pull in what's relevant. It never looks forward.</div></div>
+  </div>
+
+  <div class="beat" data-toc="Predict">
+    <div class="predict" data-answer="1"><span class="label">Predict first</span><p>A model gets 16 times as much room to think about hard maths problems. What happens to how many it gets right?</p><div class="opts"><button type="button">It gets about 16 times as many right</button><button type="button">It improves a lot at first, then levels off</button><button type="button">Nothing changes; the thinking is just for show</button></div><div class="predict-after" hidden><p>Locked in. Now try it in the simulation below.</p><details><summary>Show the answer</summary><p>It improves a lot, then levels off. Past a point the model has finished its reasoning and stops early, so extra budget goes unused. Running several attempts and voting is one way to keep improving.</p></details></div></div>
+  </div>
+
+  <div class="beat" data-toc="Play">
+    <h3>You set how hard the model thinks</h3>
+    <p class="beat-intro">Questions arrive on the left: one amber dot is easy, three is hard. Before answering, the model writes hidden <b>thinking tokens</b> (the grey bars) up to the <b>budget</b> you set; only then does the teal answer appear. You can also run several attempts side by side and let them vote. The model's skill is illustrative, shaped like published results, and time runs 20 times faster than the seconds shown.</p>
+    <figure class="sim" id="think-sim"></figure>
+  </div>
+
+  <div class="beat explain" data-toc="Explain">
+    <h3>What's going on</h3>
+    <p>A model writes one token at a time, and each token gets the same fixed amount of computation. A hard problem can need more work than one token's worth. A <b>thinking model</b> (also called a reasoning model) gets around this by writing its working-out first: trying cases, checking, backing up. These <b>thinking tokens</b> are ordinary tokens, but the app hides them or shows a summary. Every one of them is something the model can look back at when it writes the final answer.</p>
+    <p>Spending more effort while answering is called <b>test-time compute</b>. On hard problems it helps a lot, then levels off: once the model has worked a problem through, it stops, and the unused budget buys nothing. Another way to spend compute is to run several attempts and take a <b>majority vote</b>. Right answers tend to agree while wrong ones scatter, so the vote beats a single attempt.</p>
+    <p>None of it is free. Thinking tokens are written one at a time, so they add waiting before the first visible word, and providers bill them like any other output. Your current setup writes about <span data-live="thkTok">–</span> tokens per question, roughly <span data-live="thkX">–</span> what a direct answer costs. On hard problems it is getting <span data-live="thkHard">none yet</span> right, with an average wait of <span data-live="thkWait">–</span>.</p>
+    <details class="how"><summary>How it works <span class="sub">training, scaling and budgets</span></summary><div class="body">
+      <p><b>Writing the steps out.</b> Researchers found early on that asking large models to show their working, by giving examples with the steps written out ("chain of thought"), made them much better at maths word problems<sup class="ref"><a href="#ref-505">505</a></sup>. Reasoning models are trained to do this by themselves, at length.</p>
+      <p><b>Trained by checking answers.</b> The training method is reinforcement learning: the model tries a problem many times, and attempts that end in the right answer are rewarded. This works best on problems whose answers can be checked automatically. DeepSeek, a Chinese AI lab, rewarded its R1-Zero model only for a correct final answer (maths answers compared with the known result, code run against tests) and for putting its reasoning between <code>&lt;think&gt;</code> tags. Nobody wrote reasoning for it to copy. Over training its answers grew longer by themselves, and it began to re-check and correct its own steps<sup class="ref"><a href="#ref-19">19</a></sup>. OpenAI, the company behind ChatGPT, describes training its o1 model the same broad way and reports that accuracy keeps rising with both more training and more thinking time<sup class="ref"><a href="#ref-501">501</a></sup>.</p>
+      <p><b>Where extra thinking pays.</b> A study from Google DeepMind and UC Berkeley found that the best way to spend test-time compute depends on how hard the question is. Giving easy questions little and hard ones more was about four times as efficient as a fixed strategy. On easy and medium questions, a small model given extra thinking could beat a model 14 times larger, but on the hardest ones, a bigger model still won<sup class="ref"><a href="#ref-502">502</a></sup>.</p>
+      <p><b>Voting.</b> "Self-consistency" samples several independent chains of reasoning and keeps the most common final answer. It lifted accuracy on a set of school maths word problems by about 18 percentage points over a single chain<sup class="ref"><a href="#ref-503">503</a></sup>. It multiplies the cost by the number of attempts. They can run side by side, so the wait grows much less.</p>
+      <p><b>Budgets in practice.</b> With Anthropic's extended thinking, the developer sets <code>budget_tokens</code>, the most the model may spend on thinking. The minimum is 1,024 tokens, the model may use less, and thinking tokens are billed as output tokens<sup class="ref"><a href="#ref-504">504</a></sup><sup class="ref"><a href="#ref-506">506</a></sup>. Serving them is like serving any other output: each one is a full pass through the model, and each one adds notes to GPU memory, which Chapter 7 shows is the scarce resource.</p>
+      <details class="maths"><summary>The maths <span class="sub">wait and cost, worked through</span></summary><div class="body">
+        <div class="mstep"><span class="mk">In words</span><p>The wait is the hidden tokens of the longest attempt, divided by how fast the model writes, plus the time to write the answer. The cost counts every token written, by every attempt, times the price of one output token.</p></div>
+        <div class="mstep"><span class="mk">With your numbers</span><p class="calc">Budget: <span data-live="thkBudget">–</span> · attempts: <span data-live="thkN">1</span><br>Tokens per question (all attempts + answer): <b data-live="thkTokRaw">–</b><br>Per attempt: <span data-live="thkPerAtt">–</span> tokens ÷ 150 tokens/s ≈ <span data-live="thkSec">–</span> of waiting<br>Cost: <span data-live="thkTokRaw">–</span> × $10 per million (illustrative) = <b data-live="thkCost">–</b></p></div>
+        <div class="mstep"><span class="mk">In symbols</span><div><div class="eq">t ≈ (T + a) / v &nbsp;&nbsp;·&nbsp;&nbsp; C ≈ (N · T + a) · p</div><p class="sym"><i>t</i> wait before the answer is complete · <i>T</i> thinking tokens per attempt (at most the budget) · <i>a</i> answer tokens (120 here) · <i>v</i> writing speed (150 tokens per second here) · <i>C</i> cost per question · <i>N</i> attempts run side by side · <i>p</i> price per output token. Attempts multiply the cost but not the wait.</p></div></div>
+      </div></details>
+    </div></details>
+  </div>
+
+  <div class="carry" data-toc="Remember this">
+    <span class="big">Thinking costs tokens</span>
+    <span class="lab">Carry this forward</span>
+    <p>Reasoning models write hidden tokens before answering; more thinking buys accuracy with time and money.</p>
+  </div>
+
+  <div class="quiz" data-toc="Check yourself"><div class="label">Check yourself</div>
+    <div class="q" data-answer="0"><p>Why does a thinking model take longer before its answer appears?</p><div class="opts"><button>It first writes hidden reasoning tokens, one at a time</button><button>It searches the web before every answer</button><button>It reads your question more slowly</button></div><div class="why">Thinking tokens are generated like any output, one after another, so thousands of them mean seconds or minutes of waiting.</div></div>
+    <div class="q" data-answer="1"><p>On hard problems, a model already stops well before using its thinking budget. What can still raise accuracy?</p><div class="opts"><button>Raising the budget even further</button><button>Running several attempts and taking a majority vote</button><button>Asking for a shorter answer</button></div><div class="why">Unused budget buys nothing. Independent attempts plus a vote spend compute in a different way, at the cost of more tokens.</div></div>
+  </div>
+</section>

@@ -494,7 +494,9 @@ ol.path a span:last-child { font-size: 0.88rem; color: var(--muted); line-height
 .sim.touring .sim-panel { border-color: var(--accent); }
 .sim-stats { margin-top: 0.9rem; }
 .stats .ok .v { color: var(--ok); } .stats .hot .v { color: var(--heat); } .stats .bad .v { color: var(--crit); }
-.sim-toasts { position: absolute; right: 12px; top: 12px; display: grid; gap: 0.5rem; width: min(330px, calc(100% - 24px)); pointer-events: none; z-index: 2; }
+.sim-toasts { display: grid; gap: 0.5rem; margin: 0.6rem 0 0; }
+.sim-toasts:empty { display: none; }
+.sim-goal[hidden] { display: none; }
 .fact-toast { pointer-events: auto; position: relative; background: color-mix(in srgb, var(--stage-2) 94%, transparent); color: var(--stage-ink); border: 1px solid var(--amber); border-radius: 12px; padding: 0.65rem 2rem 0.7rem 0.85rem; box-shadow: 0 10px 30px rgba(0,0,0,0.35); animation: toastIn 0.35s ease-out; }
 .fact-toast b { font-family: var(--f-display); font-size: 0.8rem; color: var(--amber); }
 .fact-toast p { margin: 0.15rem 0 0; font-size: 0.92rem; line-height: 1.4; }
@@ -503,7 +505,6 @@ ol.path a span:last-child { font-size: 0.88rem; color: var(--muted); line-height
 @keyframes toastIn { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .fact-toast { animation: none; } }
 @media (max-width: 640px) {
-  .sim-toasts { position: static; width: auto; padding: 0 0 0.6rem; margin: 0 12px; }
   .sim-buttons .sim-speed { margin-left: 0; }
   .sim-controls { grid-template-columns: 1fr; }
 }

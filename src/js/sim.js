@@ -31,7 +31,8 @@
 */
 function makeSim(fig, spec) {
   fig.innerHTML = `
-    <div class="sim-stage"><canvas aria-label="${esc(spec.label || "Simulation")}"></canvas><div class="sim-toasts" aria-live="polite"></div></div>
+    <div class="sim-stage"><canvas aria-label="${esc(spec.label || "Simulation")}"></canvas></div>
+    <div class="sim-toasts" aria-live="polite"></div>
     <div class="sim-status">
       <div class="sim-goal"><span class="dot" aria-hidden="true"></span><span class="gt"></span><span class="gp"></span></div>
       <p class="sim-notice"></p><p class="sr sim-live" aria-live="polite"></p>
@@ -135,7 +136,7 @@ function makeSim(fig, spec) {
       const t = document.createElement("div"); t.className = "fact-toast";
       t.innerHTML = `<b>Fun fact</b><p>${f.text}${f.ref ? ` <sup class="ref"><a href="${f.ref}">${f.ref.replace("#ref-", "")}</a></sup>` : ""}</p><button type="button" aria-label="Dismiss">×</button>`;
       $("button", t).addEventListener("click", () => t.remove());
-      $(".sim-toasts", fig).appendChild(t); setTimeout(() => t.remove(), 14000);
+      $(".sim-toasts", fig).appendChild(t); setTimeout(() => t.remove(), 20000);
       break;
     }
   }

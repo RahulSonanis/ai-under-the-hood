@@ -1,0 +1,174 @@
+<section class="chapter" id="next" data-part="9" data-title="Build it yourself">
+  <style>
+    #next { scroll-margin-top: 240px; }
+    #next .nx-group { margin: 2.6rem 0 0; }
+    #next .nx-group > h3 { margin: 0 0 0.3rem; }
+    #next .nx-group > p { margin: 0 0 1rem; color: var(--muted); max-width: 62ch; }
+    #next .nx-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    #next .nx-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.1rem 1.1rem; display: grid; gap: 0.5rem; align-content: start; min-width: 0; }
+    #next .nx-card h4 { font-size: 1.1rem; margin: 0; }
+    #next .nx-card p { margin: 0; font-size: 0.95rem; line-height: 1.5; }
+    #next .nx-chs { display: flex; flex-wrap: wrap; gap: 0.3rem; font-family: var(--f-display); font-size: 0.78rem; }
+    #next .nx-chs a { text-decoration: none; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 0.05rem 0.55rem; }
+    #next .nx-done { border-top: 1px dashed var(--line); padding-top: 0.55rem; }
+    #next .nx-done b { display: block; font-family: var(--f-display); font-size: 0.82rem; font-weight: 650; color: var(--ok); margin-bottom: 0.15rem; }
+    #next .nx-start { font-family: var(--f-display); font-size: 0.82rem; color: var(--muted); }
+    #next .nx-path { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); overflow: hidden; }
+    #next .nx-path li { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0.2rem 1rem; padding: 0.85rem 1.1rem; border-top: 1px solid var(--line); }
+    #next .nx-path li:first-child { border-top: 0; }
+    #next .nx-lv { font-family: var(--f-display); font-size: 0.82rem; font-weight: 650; display: inline-flex; align-items: center; gap: 0.45rem; align-self: start; padding-top: 0.15rem; }
+    #next .nx-lv::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+    #next .lv1 { color: var(--l1); } #next .lv2 { color: var(--l2); } #next .lv3 { color: var(--l3); } #next .lv4 { color: var(--l4); }
+    #next .nx-path a { font-family: var(--f-display); font-weight: 600; }
+    #next .nx-path p { margin: 0.1rem 0 0; font-size: 0.93rem; color: var(--muted); line-height: 1.45; }
+    @media (max-width: 760px) { #next .nx-grid { grid-template-columns: 1fr; } #next .nx-path li { grid-template-columns: 1fr; } }
+  </style>
+
+  <header class="ch-head">
+    <div class="ch-num">After the course · Build it yourself</div>
+    <h2>What should you build to make it stick?</h2>
+    <p class="hook">The fastest way to really understand this is to build a small version of each part yourself and measure it. Every project below fits on a laptop or a GPU rented for an hour or two, and each one is tied to the chapters it brings to life.</p>
+    <div class="meta">Each project ends with "Done when you can show": the evidence to produce. There is no right number to hit. Your numbers will differ from the course's, and explaining why is part of the work.</div>
+  </header>
+
+  <div class="nx-group">
+    <h3>Part 1 · How a model answers</h3>
+    <p>Look at the model from the outside, then build a tiny one.</p>
+    <div class="nx-grid">
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="1">Chapter 1</a><a data-n="9">Chapter 9</a></div>
+        <h4>Time a reply, token by token</h4>
+        <p>Call any model API with streaming switched on and record the moment each token arrives. Do it for a one-line question and for a long pasted document.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>A timeline for each request with the time to the first token and the gaps between tokens, plus one sentence on why the long document changed the first number more than the gaps.</p></div>
+        <div class="nx-start">Start with: server-sent events<sup class="ref"><a href="#ref-55">55</a></sup>, an API's message docs<sup class="ref"><a href="#ref-70">70</a></sup></div>
+      </article>
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="2">Chapter 2</a></div>
+        <h4>Train a tokenizer</h4>
+        <p>Train a small byte-pair-encoding tokenizer (the method that merges the most common pairs of pieces) on a few megabytes of text, then measure how many characters each token covers in different languages.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>Characters per token for at least three languages, how a few long or rare words were split, and a sentence on why the languages differ.</p></div>
+        <div class="nx-start">Start with: the original BPE paper<sup class="ref"><a href="#ref-4">4</a></sup></div>
+      </article>
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="3">Chapter 3</a><a data-n="4">Chapter 4</a><a data-n="13">Chapter 13</a></div>
+        <h4>Train a tiny GPT</h4>
+        <p>Train a small character-level transformer on a short book on your laptop or one cloud GPU. Watch the loss (the model's average surprise) fall and the samples improve.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>Your settings and training time, the training and held-out loss curves, and samples from early, middle and late in training, with your notes on what changed as the loss fell.</p></div>
+        <div class="nx-start">Start with: nanoGPT<sup class="ref"><a href="#ref-46">46</a></sup>, The Illustrated Transformer<sup class="ref"><a href="#ref-47">47</a></sup></div>
+      </article>
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="3">Chapter 3</a><a data-n="5">Chapter 5</a></div>
+        <h4>Play with sampling and voting</h4>
+        <p>Using your tiny model or a small open one, generate from one prompt at several temperatures and top-p settings. Then, on a set of short maths questions, sample several answers per question and take a majority vote.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>Five samples per setting side by side with notes on where text turned dull or incoherent, and a chart of accuracy against the number of votes (1, 3, 5, 9) on at least 30 questions, with the tokens each point cost.</p></div>
+        <div class="nx-start">Start with: nucleus sampling<sup class="ref"><a href="#ref-39">39</a></sup>, self-consistency<sup class="ref"><a href="#ref-503">503</a></sup></div>
+      </article>
+    </div>
+  </div>
+
+  <div class="nx-group">
+    <h3>Part 2 · Serving millions</h3>
+    <p>Run a model as a service and watch where the time, memory and money go.</p>
+    <div class="nx-grid">
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="7">Chapter 7</a><a data-n="8">Chapter 8</a><a data-n="9">Chapter 9</a></div>
+        <h4>Serve a model and load it</h4>
+        <p>Serve a small open model with vLLM, an open-source serving engine, on one rented GPU. Send it more and more requests at once and measure what happens.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>A chart of time to first token and total tokens per second at each concurrency level, with the model, GPU and prompt lengths, and where you think it saturates and why (memory for notes, or compute).</p></div>
+        <div class="nx-start">Start with: vLLM<sup class="ref"><a href="#ref-54">54</a></sup>, PagedAttention<sup class="ref"><a href="#ref-34">34</a></sup></div>
+      </article>
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="10">Chapter 10</a></div>
+        <h4>Roll out a new version safely</h4>
+        <p>Put two versions of your served model behind a small router that sends a slice of traffic to the new one. Write an automatic check that grades a sample of replies, plant a fault in the new version, and roll it out step by step.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>A log of each rollout stage with traffic share, error rate and check results, and the point where your check stopped the rollout (or an honest note on why it didn't).</p></div>
+        <div class="nx-start">Start with: Canarying releases<sup class="ref"><a href="#ref-1001">1001</a></sup></div>
+      </article>
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="11">Chapter 11</a></div>
+        <h4>Keep an infrastructure log</h4>
+        <p>Each month, pick one new AI cluster announcement and note its chips, power, network and cooling. Estimate its power draw yourself from the chip count.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>A dated table of at least three clusters with sources, and your power estimate next to the announced figure with the assumptions you used.</p></div>
+        <div class="nx-start">Start with: Epoch AI's data<sup class="ref"><a href="#ref-48">48</a></sup>, Google's efficiency figures<sup class="ref"><a href="#ref-45">45</a></sup></div>
+      </article>
+    </div>
+  </div>
+
+  <div class="nx-group">
+    <h3>Part 3 · Where the model comes from</h3>
+    <p>Clean data, train at a few sizes, spread training over two GPUs, then turn a predictor into an assistant.</p>
+    <div class="nx-grid">
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="12">Chapter 12</a></div>
+        <h4>Clean a slice of the web</h4>
+        <p>Take a sample of web text, filter out obvious junk, and find near-duplicates with MinHash, a quick way to estimate how much two documents overlap.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>How many documents each filter removed, how many near-duplicates you found at your threshold, three pairs it caught and one it missed or wrongly merged.</p></div>
+        <div class="nx-start">Start with: FineWeb<sup class="ref"><a href="#ref-3">3</a></sup>, Broder's resemblance paper<sup class="ref"><a href="#ref-1202">1202</a></sup></div>
+      </article>
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="14">Chapter 14</a></div>
+        <h4>Scaling on a budget</h4>
+        <p>Fix a small compute budget and train three model sizes with it: big model on few tokens, small model on many, and one in between.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>Each model's size, tokens, compute and held-out loss, plotted as your own small curve, with your reading of the trend, even if noise hides it or your sizes miss the best point.</p></div>
+        <div class="nx-start">Start with: Chinchilla<sup class="ref"><a href="#ref-8">8</a></sup>, the Smol Training Playbook<sup class="ref"><a href="#ref-1">1</a></sup></div>
+      </article>
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="14">Chapter 14</a></div>
+        <h4>Split training over two GPUs</h4>
+        <p>Rent two GPUs for an hour. Run the same training job twice: once with a full copy of the model on each GPU, once with the model's state split between them (FSDP).</p>
+        <div class="nx-done"><b>Done when you can show</b><p>A table of peak memory per GPU and time per training step for both setups, with the settings, and an explanation of the difference.</p></div>
+        <div class="nx-start">Start with: the Ultra-Scale Playbook<sup class="ref"><a href="#ref-2">2</a></sup>, ZeRO<sup class="ref"><a href="#ref-11">11</a></sup></div>
+      </article>
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="15">Chapter 15</a></div>
+        <h4>Make a small assistant</h4>
+        <p>Fine-tune a small open model on example conversations, then on a dataset of preferred and rejected answers. Compare the three versions.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>The same ten prompts answered by the base, example-tuned and preference-tuned models side by side, with the datasets and settings, and your notes on what changed and what got worse.</p></div>
+        <div class="nx-start">Start with: Hugging Face TRL<sup class="ref"><a href="#ref-49">49</a></sup>, the DPO paper<sup class="ref"><a href="#ref-18">18</a></sup></div>
+      </article>
+    </div>
+  </div>
+
+  <div class="nx-group">
+    <h3>Part 4 · Around the model</h3>
+    <p>Build the loop that turns a model into an agent, then try to break it.</p>
+    <div class="nx-grid">
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="16">Chapter 16</a><a data-n="17">Chapter 17</a></div>
+        <h4>Write your own agent loop</h4>
+        <p>In about 200 lines, write a loop that lets a model call two tools, "read a file" and "run the tests", on a small project with a planted bug. Add a token budget and a step that summarises old context when it grows too long.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>A log of every model call and tool call, the tokens used against your budget, and whether the tests passed in the end.</p></div>
+        <div class="nx-start">Start with: Building effective agents<sup class="ref"><a href="#ref-40">40</a></sup>, context engineering<sup class="ref"><a href="#ref-41">41</a></sup>, MCP<sup class="ref"><a href="#ref-42">42</a></sup></div>
+      </article>
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="17">Chapter 17</a></div>
+        <h4>Attack your own agent</h4>
+        <p>Hide an instruction inside one of the files your agent reads, for example a comment asking it to delete the tests. Then add one defence, such as asking for confirmation before risky tools run.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>The agent's log with and without the defence, how often the hidden instruction steered it over at least ten runs, and what your defence did and did not stop.</p></div>
+        <div class="nx-start">Start with: your loop from the project before, and chapter 17's simulation</div>
+      </article>
+    </div>
+  </div>
+
+  <div class="nx-group">
+    <h3>Where to go next: a learning path</h3>
+    <p>This course gives you the map. These are some of the best places to go deeper, roughly from beginner to expert.</p>
+    <ol class="nx-path">
+      <li><span class="nx-lv lv1">Beginner</span><div><a href="https://www.3blue1brown.com/topics/neural-networks">3Blue1Brown: Neural networks and transformers</a><p>Beautiful visual intuition for neurons, gradient descent and attention.</p></div></li>
+      <li><span class="nx-lv lv1">Beginner</span><div><a href="https://www.youtube.com/watch?v=zjkBMFhNj_g">Andrej Karpathy: Intro to Large Language Models</a><p>A one-hour talk on what language models are and how they're made.</p></div></li>
+      <li><span class="nx-lv lv2">Intermediate</span><div><a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar: The Illustrated Transformer</a><p>The classic diagram-by-diagram walk through a transformer.</p></div></li>
+      <li><span class="nx-lv lv2">Intermediate</span><div><a href="https://huggingface.co/learn/llm-course">Hugging Face LLM Course</a><p>Hands-on with tokenizers, models and fine-tuning in code.</p></div></li>
+      <li><span class="nx-lv lv3">Engineer</span><div><a href="https://karpathy.ai/zero-to-hero.html">Andrej Karpathy: Neural Networks, Zero to Hero</a><p>Build backpropagation, a tokenizer and a GPT from scratch, line by line.</p></div></li>
+      <li><span class="nx-lv lv3">Engineer</span><div><a href="https://www.manning.com/books/build-a-large-language-model-from-scratch">Sebastian Raschka: Build a Large Language Model (From Scratch)</a><p>A book-length build of a GPT-style model, including fine-tuning.</p></div></li>
+      <li><span class="nx-lv lv3">Engineer</span><div><a href="https://huggingface.co/spaces/HuggingFaceTB/smol-training-playbook">Smol Training Playbook</a> and <a href="https://huggingface.co/spaces/nanotron/ultrascale-playbook">Ultra-Scale Playbook</a><p>How real models are trained, and how training is spread across thousands of GPUs.</p></div></li>
+      <li><span class="nx-lv lv4">Expert</span><div><a href="https://stanford-cs336.github.io/">Stanford CS336: Language Modeling from Scratch</a><p>A full university course: data, architectures, systems, scaling and alignment.</p></div></li>
+      <li><span class="nx-lv lv4">Expert</span><div><a href="https://lilianweng.github.io/">Lilian Weng's blog</a><p>Deep, well-referenced surveys of attention, training from feedback, hallucination and more.</p></div></li>
+    </ol>
+  </div>
+
+  <div class="nx-group">
+    <h3>How to keep learning</h3>
+    <div class="prose"><p>Keep a short notebook per chapter: the one idea that matters, one number you measured yourself, and one question you couldn't answer yet. Revisit the datacenter chapter every few months, because that part of the field changes fastest. When a lab publishes a technical report or a postmortem, read it against these chapters: most of it will map onto something you've already played with.</p></div>
+    <div class="callout"><div class="label">Corrections welcome</div><p>Spotted an error or a better source? Open an issue or pull request on the <a href="https://github.com/RahulSonanis/ai-under-the-hood">course's GitHub repository</a> with a link to the source.</p></div>
+  </div>
+</section>

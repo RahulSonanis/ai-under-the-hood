@@ -173,6 +173,7 @@ function renderFacts() {
   box.innerHTML = all.length ? all.map(f => `<li><p>${f.text}${f.ref ? ` <sup class="ref"><a href="${f.ref}">${f.ref.replace("#ref-", "")}</a></sup>` : ""}</p><span class="from">from <a href="#${f.ch}">${esc(titles[f.ch] || f.ch)}</a></span></li>`).join("")
     : `<li class="empty"><p>No fun facts yet. They unlock while you play with the simulations; each one pops up when you cause the thing it is about.</p></li>`;
 }
+try { history.scrollRestoration = "manual"; } catch (e) {}
 function route() {
   if (Chapters.current) scrollMemo[Chapters.current] = window.scrollY;
   let h = location.hash.slice(1) || "start"; let target = null;
@@ -191,7 +192,7 @@ function route() {
   else redrawCurrent();
   $$("canvas", el).forEach(c => { if (!c.hasAttribute("role")) c.setAttribute("role", "img"); });
   if (target) { const t = document.getElementById(target); if (t) t.scrollIntoView({ block: "center" }); }
-  else window.scrollTo(0, scrollMemo[h] || 0);
+  else { const y = scrollMemo[h] || 0; window.scrollTo(0, y); requestAnimationFrame(() => window.scrollTo(0, y)); setTimeout(() => window.scrollTo(0, y), 60); }
   const hd = el.querySelector("h2, h1"); if (hd && Route.moved) { hd.tabIndex = -1; hd.focus({ preventScroll: true }); }
   Route.moved = true;
   document.title = (el.dataset.title ? el.dataset.title + " · " : "") + "AI Under the Hood";
