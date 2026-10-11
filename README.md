@@ -1,31 +1,33 @@
 # AI Under the Hood
 
-**What really happens when you talk to an AI?** An interactive course that starts with you pressing *send* and works backwards: tokens, the model, the GPU serving your reply, the months of training before it, the datacenters underneath, and the software that turns a model into an agent.
+**What really happens when you talk to an AI?** An interactive course you *play*. It starts with you pressing send and follows that moment all the way down: tokens, the model, the GPU serving your reply, what it costs, the datacenter underneath, the months of training before it, and the software that turns a model into an agent.
 
-Every chapter opens with a short animated film you can play, pause and step through, showing the machinery at work: packets crossing a datacenter, tokens flowing through layers, gradients flowing back, GPUs failing and restarting. Every idea is explained as a ladder that goes as deep as you want: **Age 5 → Curious → Engineer → Mathematician**. Every chapter is built around something you can play with, and every claim links to a primary source.
+Every chapter is built around **one live simulation you drive**. Controls change it in real time, there is a goal to reach, the simulation tells you what just happened and why, a "Show me" tour can take over, and fun facts unlock as you explore. Then one short explanation for everyone, with optional "How it works" and "The maths" (in words, then with your own numbers, then in symbols). Every claim links to a primary source.
 
 ## The course
 
-| Part | Chapter | What you play with |
+| Part | Chapter | Your goal in the simulation |
 |---|---|---|
-| **1 · Press send** | 1. What happens when you press send? | Live request trace (gateway → queue → prefill → decode → stream) and a rewind timeline |
-| | 2. How does text become numbers? | Watch a real BPE tokenizer learn merge by merge; embedding map with word arithmetic |
-| | 3. How does a model pick the next word? | A real trigram language model with a spinning sampling wheel (temperature, top-k, top-p); "be the model" guessing game |
-| | 4. What happens inside the model? | Clickable attention heads ("who is *it*?"); drag query/key vectors and watch softmax attention; parameter counter |
-| | 5. How does it remember the conversation? | GPU memory map: reserved vs paged KV cache, prefix caching; KV calculator |
-| | 6. How does one GPU serve many people? | Animated decode step (weights streaming vs compute); static vs continuous batching; roofline |
-| **2 · Rewind** | 7. Where does the knowledge come from? | Data-cleaning funnel (language ID, quality rules, exact and MinHash dedup); packing and masking |
-| | 8. How does a model learn? | Gradient descent on a loss landscape; train a real neural network in the browser (backprop + Adam) |
-| | 9. How big, how long, how much? | Compute-budget splitter (Chinchilla); training cost vs DeepSeek-V3, Llama 3.1, SmolLM3 reports |
-| | 10. How do thousands of chips train one model? | Step-through ring all-reduce; animated pipeline schedules and bubbles; memory-per-GPU calculator |
-| | 11. What happens when chips break? | Keep a 16,384-GPU run alive using Meta's real Llama 3 failure rate and causes |
-| | 12. How does a predictor become an assistant? | One prompt across base → SFT → RLHF; reward hacking and the KL leash |
-| | 13. How do we know it's good and safe? | The noise machine (benchmark variance); significance calculator |
-| **3 · The building** | 14. What is inside an AI datacenter? | Zoom from chip → tray → rack → cluster → gigawatt campus; power calculator; AWS, Google, Microsoft, OpenAI/Oracle, Anthropic and Meta case studies |
-| **4 · Around the model** | 15. How does a chatbot become an agent? | Agent terminal with live context, compaction and prompt-caching accounting |
-| | 16. Build it yourself | Hands-on follow-up projects, then 60 references |
+| **1 · How a model answers** | 1. What happens when you press send? | Get the first word of a 20-page report's summary on screen in under a second |
+| | 2. How does text become numbers? | Train a tokenizer until "strawberry" is a single token |
+| | 3. How does it pick the next word? | Write 40 words at high temperature without nonsense |
+| | 4. How does it understand what "it" refers to? | Find the word where the model decides who "it" is |
+| | 5. What do "thinking" models do differently? | Get 8 of 10 hard problems right without slow answers |
+| | 6. How can a chatbot see a photo? | Read a pill bottle's label using 300 tokens or fewer |
+| **2 · Serving millions** | 7. Why do long chats get slower and pricier? | Keep 30 people chatting on one GPU with nobody waiting |
+| | 8. How does one GPU serve many people at once? | Serve 64 people fast enough and cheaply enough |
+| | 9. What does one AI reply actually cost? | Run a fleet through a whole day for under $0.33 per 1,000 replies |
+| | 10. What happens when something goes wrong in production? | Ship a new version without garbled replies reaching people |
+| | 11. Why are AI companies building power plants? | Train a model on time within a power budget |
+| **3 · Where the model comes from** | 12. Where does a model's knowledge come from? | Clean a slice of the web: keep the good pages, drop junk, copies and personal data |
+| | 13. How does a model learn? | Train a real neural network in your browser without overfitting |
+| | 14. How do thousands of chips train one model? | Plan a training run that hits a target quality within 60 days |
+| | 15. How does a text predictor become a helpful assistant? | Make the model more helpful, and prove it |
+| **4 · Around the model** | 16. How does a chatbot become an agent? | Fix a bug inside a token budget, as the harness |
+| | 17. Can you trust what an AI reads, and what it says? | Block every prompt-injection attack in an inbox and still get the work done |
+| **Finale** | Could you run an AI company for a day? | Finish the day in profit, fast, with no incident missed; then the end-to-end check |
 
-Each chapter opens with a one-sentence answer and a step-by-step film, then has hands-on experiments, 2–3 concept ladders, optional engineer tools, and a two-question check. Progress is saved in your browser.
+Plus: a "Build it yourself" page with hands-on projects, a page of the fun facts you've unlocked, and the full reference list. Progress is saved in your browser.
 
 ## View it
 
@@ -39,11 +41,14 @@ Open `docs/index.html` in any modern browser; no install needed.
 src/
   styles.css          design tokens (light + dark) and components
   shell-top.html      top bar and course outline
-  chapters/NN-*.html  one file per chapter
-  js/core.js          router, concept ladders, quizzes, progress, plotting helpers
-  js/c00-scene.js     film engine: playback controls, camera, drawing kit (storyFilm)
-  js/cNNa-film.js     each chapter's film (steps, captions at two depths, drawing)
-  js/cNN-*.js         each chapter's hands-on experiments (initialised when first opened)
+  chapters/NN-*.html  one file per chapter (text, recall, predict, explain, quiz)
+  refs/chNN.html      references added by each chapter
+  js/core.js          router, sidebar, quizzes, progress, glossary
+  js/kit.js           drawing kit for the dark simulation stage
+  js/sim.js           live simulation engine: controls, goals, notices, facts, tours, live maths
+  js/chNN-*.js        each chapter's simulation
+  legacy/             the previous version, kept for reference
+notes/                build and review notes
 build.py              assembles src/ into docs/index.html
 ```
 

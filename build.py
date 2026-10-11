@@ -11,15 +11,20 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
          '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900'
          '&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400&display=swap">')
-META = '<meta name="description" content="An interactive, referenced course on what happens when you talk to an AI: tokens, models, serving, training, datacenters and agents, explained from age 5 to mathematician.">'
+META = '<meta name="description" content="An interactive, referenced course on what happens when you talk to an AI: tokens, models, serving, training, datacenters and agents, played as live simulations, from curious beginner to engineer.">'
 
 
 def build():
     css = (SRC / "styles.css").read_text()
     top = (SRC / "shell-top.html").read_text()
     chapters = "\n".join(p.read_text() for p in sorted((SRC / "chapters").glob("*.html")))
+    # extra references added by chapters live in src/refs/*.html as <li id="ref-NNN" value="NNN"> items
+    extra = "\n".join(p.read_text().strip() for p in sorted((SRC / "refs").glob("*.html")))
+    if extra:
+        i = chapters.index('id="refs"'); j = chapters.index("</ol>", i)
+        chapters = chapters[:j] + extra + "\n  " + chapters[j:]
     # one <script> per file, so a mistake in one chapter's script can't take down the others
-    js = "\n</script>\n<script>\n".join(p.read_text() for p in [SRC / "js" / "core.js"] + sorted((SRC / "js").glob("c[0-9]*.js")))
+    js = "\n</script>\n<script>\n".join(p.read_text() for p in [SRC / "js" / f for f in ("core.js", "kit.js", "sim.js")] + sorted((SRC / "js").glob("ch[0-9]*.js")))
     head = f"<title>AI Under the Hood</title>\n{META}\n{FONTS}\n<style>\n{css}\n</style>"
     body = f"{top}\n{chapters}\n</main>\n</div>\n<script>\n{js}\n</script>"
     for d in ("dist", "docs"):

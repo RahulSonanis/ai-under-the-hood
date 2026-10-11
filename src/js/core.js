@@ -89,39 +89,6 @@ let rzT; window.addEventListener("resize", () => { clearTimeout(rzT); rzT = setT
 try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawCurrent); } catch (e) {}
 new MutationObserver(redrawCurrent).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
-/* ---------- Concept ladders: one rung at a time ---------- */
-const LEVELS = ["Age 5", "Curious", "Engineer", "Mathematician"];
-function setupLadders(root) {
-  $$(".concept", root).forEach(card => {
-    if (card.dataset.ready) return; card.dataset.ready = 1;
-    const levels = $$(".level", card); const max = levels.length;
-    levels.forEach(l => { const lv = document.createElement("div"); lv.className = "lv"; lv.textContent = LEVELS[+l.dataset.l - 1]; l.prepend(lv); l.setAttribute("aria-live", "polite"); });
-    const head = $(".concept-head", card); const lad = document.createElement("div"); lad.className = "ladder"; lad.setAttribute("role", "group"); lad.setAttribute("aria-label", "Explanation depth for " + $("h3", card).textContent);
-    levels.forEach(l => { const b = document.createElement("button"); b.type = "button"; b.dataset.l = l.dataset.l; b.textContent = LEVELS[+l.dataset.l - 1]; b.addEventListener("click", () => show(+l.dataset.l)); lad.appendChild(b); });
-    head.appendChild(lad);
-    const nav = document.createElement("div"); nav.className = "ladder-nav";
-    const simpler = document.createElement("button"); simpler.type = "button"; simpler.className = "deeper";
-    const deeper = document.createElement("button"); deeper.type = "button"; deeper.className = "deeper";
-    const capNote = document.createElement("span"); capNote.className = "note";
-    nav.append(simpler, deeper, capNote); card.appendChild(nav);
-    simpler.addEventListener("click", () => show(card._lvl - 1)); deeper.addEventListener("click", () => show(card._lvl + 1));
-    function show(n, fromGlobal) {
-      card._lvl = Math.max(1, Math.min(max, n));
-      levels.forEach(l => l.hidden = +l.dataset.l !== card._lvl);
-      $$("button", lad).forEach(b => { const on = +b.dataset.l === card._lvl; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
-      simpler.hidden = card._lvl <= 1; simpler.textContent = `← Simpler: ${LEVELS[card._lvl - 2] || ""}`;
-      deeper.hidden = card._lvl >= max; deeper.textContent = `Go deeper: ${LEVELS[card._lvl] || ""} →`;
-      capNote.textContent = fromGlobal && n > max ? `This idea stops at ${LEVELS[max - 1]} level.` : "";
-    }
-    card._show = show; show(store.get("depth", 1), true);
-  });
-}
-function setDepth(n) {
-  store.set("depth", n); $$(".concept").forEach(c => c._show && c._show(n, true));
-  document.dispatchEvent(new CustomEvent("depthchange", { detail: n }));
-  $$("#depth button, #start-depth button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === n ? "true" : "false"));
-}
-
 /* ---------- Quizzes ---------- */
 function setupPredicts(root) {
   $$(".predict", root).forEach(pr => {
@@ -150,6 +117,42 @@ function setupQuizzes(root) {
 /* ---------- Footnote popovers ---------- */
 let pop = null;
 function closePop() { if (pop) { pop.remove(); pop = null; } }
+/* Glossary: <dfn data-g="gpu">GPU</dfn> shows a plain-language definition on tap or hover. */
+const GLOSS = {
+  token: "A small piece of text, often a word or part of a word. Models read and write tokens, not letters or words.",
+  gpu: "Graphics processing unit: a chip with thousands of small maths units working at once. AI models run on GPUs (or similar AI chips).",
+  parameter: "One of the numbers the model learned during training (also called a weight). A large model has billions of them.",
+  weight: "One of the numbers the model learned during training (also called a parameter). A large model has billions of them.",
+  vector: "A list of numbers. Models turn every token into a vector of thousands of numbers that describes it.",
+  softmax: "A rule that turns any list of scores into chances that add up to 100%: bigger scores get bigger shares.",
+  compute: "The amount of calculation a job needs, usually counted in operations (multiply-and-add steps).",
+  layer: "One stage of the model. The model passes every token through dozens of layers, one after another.",
+  "kv-cache": "The model's notes about the tokens it has already read, kept in GPU memory so it never has to re-read them.",
+  prefill: "The first phase of a reply: the model reads the whole prompt in one parallel pass.",
+  decode: "The second phase of a reply: the model writes the answer one token at a time.",
+  context: "Everything the model can see at once: instructions, the conversation so far, documents and tool results.",
+  latency: "How long something takes from the user's point of view, for example the wait before the first word appears.",
+  throughput: "How much work gets done per second in total, for example tokens per second across everyone.",
+  bandwidth: "How fast data can move, for example from a GPU's memory to its maths units (in bytes per second).",
+  watt: "A unit of power. A kilowatt (kW) is roughly a microwave oven running; a megawatt (MW) is 1,000 of those; a gigawatt (GW) is 1,000 MW, the output of a large power station.",
+  byte: "The basic unit of computer storage: 8 bits, enough for one English letter. A KB is about a thousand bytes (a short email), a GB about a billion (a film), a TB a thousand GB.",
+  flops: "Floating-point operations: the multiply-and-add sums AI chips do. A modern AI chip does around a thousand trillion a second.",
+  benchmark: "A fixed test with known answers, used to compare models.",
+  harness: "The ordinary program around the model that sends it text, runs the tools it asks for, and adds the results back."
+};
+function openGloss(d) {
+  closePop(); const key = d.dataset.g || d.textContent.trim().toLowerCase(); const txt = GLOSS[key]; if (!txt) return;
+  pop = document.createElement("div"); pop.className = "refpop gloss"; pop.setAttribute("role", "tooltip");
+  pop.innerHTML = `<b>${esc(d.textContent.trim())}</b><div>${txt}</div>`; document.body.appendChild(pop);
+  const r = d.getBoundingClientRect(), pw = Math.min(320, window.innerWidth - 24); pop.style.width = pw + "px";
+  pop.style.left = Math.max(12, Math.min(window.innerWidth - pw - 12, r.left + r.width / 2 - pw / 2)) + "px";
+  const below = r.bottom + 8 + pop.offsetHeight < window.innerHeight; pop.style.top = (below ? r.bottom + 8 : Math.max(8, r.top - pop.offsetHeight - 8)) + "px";
+}
+document.addEventListener("click", e => { const d = e.target.closest("dfn[data-g]"); if (d) { e.stopPropagation(); openGloss(d); } }, true);
+document.addEventListener("mouseover", e => { const d = e.target.closest("dfn[data-g]"); if (d && matchMedia("(hover: hover)").matches) openGloss(d); });
+document.addEventListener("mouseout", e => { const d = e.target.closest("dfn[data-g]"); if (d && pop && pop.classList.contains("gloss") && matchMedia("(hover: hover)").matches) closePop(); });
+document.addEventListener("keydown", e => { const d = e.target.closest && e.target.closest("dfn[data-g]"); if (d && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openGloss(d); } });
+document.addEventListener("DOMContentLoaded", () => $$("dfn[data-g]").forEach(d => { d.tabIndex = 0; d.setAttribute("role", "button"); }));
 function openPop(a) {
   closePop(); const id = a.getAttribute("href").slice(1); const li = document.getElementById(id); if (!li) return;
   pop = document.createElement("div"); pop.className = "refpop"; pop.setAttribute("role", "dialog"); pop.setAttribute("aria-label", "Source " + a.textContent);
@@ -166,14 +169,32 @@ document.addEventListener("click", e => {
   if (pop && !e.target.closest(".refpop")) closePop();
 });
 
-/* ---------- Progress + router ---------- */
+/* ---------- Progress, sidebar, router ---------- */
 const scrollMemo = {};
-function markDone(id) { const d = store.get("done", {}); d[id] = 1; store.set("done", d); paintProgress(); }
+const PARTS = { 0: "", 1: "How a model answers", 2: "Serving millions", 3: "Where the model comes from", 4: "Around the model", 5: "Finale", 9: "Extras" };
+function markDone(id) { const d = store.get("done", {}); if (d[id]) return; d[id] = 1; store.set("done", d); paintProgress(); }
+const courseChapters = () => $$("section.chapter[data-num]");
 function paintProgress() {
-  const d = store.get("done", {}); const links = $$(".rail a[data-ch]").filter(a => { const s = document.getElementById(a.dataset.ch); return s && $(".q", s); });
+  const d = store.get("done", {}), chs = courseChapters();
   $$(".rail a[data-ch]").forEach(a => a.classList.toggle("done", !!d[a.dataset.ch]));
-  const n = links.filter(a => d[a.dataset.ch]).length; const p = $(".rail .progress");
-  if (p) p.innerHTML = `${n} of ${links.length} chapter checks passed<div class="bar"><i style="width:${n / links.length * 100}%"></i></div>`;
+  const n = chs.filter(s => d[s.id]).length, p = $(".rail .progress");
+  if (p) p.innerHTML = `${n} of ${chs.length} chapters completed<div class="bar"><i style="width:${chs.length ? n / chs.length * 100 : 0}%"></i></div>`;
+  const f = Object.keys(store.get("facts", {})).length, fl = $('.rail a[data-ch="facts"] .t');
+  if (fl) fl.textContent = `Fun facts (${f} found)`;
+}
+/* Sidebar is built from the chapters themselves: <section class="chapter" data-num="7" data-part="2" data-title="Memory">.
+   Only the current chapter is expanded, listing its sections (elements with data-toc="Label"). */
+function buildRail() {
+  const rail = $("#rail"); let html = "", lastPart = null;
+  $$("section.chapter").forEach(s => {
+    const part = s.dataset.part || "9";
+    if (part !== lastPart) { if (lastPart !== null) html += "</ol></div>"; html += `<div class="part"><div class="part-title">${PARTS[part] ? (part < 9 && part != 5 ? `Part ${part} · ` : "") + PARTS[part] : ""}</div><ol>`; lastPart = part; }
+    const toc = $$("[data-toc]", s).map((el, i) => { if (!el.id) el.id = s.id + "-sec-" + i; return `<li><button type="button" data-go="${el.id}">${esc(el.dataset.toc)}</button></li>`; }).join("");
+    html += `<li class="ch-item" data-ch="${s.id}"><a href="#${s.id}" data-ch="${s.id}"><span class="dot">${s.dataset.num || (s.id === "start" ? "★" : "·")}</span><span class="t">${esc(s.dataset.title || s.id)}</span></a>${toc ? `<ol class="toc">${toc}</ol>` : ""}</li>`;
+  });
+  html += "</ol></div><div class=\"progress\"></div>";
+  rail.innerHTML = html;
+  $$("[data-go]", rail).forEach(b => b.addEventListener("click", () => { const el = document.getElementById(b.dataset.go); if (el) { el.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "start" }); if (isDrawer()) setDrawer(false); } }));
 }
 const isDrawer = () => matchMedia("(max-width: 960px)").matches;
 function setDrawer(open) {
@@ -182,6 +203,13 @@ function setDrawer(open) {
   $(".backdrop").hidden = !open;
   if (open) { const cur = $(".rail a[aria-current]") || $(".rail a"); cur && cur.focus(); }
 }
+function renderFacts() {
+  const box = $("#facts-list"); if (!box) return; const all = Object.values(store.get("facts", {})).sort((a, b) => a.at - b.at);
+  const titles = Object.fromEntries($$("section.chapter").map(s => [s.id, s.dataset.title]));
+  box.innerHTML = all.length ? all.map(f => `<li><p>${f.text}${f.ref ? ` <sup class="ref"><a href="${f.ref}">${f.ref.replace("#ref-", "")}</a></sup>` : ""}</p><span class="from">from <a href="#${f.ch}">${esc(titles[f.ch] || f.ch)}</a></span></li>`).join("")
+    : `<li class="empty"><p>No fun facts yet. They unlock while you play with the simulations; each one pops up when you cause the thing it is about.</p></li>`;
+}
+try { history.scrollRestoration = "manual"; } catch (e) {}
 function route() {
   if (Chapters.current) scrollMemo[Chapters.current] = window.scrollY;
   let h = location.hash.slice(1) || "start"; let target = null;
@@ -191,14 +219,16 @@ function route() {
   closePop();
   $$(".chapter").forEach(s => s.hidden = s.id !== h);
   Chapters.current = h;
+  $$(".rail li.ch-item").forEach(li => li.classList.toggle("open", li.dataset.ch === h));
   $$(".rail a").forEach(a => { if (a.getAttribute("href") === "#" + h) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   if ($(".rail").classList.contains("open")) setDrawer(false);
-  const el = document.getElementById(h); setupLadders(el); setupQuizzes(el); setupPredicts(el);
+  const el = document.getElementById(h); setupQuizzes(el); setupPredicts(el);
+  if (h === "facts") renderFacts();
   if (Chapters.inits[h] && !Chapters.done[h]) { Chapters.done[h] = 1; Chapters.initing = h; Chapters.inits[h].forEach(fn => { try { fn(); } catch (e) { console.error(e); } }); Chapters.initing = null; }
   else redrawCurrent();
-  $$("canvas.cv", el).forEach(c => { if (!c.hasAttribute("role")) c.setAttribute("role", "img"); });
+  $$("canvas", el).forEach(c => { if (!c.hasAttribute("role")) c.setAttribute("role", "img"); });
   if (target) { const t = document.getElementById(target); if (t) t.scrollIntoView({ block: "center" }); }
-  else window.scrollTo(0, scrollMemo[h] || 0);
+  else { const y = scrollMemo[h] || 0; window.scrollTo(0, y); requestAnimationFrame(() => window.scrollTo(0, y)); setTimeout(() => window.scrollTo(0, y), 60); }
   const hd = el.querySelector("h2, h1"); if (hd && Route.moved) { hd.tabIndex = -1; hd.focus({ preventScroll: true }); }
   Route.moved = true;
   document.title = (el.dataset.title ? el.dataset.title + " · " : "") + "AI Under the Hood";
@@ -215,8 +245,8 @@ function buildPagers() {
 }
 document.addEventListener("DOMContentLoaded", () => {
   const savedTheme = store.get("theme", null); if (savedTheme) document.documentElement.dataset.theme = savedTheme;
-  buildPagers(); paintProgress(); syncValueText();
-  $$("#depth, #start-depth").forEach(dp => { $$("button", dp).forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === store.get("depth", 1) ? "true" : "false")); seg(dp, v => setDepth(+v)); });
+  buildRail(); buildPagers(); paintProgress(); syncValueText();
+  document.addEventListener("factunlocked", paintProgress);
   const tb = $("#theme"); const cur = () => document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   const lab = () => tb.textContent = cur() === "dark" ? "Light" : "Dark"; lab();
   tb.addEventListener("click", () => { const t = cur() === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = t; store.set("theme", t); lab(); });
