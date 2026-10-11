@@ -1,18 +1,19 @@
 /* Chapter 11 · Datacenters and power. You plan an AI cluster on one site to a power budget.
    Model (illustrative where marked):
-   - Each AI chip with its share of the rack (processors, network, switches) needs 1.65 kW of IT power:
-     a ~120 kW liquid-cooled rack holds 72 GPUs (ref-60), 120 / 72 ≈ 1.65.
-   - Air cooling: one 8-GPU server per rack, 13 kW (illustrative, "well under 20 kW"). Liquid: 72 GPUs, ≈ 119 kW.
+   - The chip is a newer Blackwell-class part (NVIDIA's 2024 generation). Each chip with its share of the rack
+     (processors, network, switches) needs about 1.67 kW of IT power: a ~120 kW liquid-cooled rack holds 72 GPUs (ref-60).
+   - Air cooling: two 8-GPU servers per rack, ≈ 27 kW (illustrative; ordinary racks are 4–6 kW). Liquid: 72 GPUs, ≈ 120 kW.
    - The site has 4 halls × 150 rack spaces = 600 spaces (illustrative).
    - Site power = IT power × PUE. Every watt of IT power ends as heat that the cooling plant removes.
    - Example training job: 3.8 × 10^25 calculations (the published work of Meta's largest Llama 3 model, ref-9);
-     each chip does 10^15 useful calculations a second (illustrative). Serving: 10 conversations per chip (illustrative).
+     each chip does 10^15 useful calculations a second (≈ 40% of its 2.5 × 10^15 dense 16-bit peak, ref-22; about 2.5× the
+     4 × 10^14 an H100 manages in chapters 14 and 18). Serving: 10 conversations per chip (illustrative).
    - Homes: an average US home uses 10,791 kWh a year (EIA, 2022) ≈ 1.23 kW average draw.
    - Time is sped up: one second is one hour. */
 chapter("datacenters", () => {
-  const KW_GPU = 1.65, PER = { air: 8, liquid: 72 }, HALLS = 4, COLS = 15, ROWS = 10, SPACES = HALLS * COLS * ROWS;
+  const KW_GPU = 120 / 72, PER = { air: 16, liquid: 72 }, HALLS = 4, COLS = 15, ROWS = 10, SPACES = HALLS * COLS * ROWS;
   const WORK = 3.8e25, RATE = 1e15, CHATS = 10, HOME_KW = 10791 / 8760;
-  const GOAL_DAYS = 30, GOAL_MW = 30, HIST = 192, HSTEP = 0.25;
+  const GOAL_DAYS = 30, GOAL_MW = 30, HIST = 192, HSTEP = 0.25, DIP = 0.25;   // a dip lasts 15 sim-minutes
   const COOL = "#6cb8ff";
   const fmtMW = mw => mw >= 1000 ? (mw / 1000).toFixed(2) + " GW" : mw >= 100 ? Math.round(mw) + " MW" : mw >= 10 ? mw.toFixed(1).replace(/\.0$/, "") + " MW" : mw.toFixed(1) + " MW";
   const round = (n, d) => { const p = 10 ** Math.max(0, Math.floor(Math.log10(Math.max(1, n))) - d + 1); return Math.round(n / p) * p; };
@@ -28,11 +29,11 @@ chapter("datacenters", () => {
       days: gpus ? WORK / (gpus * RATE) / 86400 : Infinity, people: gpus * CHATS, homes: site * 1000 / HOME_KW };
   }
   function init() {
-    return { t: 0, power: 20, cool: "air", pue: 1.5, use: "train", shown: 0, hist: [], hAcc: 0, load: 1, dipAt: -99, nextDip: 5, lastDipMW: 0, dips: 0, phase: 0 };
+    return { t: 0, power: 20, cool: "air", pue: 1.5, use: "train", shown: 0, hist: [], marks: [], changed: false, hAcc: 0, load: 1, dipAt: -99, nextDip: 5, lastDipMW: 0, dips: 0, phase: 0 };
   }
   function loadAt(s) {
     if (s.use === "serve") { const h = (s.t % 24) / 24; return 0.6 - 0.32 * Math.cos(2 * Math.PI * (h - 0.08)); } // low at night, high in the afternoon
-    return s.t - s.dipAt < 0.8 ? 0.4 : 0.97;
+    return s.t - s.dipAt < DIP ? 0.4 : 0.97;
   }
   function step(s, dt) {
     s.t += dt; s.phase += dt;
@@ -42,7 +43,7 @@ chapter("datacenters", () => {
     if (s.use === "train" && s.t >= s.nextDip) { s.dipAt = s.t; s.nextDip = s.t + 13; s.dips++; s.lastDipMW = p.site * (0.97 - 0.4); }
     s.load = loadAt(s);
     s.hAcc += dt;
-    while (s.hAcc >= HSTEP) { s.hAcc -= HSTEP; s.hist.push(p.site * s.load); if (s.hist.length > HIST) s.hist.shift(); }
+    while (s.hAcc >= HSTEP) { s.hAcc -= HSTEP; s.hist.push(p.site * s.load); s.marks.push(s.changed); s.changed = false; if (s.hist.length > HIST) { s.hist.shift(); s.marks.shift(); } }
     s.goalFor = goalMet(s) ? (s.goalFor || 0) + dt : 0;
   }
   const goalMet = s => { const p = plan(s); return s.use === "train" && p.days <= GOAL_DAYS && p.site <= GOAL_MW + 1e-9; };
@@ -114,7 +115,7 @@ chapter("datacenters", () => {
     // substation and cooling plant
     k.box(sx, sy, sw, sh, { fill: C.bg2, stroke: C.amb, r: 12, lw: 1.4, glow: 10 * intensity, glowCol: C.amb });
     k.label(sx + sw / 2, sy + sh / 2, "substation", { col: C.ink, weight: "650", size: 11, dy: -15 });
-    k.label(sx + sw / 2, sy + sh / 2, fmtMW(p.site * s.load), { col: C.amb, size: 12, weight: "650", mono: true, dy: 1 });
+    k.label(sx + sw / 2, sy + sh / 2, fmtMW(p.site * s.load), { col: s.use === "train" && p.site > GOAL_MW + 1e-9 ? C.crit : C.amb, size: 12, weight: "650", mono: true, dy: 1 });
     k.label(sx + sw / 2, sy + sh / 2, "limit " + fmtMW(s.power), { col: C.muted, size: 10, dy: 16 });
     k.box(px, py, pw, ph, { fill: C.bg2, stroke: COOL, r: 12, lw: 1.4, glow: 10 * intensity, glowCol: COOL });
     k.label(px + pw / 2, py + ph / 2, "cooling plant", { col: C.ink, weight: "650", size: 11, dy: -15 });
@@ -131,10 +132,13 @@ chapter("datacenters", () => {
     const gx = cx + 12, gy = cy + 40, gw = cw - 24, gh = ch - (narrow ? 56 : 66), mx = Math.max(s.power, ...s.hist, 1) * 1.2;
     k.line(gx, gy + gh, gx + gw, gy + gh, { col: C.line, lw: 1 });
     const ly = gy + gh - s.power / mx * gh; k.line(gx, ly, gx + gw, ly, { col: C.crit, lw: 1.2, dash: [5, 4], alpha: 0.8 });
-    k.label(gx + gw, ly - 9, "limit", { align: "right", col: C.crit, size: 10 });
+    k.label(cx + cw - 12, cy + 18, "- - limit", { align: "right", col: C.crit, size: 10, weight: "600" });
+    s.marks.forEach((m, i) => { if (!m) return; const xx = gx + (i + HIST - s.hist.length) / (HIST - 1) * gw;
+      k.line(xx, gy, xx, gy + gh, { col: C.muted, lw: 1, dash: [2, 4], alpha: 0.7 });
+      if (i === s.marks.lastIndexOf(true) && !narrow) k.label(xx - 4, gy + gh - 10, "plan changed", { align: "right", col: C.muted, size: 9 }); });
     const c = k.ctx; c.save(); c.strokeStyle = C.amb; c.lineWidth = k.px(2); c.lineJoin = "round"; c.beginPath();
     s.hist.forEach((v, i) => { const xx = gx + (i + HIST - s.hist.length) / (HIST - 1) * gw, yy = gy + gh - Math.min(1, v / mx) * gh; i ? c.lineTo(xx, yy) : c.moveTo(xx, yy); }); c.stroke(); c.restore();
-    k.label(cx + 12, cy + ch - 13, s.use === "train" ? "training: flat, with sudden dips" : "serving: follows people's day", { align: "left", col: C.muted, size: 10 });
+    k.label(cx + 12, cy + ch - 13, s.use === "train" ? "training: flat, with sudden dips at restarts" : "serving: follows people's day", { align: "left", col: C.muted, size: 10 });
   }
 
   const sim = makeSim($("#dc-sim"), {
@@ -144,27 +148,27 @@ chapter("datacenters", () => {
     init, warmup: 30, speeds: [1, 4],
     intro: "This site has 20 MW of power and air cooling. Every square in the halls is a space for one rack. Try the controls.",
     controls: [
-      { id: "power", label: "Power available from the grid", type: "range", min: 5, max: 150, step: 5, value: 20, fmt: v => v + " MW · " + big(v * 1000 / HOME_KW) + " homes", apply: (s, v) => { s.power = v; } },
-      { id: "cool", label: "Cooling", type: "choice", value: "air", options: [["air", "Air"], ["liquid", "Liquid"]], help: "Air: fans, one 8-chip server per rack. Liquid: coolant piped onto the chips, 72 chips per rack.", apply: (s, v) => { s.cool = v; } },
-      { id: "pue", label: "Building overhead (PUE)", type: "range", min: 1.1, max: 1.8, step: 0.05, value: 1.5, fmt: v => v.toFixed(2), help: "Site power ÷ power that reaches the computers. 1.0 would mean no overhead at all.", apply: (s, v) => { s.pue = v; } },
-      { id: "use", label: "What the cluster is for", type: "choice", value: "train", options: [["train", "Train one model"], ["serve", "Serve people"]], apply: (s, v) => { s.use = v; if (v === "train") s.nextDip = s.t + 3; } }
+      { id: "power", label: "Power available from the grid", type: "range", min: 5, max: 150, step: 5, value: 20, fmt: v => v + " MW · " + big(v * 1000 / HOME_KW) + " homes", apply: (s, v) => { if (s.power !== v) s.changed = true; s.power = v; } },
+      { id: "cool", label: "Cooling", type: "choice", value: "air", options: [["air", "Air"], ["liquid", "Liquid"]], help: "Air: fans, two 8-chip servers per rack (illustrative). Liquid: coolant piped onto the chips, 72 chips per rack.", apply: (s, v) => { if (s.cool !== v) s.changed = true; s.cool = v; } },
+      { id: "pue", label: "Building overhead (PUE)", type: "range", min: 1.1, max: 1.8, step: 0.05, value: 1.5, fmt: v => v.toFixed(2), help: "Site power ÷ power that reaches the computers. 1.0 would mean no overhead at all.", apply: (s, v) => { if (s.pue !== v) s.changed = true; s.pue = v; } },
+      { id: "use", label: "What the cluster is for", type: "choice", value: "train", options: [["train", "Train one model"], ["serve", "Serve people"]], apply: (s, v) => { if (s.use !== v) s.changed = true; s.use = v; if (v === "train") s.nextDip = s.t + 3; } }
     ],
     step, draw,
     stats: s => { const p = plan(s); return [
       ["AI chips", p.gpus.toLocaleString(), goalMet(s) ? "ok" : ""],
       ["racks · of 600 spaces", `${p.racks} · ${p.per} chips each`, p.floorFull ? "hot" : ""],
-      ["site power · of " + fmtMW(s.power), fmtMW(p.site), p.floorFull && p.unused > 2 ? "hot" : ""],
+      ["site power at peak · grid " + fmtMW(s.power), fmtMW(p.site), s.use === "train" && p.site > GOAL_MW + 1e-9 ? "bad" : p.floorFull && p.unused > 2 ? "hot" : ""],
       s.use === "train" ? ["example model trained in", isFinite(p.days) ? Math.ceil(p.days) + " days" : "–", p.days <= GOAL_DAYS ? "ok" : ""] : ["people at once (illustrative)", big(p.people)],
       ["like powering", big(p.homes) + " homes"]]; },
     goal: { text: `train the example model in ${GOAL_DAYS} days or less, with the whole site drawing no more than ${GOAL_MW} MW`,
-      check: s => { const p = plan(s); return { done: (s.goalFor || 0) >= 2, progress: s.use === "train" ? `${isFinite(p.days) ? Math.ceil(p.days) : "–"} days · ${fmtMW(p.site)}` : "switch to training" }; } },
+      check: s => { const p = plan(s); return { done: (s.goalFor || 0) >= 2, progress: s.use === "train" ? `${isFinite(p.days) ? Math.ceil(p.days) : "–"} days · ${fmtMW(p.site)}${p.site > GOAL_MW + 1e-9 ? ` · over ${GOAL_MW} MW` : ""}` : "switch to training" }; } },
     notices: [
       { id: "won", when: s => goalMet(s), say: s => { const p = plan(s); return `Done: ${p.gpus.toLocaleString()} chips in ${p.racks} liquid-cooled racks finish the example model in ${Math.ceil(p.days)} days on ${fmtMW(p.site)}. A leaner building (PUE ${s.pue.toFixed(2)}) meant more of the power reached chips.`; } },
-      { id: "floor", when: s => plan(s).floorFull && plan(s).unused >= 3, say: s => { const p = plan(s); return s.cool === "air" ? `All 600 rack spaces are full, yet <b>${fmtMW(p.unused)}</b> of your power is unused. Air can only carry away about ${Math.round(p.rackKW)} kW from a rack, so each holds just ${p.per} chips. Liquid cooling packs 72 chips into the same space.` : `All 600 rack spaces are full, so ${fmtMW(p.unused)} of power has nowhere to go. You'd need a bigger site, which is how campuses grow to many buildings.`; } },
-      { id: "dip", once: true, when: s => s.use === "train" && s.t - s.dipAt < 2.5 && plan(s).site > 3, say: s => `The training job paused to save its progress, and every chip stopped at once. The site's draw fell by about <b>${fmtMW(s.lastDipMW)}</b> in a moment, like ${big(s.lastDipMW * 1000 / HOME_KW)} homes switching off together. Then it jumps back.` },
+      { id: "floor", when: s => plan(s).floorFull && plan(s).unused >= 3, say: s => { const p = plan(s); return s.cool === "air" ? `All 600 rack spaces are full, yet <b>${fmtMW(p.unused)}</b> of your power is unused. In this simulation an air-cooled rack holds ${p.per} chips, about ${Math.round(p.rackKW)} kW (illustrative), because air can't carry heat away much faster. Liquid cooling packs 72 chips into the same space.` : `All 600 rack spaces are full, so ${fmtMW(p.unused)} of power has nowhere to go. You'd need a bigger site, which is how campuses grow to many buildings.`; } },
+      { id: "dip", once: true, when: s => s.use === "train" && s.t - s.dipAt < 2.5 && plan(s).site > 3, say: s => `Last dip: the training job stopped to restart after a failed chip, and every chip went idle at once. The site's draw fell by about <b>${fmtMW(s.lastDipMW)}</b> for a few minutes, like ${big(s.lastDipMW * 1000 / HOME_KW)} homes switching off together, then jumped back.` },
       { id: "pue", when: s => s.pue >= 1.4 && plan(s).site > 3, say: s => { const p = plan(s); return `At PUE ${s.pue.toFixed(2)}, <b>${fmtMW(p.site - p.it)}</b> of the ${fmtMW(p.site)} never reaches a chip: it runs chillers, fans and power conversion. Lower the overhead and the same power runs more chips.`; } },
-      { id: "serve", when: s => s.use === "serve", say: s => { const p = plan(s); return `Serving follows people's day: draw swings between about ${fmtMW(p.site * 0.28)} at night and ${fmtMW(p.site * 0.92)} in the afternoon. The site must still be built for the peak.`; } },
-      { id: "liquid", when: s => s.cool === "liquid", say: s => { const p = plan(s); return `Each liquid-cooled rack holds ${p.per} chips and draws about <b>${Math.round(p.rackKW)} kW</b>, as much as ${Math.round(p.rackKW / HOME_KW)} homes, in the floor space of a wardrobe. All of it leaves as heat through the coolant pipes.`; } },
+      { id: "serve", when: s => s.use === "serve", say: s => { const p = plan(s); return `Serving follows people's day: draw swings between about ${fmtMW(p.site * 0.28)} at night and ${fmtMW(p.site * 0.92)} in the afternoon. The site must still be built for the peak, so providers fill the quiet hours with work that can wait, like the batch jobs of chapter 9.`; } },
+      { id: "liquid", when: s => s.cool === "liquid", say: s => { const p = plan(s); return `Each liquid-cooled rack holds ${p.per} chips and draws about <b>${Math.round(p.rackKW)} kW</b>, as much as ${Math.round(p.rackKW / HOME_KW)} homes on average, in the floor space of a wardrobe. All of it leaves as heat through the coolant pipes.`; } },
       { id: "heat", when: () => true, say: s => { const p = plan(s); return `${p.gpus.toLocaleString()} chips draw ${fmtMW(p.it)} and turn all of it into heat, which the cooling plant pumps out. The whole site draws ${fmtMW(p.site)}, as much as ${place(p.homes)} (${big(p.homes)} homes).`; } }
     ],
     facts: [
@@ -172,13 +176,13 @@ chapter("datacenters", () => {
       { id: "swing", when: s => s.dips >= 2 && s.use === "train", text: "This happens for real. Meta reported that when its 16,384-GPU training job for Llama 3 paused or restarted all at once, the datacenter's power swung by tens of megawatts, stretching the limits of the power grid.", ref: "#ref-9" }
     ],
     tour: [
-      { say: "This site has 20 MW and air cooling. Each square is a space for one rack, and each air-cooled rack holds one 8-chip server. Power comes in on the left; heat leaves on the right.", set: { power: 20, cool: "air", pue: 1.5, use: "train" }, wait: 7 },
+      { say: "This site has 20 MW and air cooling. Each square is a space for one rack; here an air-cooled rack holds two 8-chip servers (illustrative). Power comes in from the grid through the substation; heat leaves through the cooling plant.", set: { power: 20, cool: "air", pue: 1.5, use: "train" }, wait: 7 },
       { say: "Triple the power to 60 MW. The halls fill up, and then stop: there's no room left, so most of the new power can't be used.", set: { power: 60 }, wait: 7 },
-      { say: "Switch to liquid cooling. Coolant piped onto the chips can carry away about 120 kW per rack, so 72 chips fit where 8 did.", set: { cool: "liquid" }, wait: 7 },
+      { say: "Switch to liquid cooling. Coolant piped onto the chips can carry away about 120 kW per rack, so 72 chips fit where 16 did.", set: { cool: "liquid" }, wait: 7 },
       { say: "Now make the building leaner: PUE 1.15 means only 15% extra for cooling and power conversion. The same 60 MW runs thousands more chips.", set: { pue: 1.15 }, wait: 7 },
-      { say: "The challenge: train the example model in 30 days on 30 MW. Liquid cooling and a lean building make it just possible.", set: { power: 30, pue: 1.2 }, wait: 7 },
+      { say: "The challenge: train the example model in 30 days on 30 MW. With 30 MW and a PUE of 1.5 it takes too long. Which control would let more of those 30 MW reach chips? Try it after the tour.", set: { power: 30, pue: 1.5 }, wait: 8 },
       { say: "Finally, use the same cluster to serve people instead. Watch the power chart follow the day: busy afternoons, quiet nights.", set: { use: "serve" }, wait: 9 }
     ],
-    publish: s => { const p = plan(s); return { dcGpus: p.gpus.toLocaleString(), dcRacks: String(p.racks), dcPer: String(p.per), dcRackKW: Math.round(p.rackKW) + " kW", dcIT: fmtMW(p.it), dcSite: fmtMW(p.site), dcOvh: fmtMW(p.site - p.it), dcPue: s.pue.toFixed(2), dcHomes: big(p.homes), dcPlace: place(p.homes), dcPower: fmtMW(s.power), dcDays: isFinite(p.days) ? String(Math.ceil(p.days)) : "–", dcPeople: big(p.people), dcCool: s.cool === "air" ? "air" : "liquid" }; }
+    publish: s => { const p = plan(s); return { dcByPower: (Math.floor(s.power / s.pue * 1000 / KW_GPU / 8) * 8).toLocaleString(), dcGpus: p.gpus.toLocaleString(), dcRacks: String(p.racks), dcPer: String(p.per), dcRackKW: Math.round(p.rackKW) + " kW", dcIT: fmtMW(p.it), dcSite: fmtMW(p.site), dcOvh: fmtMW(p.site - p.it), dcPue: s.pue.toFixed(2), dcHomes: big(p.homes), dcPlace: place(p.homes), dcPower: fmtMW(s.power), dcDays: isFinite(p.days) ? String(Math.ceil(p.days)) : "–", dcPeople: big(p.people), dcCool: s.cool === "air" ? "air" : "liquid" }; }
   });
 });

@@ -24,12 +24,12 @@ chapter("production", () => {
   const pct = a => a <= 0 ? "0%" : a < 0.995 && a * 100 < 10 ? (a * 100).toFixed(a * 100 < 2 ? 1 : 0).replace(/\.0$/, "") + "%" : Math.round(a * 100) + "%";
 
   function pois(l, r) { if (l <= 0) return 0; if (l > 25) return Math.max(0, Math.round(l + Math.sqrt(l) * gauss(r))); const L = Math.exp(-l); let k = 0, p = 1; do { k++; p *= r(); } while (p > L); return k - 1; }
-  const emptyB = t => ({ t: t || 0, rep: 0, err: 0, graded: 0, flag: 0, thumb: 0, ttft: 0 });
-  const newCur = s => ({ new: emptyB(s.t), old: emptyB(s.t) });
+  const emptyB = () => ({ rep: 0, err: 0, graded: 0, flag: 0, thumb: 0, ttft: 0 });
+  const newCur = s => ({ t: s.t, new: emptyB(), old: emptyB() });
   function init(rand) {
     const s = { t: 0, rand, a: 0, target: 0, fault: true, fixed: false, garbled: 0, flagsSeen: 0, thumbsGarbled: 0,
       halted: false, fixAt: 0, rollbacks: 0, lastRb: null, stage: 0, stageT: 0, shippedFor: 0, won: false,
-      pending: [], sparks: [], cur: { new: emptyB(), old: emptyB() }, win: [], bt: 0, firstBad: -1, lastT: 0, ro: null, lastRo: null,
+      pending: [], sparks: [], cur: { t: 0, new: emptyB(), old: emptyB() }, win: [], bt: 0, firstBad: -1, lastT: 0, ro: null, lastRo: null,
       hist: { err: { new: [], old: [] }, ttft: { new: [], old: [] }, qual: { new: [], old: [] }, thumb: { new: [], old: [] } },
       m: { err: {}, ttft: {}, qual: {}, thumb: {} }, phase: 0, ready: false, plan: "hand", watch: "es" };
     return s;
@@ -172,8 +172,8 @@ chapter("production", () => {
     const n = s.m.new ? s.m.new[P.key] : null, o = s.m.old ? s.m.old[P.key] : null;
     const yy = y + h - (narrow ? 34 : 40);
     k.label(px, yy, "new " + (n == null ? "–" : P.fmt(n)), { align: "left", col: C.amb, size: narrow ? 11 : 12, weight: "650", mono: true });
-    k.label(px + pw, yy, 1 - s.a < 0.02 ? "old: no traffic" : "old " + (o == null ? "–" : P.fmt(o)), { align: "right", col: C.muted, size: narrow ? 11 : 12, weight: "600", mono: true });
-    if (!narrow) k.label(px, yy + 20, P.note, { align: "left", col: C.muted, size: 10 });
+    k.label(px + pw, yy, "old " + (1 - s.a < 0.02 || o == null ? "–" : P.fmt(o)), { align: "right", col: C.muted, size: narrow ? 11 : 12, weight: "600", mono: true });
+    if (!narrow) k.label(px, yy + 20, 1 - s.a < 0.02 ? "old version: no traffic now" : P.note, { align: "left", col: C.muted, size: 10 });
     if (n == null && s.a > 0.001 && s.target > 0) k.label(px + pw / 2, py + ph / 2, "too few new replies to judge", { col: C.amb, size: narrow ? 10 : 11, bg: true });
   }
 
@@ -198,8 +198,11 @@ chapter("production", () => {
     }
     // router
     k.box(rx - 60, ry - 34, 120, 68, { fill: C.bg2, stroke: C.sig, r: 12, lw: 1.4 });
-    k.label(rx, ry - 10, s.fixed && narrow ? "router · v2" : "router", { col: C.ink, weight: "650", size: 12 });
-    k.label(rx, ry + 10, pct(s.a) + " to new", { col: s.a > 0 ? C.amb : C.muted, size: 11, weight: "600", mono: true });
+    if (narrow) k.label(rx, ry, pct(s.a) + (s.fixed ? " on v2" : " on new"), { col: s.a > 0 ? C.amb : C.muted, size: 12, weight: "650", mono: true });
+    else {
+      k.label(rx, ry - 10, "router", { col: C.ink, weight: "650", size: 12 });
+      k.label(rx, ry + 10, pct(s.a) + " new", { col: s.a > 0 ? C.amb : C.muted, size: 11, weight: "600", mono: true });
+    }
     if (!narrow) {
       if (s.fixed) k.label(rx, ry - 48, "fixed build v2", { col: C.ok, size: 11, weight: "650" });
       const planTxt = s.halted ? (s.fixAt ? `rolled back · fix in ${Math.max(0, Math.ceil(s.fixAt - s.t))} s` : "rolled back")
@@ -211,7 +214,8 @@ chapter("production", () => {
     const sparkOn = new Set(s.sparks.filter(sp => s.t - sp.t < 0.5).map(sp => sp.srv));
     for (let r = 0; r < 3; r++) {
       const y = L.rowsY[r];
-      k.label(narrow ? L.sx0 - 18 : L.sx0 - 16, y - L.sw / 2 - 14, "chip type " + chipName[r], { align: "left", col: C.muted, size: 11, weight: "600" });
+      if (narrow) k.label(L.sx0 - 20, y, "chip " + chipName[r], { align: "right", col: C.muted, size: 11, weight: "600" });
+      else k.label(L.sx0 - 16, y - L.sw / 2 - 14, "chip type " + chipName[r], { align: "left", col: C.muted, size: 11, weight: "600" });
       // replies leaving the row
       const x1 = L.sx0 + PER_ROW * (L.sw + L.sgap) - L.sgap;
       if (!narrow) { k.line(x1 + 6, y, L.outX, y, { col: C.line, lw: 1, alpha: 0.6 }); k.flow(u => [lerp(x1 + 6, L.outX, u), y], 3, (t * 0.6 + r * 0.31) % 1, C.sig, { size: 2.4, alpha: 0.7 }); }
@@ -255,7 +259,7 @@ chapter("production", () => {
       { id: "plan", label: "Rollout plan", type: "choice", value: "hand", options: [["hand", "By hand"], ["careful", "In steps"], ["fast", "All at once"]],
         help: "In steps: 1% → 5% → 25% → 50% → 100%, pausing 12 s to watch each one.",
         apply: (s, v) => { const ch = s.plan !== v; s.plan = v; if (ch && !s.driving) { s.stage = 0; s.stageT = 0; if (v === "careful" && !s.halted) s.target = 0; } } },
-      { id: "share", label: "Traffic on the new version", type: "range", min: 0, max: 6, step: 1, value: 0, fmt: v => pct(STEPS[v]),
+      { id: "share", label: "Traffic on the new version", type: "range", min: 0, max: 6, step: 1, value: 0, fmt: v => { const n = newServers(STEPS[v]); return pct(STEPS[v]) + (n && n <= 6 ? ` · ${n} server${n > 1 ? "s" : ""}` : ""); },
         apply: (s, v, sim) => { s.target = STEPS[v]; if (s.ready && !s.driving && s.plan !== "hand") { s.driving = true; sim.set("plan", "hand"); s.driving = false; } if (s.ready && !s.driving && s.halted && v > 0) { s.halted = false; s.fixAt = 0; } } },
       { id: "watch", label: "Automatic rollback watches", type: "choice", value: "es", options: [["none", "Nothing"], ["es", "Errors + speed"], ["esq", "+ quality"]],
         help: "If a watched line crosses its red dashed line, everyone goes back to the old version.", apply: (s, v) => { s.watch = v; } },

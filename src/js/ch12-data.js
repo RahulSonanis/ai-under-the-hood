@@ -30,7 +30,9 @@ chapter("data", () => {
   const SITE = [
     { t: "Pancakes (recipe site)", q: 2.5, x: "Whisk one egg with a cup of milk, then stir in a cup of flour and a pinch of salt until smooth. Rest the batter for ten minutes, then fry thin ladles in a hot buttered pan." },
     { t: "Tomato soup (recipe site)", q: 2.5, x: "Soften an onion in olive oil, add two tins of tomatoes and a little stock, and simmer for twenty minutes. Blend until smooth and season with salt, pepper and a spoon of sugar." },
-    { t: "Fluffy rice (recipe site)", q: 2.5, x: "Rinse the rice until the water runs clear. Use one and a half cups of water for each cup of rice, bring it to the boil, cover tightly and cook on the lowest heat for twelve minutes." }
+    { t: "Fluffy rice (recipe site)", q: 2.5, x: "Rinse the rice until the water runs clear. Use one and a half cups of water for each cup of rice, bring it to the boil, cover tightly and cook on the lowest heat for twelve minutes." },
+    { t: "Lemon cake (recipe site)", q: 2.5, x: "Beat soft butter and sugar until pale, add three eggs one at a time, then fold in self-raising flour and the zest of two lemons. Bake in a lined tin for forty minutes and pour lemon syrup over it while warm." },
+    { t: "Roast vegetables (recipe site)", q: 2.5, x: "Cut carrots, peppers and red onions into chunks of the same size, toss them with olive oil, salt and thyme, and spread them out on a large tray. Roast in a hot oven for half an hour, turning them once." }
   ].map(p => ({ ...p, x: SITE_HEAD + " " + p.x + " " + SITE_FOOT, site: true }));
   const FOREIGN = [
     { t: "Photosynthèse (French)", lang: "French", q: 3.5, x: "La photosynthèse est le processus par lequel les plantes transforment la lumière en énergie chimique. Dans le chloroplaste, la chlorophylle absorbe surtout la lumière rouge et bleue. Cette énergie sert à scinder les molécules d'eau, ce qui libère de l'oxygène. La plante fabrique ensuite des sucres à partir du dioxyde de carbone grâce au cycle de Calvin, et ces sucres nourrissent presque tous les êtres vivants." },
@@ -151,14 +153,14 @@ chapter("data", () => {
     return { res, counts, kept: keptP.length, wantedN: groups.size, goodKept, G, P, probs: probs.length, junkKept, copyKept, piiKept, foreignKept, goodLostQ, goodLostDup, general, code, maths, score, best };
   }
   const mixOf = s => { const r = 1 - s.web; return [s.web, r * 0.45, r * 0.35, r * 0.2]; };
-  const MIXN = ["web pages", "code", "maths", "books"], MIXC = ["#5ce1c6", "#8fb3ff", "#d59cff", "#ff8fa3"];
+  const MIXN = ["web pages", "code", "maths", "books"], MIXC = ["#5ce1c6", "#8fb3ff", "#d59cff", "#d8c08a"];
 
   // ---------- layout ----------
   const ARR = 0.42, SPEED = 165;
   function lay(narrow) {
     return narrow
-      ? { srcX: 10, endX: 690, y: 120, gx: [150, 295, 440, 585], binY: 196, binH: 172, setX: 10, setY: 386, setW: 680, setH: 128, scoreY: 0, cw: 62, ch: 44, tile: 26, cols: 4, band: 52 }
-      : { srcX: 30, endX: 890, y: 200, gx: [210, 385, 560, 735], binY: 312, binH: 214, setX: 960, setY: 286, setW: 350, setH: 290, scoreY: 30, cw: 72, ch: 52, tile: 29, cols: 4, band: 64 };
+      ? { srcX: 10, endX: 690, y: 120, gx: [150, 295, 440, 585], binY: 196, binH: 172, setX: 10, setY: 386, setW: 680, setH: 118, scoreY: 530, setTop: 44, cw: 62, ch: 44, tile: 26, cols: 4, band: 52 }
+      : { srcX: 30, endX: 890, y: 200, gx: [210, 385, 560, 735], binY: 312, binH: 214, setX: 960, setY: 286, setW: 350, setH: 290, scoreY: 30, setTop: 34, cw: 72, ch: 52, tile: 29, cols: 4, band: 64 };
   }
   const STAGES = ["Language", "Quality", "Copies", "Personal data"];
 
@@ -170,7 +172,19 @@ chapter("data", () => {
     const s = { rand, t: 0, snap: 0, lang: "en", bar: 0, sim: 1.05, mask: false, web: 1, sel: null, hits: [], lastDrop: null, lastLeak: null };
     newSnapshot(s); return s;
   }
-  const reeval = s => { if (s.pages) s.E = evaluate(s); };
+  // after a settings change, re-sort every page that has already passed the filters, so the training set and the bins
+  // always show this snapshot's arrivals under the CURRENT settings (and agree with the readouts)
+  function reeval(s) {
+    if (!s.pages) return; s.E = evaluate(s);
+    if (!s.live) return;
+    const done = s.live.filter(c => c.st !== "belt"); s.set = []; s.bins = [[], [], []];
+    for (const c of done) {
+      const r = s.E.res[c.p.idx];
+      c.masked = !!(c.p.pii && s.mask); c.why = r.why;
+      if (r.stage < 0) { if (c.st !== "keep") { c.st = "keep"; c.t0 = -9; } c.slot = s.set.length; s.set.push(c); }
+      else { if (c.st !== "drop" || c.stage !== r.stage) { c.st = "drop"; c.t0 = -9; } c.stage = r.stage; c.slot = s.bins[r.stage].length; s.bins[r.stage].push(c); }
+    }
+  }
 
   function step(s, dt, sim) {
     s.t += dt; const L = lay(sim.narrow);
@@ -181,7 +195,7 @@ chapter("data", () => {
       c.x += SPEED * dt;
       const r = s.E.res[c.p.idx];
       while (c.gate < 4 && c.x >= L.gx[c.gate]) {
-        if (r.stage === c.gate) { c.st = "drop"; c.t0 = s.t; c.fx = L.gx[c.gate]; c.why = r.why; s.bins[c.gate].push(c); c.slot = s.bins[c.gate].length - 1; s.lastDrop = { c, t: s.t, stage: c.gate }; break; }
+        if (r.stage === c.gate) { c.st = "drop"; c.stage = c.gate; c.t0 = s.t; c.fx = L.gx[c.gate]; c.why = r.why; s.bins[c.gate].push(c); c.slot = s.bins[c.gate].length - 1; s.lastDrop = { c, t: s.t, stage: c.gate }; break; }
         if (c.gate === 3 && c.p.pii) { c.masked = s.mask; c.flash = s.t; }
         c.gate++;
       }
@@ -208,7 +222,7 @@ chapter("data", () => {
   }
   const GAP = 5;
   function binXY(L, g, slot) { const t = L.tile, w = L.cols * (t + GAP) - GAP, rows = Math.floor((L.binH - 36) / (t + GAP)); return [L.gx[g] - w / 2 + (slot % L.cols) * (t + GAP), L.binY + 30 + Math.min(rows - 1, Math.floor(slot / L.cols)) * (t + GAP) - (Math.floor(slot / L.cols) >= rows ? 4 : 0)]; }
-  function setXY(L, slot) { const t = L.tile, cols = Math.floor((L.setW - 24) / (t + GAP)); return [L.setX + 12 + (slot % cols) * (t + GAP), L.setY + 34 + Math.floor(slot / cols) * (t + GAP)]; }
+  function setXY(L, slot) { const t = L.tile, cols = Math.floor((L.setW - 24) / (t + GAP)); return [L.setX + 12 + (slot % cols) * (t + GAP), L.setY + L.setTop + Math.floor(slot / cols) * (t + GAP)]; }
 
   function draw(k, s, sim) {
     const C = k.C, L = lay(sim.narrow), E = s.E, narrow = sim.narrow, n0 = s.pages.length; s.hits = [];
@@ -229,7 +243,7 @@ chapter("data", () => {
       if (g < 3) {
         const n = s.bins[g].length, [bx] = binXY(L, g, 0), bw = L.cols * (L.tile + GAP) - GAP;
         k.box(bx - 8, L.binY, bw + 16, L.binH, { stroke: C.line, r: 10, dash: [3, 5] });
-        k.label(x, L.binY, narrow ? `out ${n}` : `dropped · ${n}`, { col: n ? C.ink : C.muted, size: narrow ? 10 : 11.5, weight: "600", dy: 13 });
+        k.label(x, L.binY, narrow ? `dropped ${n}` : `dropped · ${n}`, { col: n ? C.ink : C.muted, size: narrow ? 10 : 11.5, weight: "600", dy: 13 });
       } else k.label(x, L.binY, narrow ? "masks" : "masks, never drops", { col: C.muted, size: narrow ? 10 : 11, dy: 13 });
     }
     // bins (dropped this snapshot)
@@ -251,8 +265,8 @@ chapter("data", () => {
     // training set (kept this snapshot)
     k.box(L.setX, L.setY, L.setW, L.setH, { stroke: C.sig, r: 14, alpha: 0.7 });
     const nBad = s.set.filter(cv => kindCol(k, s, cv.p, cv.masked) !== C.sig).length;
-    k.label(L.setX + 12, L.setY, `Training set · ${s.set.length} page${s.set.length === 1 ? "" : "s"}`, { align: "left", col: C.sig, weight: "650", size: narrow ? 11 : 12.5, dy: 16 });
-    if (nBad) k.label(L.setX + 12, L.setY + L.setH, `${nBad} problem page${nBad > 1 ? "s" : ""} got in`, { align: "left", col: C.crit, weight: "650", size: narrow ? 10.5 : 11.5, dy: -14 });
+    k.label(L.setX + 12, L.setY, `Training set · ${s.set.length} page${s.set.length === 1 ? "" : "s"} so far`, { align: "left", col: C.sig, weight: "650", size: narrow ? 11 : 12.5, dy: 16 });
+    if (nBad) k.label(L.setX + 12, L.setY + L.setH, `${nBad} problem page${nBad > 1 ? "s" : ""} in so far`, { align: "left", col: C.crit, weight: "650", size: narrow ? 10.5 : 11.5, dy: -14 });
     s.set.forEach(cv => {
       const [tx, ty] = setXY(L, cv.slot), u = easeIO((s.t - cv.t0) / 0.7);
       if (u < 1) { pageCard(k, lerp(cv.fx - L.cw / 2, tx, u), lerp(L.y - L.ch / 2, ty, u), lerp(L.cw, L.tile, u), lerp(L.ch, L.tile, u), cv, s, { notag: true }); return; }
@@ -270,12 +284,12 @@ chapter("data", () => {
         k.ctx.save(); font(k.ctx, 11, "--f-display"); const w = k.ctx.measureText(t).width / k.scale; k.ctx.restore(); return x + 20 + w + 30;
       }, L.srcX);
     }
-    if (narrow) { if (s.sel) inspector(k, s, sim); return; } // phones: the test score is in the readouts below
+    if (narrow) { strip(k, s, L, E); if (s.sel) inspector(k, s, sim); return; } // phones: one compact strip
     // mix + test model (illustrative)
     const sx = L.setX, sw = L.setW, y0 = L.scoreY, m = mixOf(s);
     k.label(sx, y0, `Training mix · ${Math.round(s.web * 100)}% web`, { align: "left", col: C.ink, weight: "650", size: narrow ? 11 : 12 });
-    let acc = 0; m.forEach((f, i) => { if (f <= 0) return; k.box(sx + acc * sw, y0 + 14, Math.max(1, f * sw - 3), 18, { fill: MIXC[i], r: 4, alpha: 0.85 }); if (f * sw * k.scale > 44) k.label(sx + (acc + f / 2) * sw, y0 + 23, MIXN[i], { col: "#0b1220", size: narrow ? 9 : 10, weight: "650" }); acc += f; });
-    const ty0 = y0 + (narrow ? 58 : 62);
+    mixBar(k, s, sx, y0 + 14, sw);
+    const ty0 = y0 + 84;
     k.label(sx, ty0, "Test model · illustrative", { align: "left", col: C.ink, weight: "650", size: narrow ? 11 : 12 });
     const lw = narrow ? 130 : 80, bw = sw - lw - (narrow ? 70 : 46), rh = narrow ? 30 : 27;
     [["general", E.general], ["code", E.code], ["maths", E.maths], ["overall", E.score]].forEach(([lab, v], i) => {
@@ -286,6 +300,26 @@ chapter("data", () => {
       k.label(sx + sw, yy, String(Math.round(v)), { align: "right", size: narrow ? 11 : 12, mono: true, col: last ? col : C.ink, weight: last ? "700" : "500" });
     });
     if (s.sel) inspector(k, s, sim);
+  }
+  // the training mix as one bar, with a small legend underneath
+  function mixBar(k, s, x, y, w) {
+    const m = mixOf(s); let acc = 0;
+    m.forEach((f, i) => { if (f <= 0) return; k.box(x + acc * w, y, Math.max(1, f * w - 3), 18, { fill: MIXC[i], r: 4, alpha: 0.85 }); acc += f; });
+    let lx = x; MIXN.forEach((n, i) => { if (m[i] <= 0) return; k.box(lx, y + 26, 10, 10, { fill: MIXC[i], r: 2 }); const t = `${n === "web pages" ? "web" : n} ${Math.round(m[i] * 100)}%`; k.label(lx + 14, y + 31, t, { align: "left", size: 10, col: k.C.muted });
+      k.ctx.save(); font(k.ctx, 10, "--f-display"); const tw = k.ctx.measureText(t).width / k.scale; k.ctx.restore(); lx += 14 + tw + 10; });
+  }
+  function strip(k, s, L, E) {
+    const C = k.C, x = L.setX, w = L.setW, y0 = L.scoreY;
+    k.label(x, y0, "Training mix", { align: "left", col: C.ink, weight: "650", size: 11 });
+    mixBar(k, s, x, y0 + 12, w);
+    const ty = y0 + 84, cw = w / 4;
+    k.label(x, ty, "Test model · illustrative", { align: "left", col: C.ink, weight: "650", size: 11 });
+    [["general", E.general], ["code", E.code], ["maths", E.maths], ["overall", E.score]].forEach(([lab, v], i) => {
+      const cx = x + i * cw, col = v >= 65 ? C.ok : v >= 40 ? C.amb : C.crit;
+      k.label(cx, ty + 22, `${lab} ${Math.round(v)}`, { align: "left", size: 10, col: i === 3 ? C.ink : C.muted, weight: i === 3 ? "650" : "500" });
+      k.box(cx, ty + 34, cw - 14, 10, { fill: C.line, r: 4, alpha: 0.5 });
+      k.box(cx, ty + 34, Math.max(2, (cw - 14) * v / 100), 10, { fill: col, r: 4, alpha: 0.9 });
+    });
   }
   function inspector(k, s, sim) {
     const c = s.sel, p = c.p, r = s.E.res[p.idx], ctx = k.ctx, C = k.C; ctx.save(); k.screen();
@@ -307,20 +341,22 @@ chapter("data", () => {
 
   const pct = v => Math.round(v * 100) + "%";
   const sim = makeSim($("#data-sim"), {
-    label: "Data cleaning simulation. Web pages flow left to right through four filters: language, quality, copies and personal data. Dropped pages fall into bins under each filter; kept pages fill the training set on the right. Click any page to read it and see why it was kept or dropped.",
+    label: "Data cleaning simulation. Web pages flow through four filters: language, quality, copies and personal data. Dropped pages fall into bins under each filter; kept pages fill the training set. Click any page to read it and see why it was kept or dropped.",
     cams: { default: { x: 14, y: 14, w: 1306, h: 610 } },
-    camsNarrow: { default: { x: 0, y: 40, w: 700, h: 480 } },
+    camsNarrow: { default: { x: 0, y: -12, w: 700, h: 700 } },
+    height: w => w < 640 ? Math.round(w * 1.0) : Math.round(Math.min(580, Math.max(380, w * 0.52))),
     init, warmup: 9, factDelay: 8,
-    intro: "Web pages pour in from the left. Each grey bar is a filter you control. Click any page to read it.",
+    intro: "Web pages pour in from a crawl. Each upright bar is a filter you control; amber means it's on. Click any page to read it.",
     controls: [
       { id: "lang", label: "Language", type: "choice", value: "en", options: [["en", "English only"], ["all", "All languages"]], help: "A quick check of how many common English words a page uses.", apply: (s, v) => { s.lang = v; reeval(s); } },
       { id: "bar", label: "Quality bar", type: "range", min: 0, max: 4.5, step: 0.5, value: 0, fmt: v => v === 0 ? "off" : v.toFixed(1) + " / 5", help: "Rules catch spam and menus; pages scoring under the bar are dropped.", apply: (s, v) => { s.bar = v; reeval(s); } },
-      { id: "sim", label: "Copy cut-off", type: "range", min: 0.3, max: 1.05, step: 0.05, value: 1.05, fmt: v => v > 1.01 ? "off" : v >= 0.999 ? "exact only" : "≥ " + Math.round(v * 100) + "% similar", help: "Drop a page this similar to one already kept (MinHash estimate).", apply: (s, v) => { s.sim = v > 1.01 ? 1.05 : v; reeval(s); } },
+      { id: "sim", label: "Copy cut-off", type: "range", min: 0.3, max: 1.05, step: 0.05, value: 1.05, fmt: v => v > 1.01 ? "off" : v >= 0.999 ? "exact only" : "drop if ≥ " + Math.round(v * 100) + "% similar", help: "Drop a page this similar to one already kept (MinHash estimate).", apply: (s, v) => { s.sim = v > 1.01 ? 1.05 : v; reeval(s); } },
       { id: "mask", label: "Mask emails and phone numbers", type: "toggle", value: false, help: "Replaces them with a placeholder before training.", apply: (s, v) => { s.mask = v; reeval(s); } },
       { id: "web", label: "Web pages in the training mix", type: "range", min: 0.2, max: 1, step: 0.1, value: 1, fmt: v => Math.round(v * 100) + "%", help: "The rest is code, maths and books.", apply: (s, v) => { s.web = v; reeval(s); } }
     ],
     step, draw,
-    click: (s, wx, wy) => { let hit = null; for (let i = s.hits.length - 1; i >= 0; i--) { const [x, y, w, h, c] = s.hits[i]; if (wx >= x - 4 && wx <= x + w + 4 && wy >= y - 4 && wy <= y + h + 4) { hit = c; break; } } s.sel = hit && hit !== s.sel ? hit : null; },
+    click: (s, wx, wy, sim) => { let hit = null, bd = 1e9; const tol = sim && sim.narrow ? 16 : 4;   // phones: tiles are small, so pick the nearest within a finger's reach
+      for (let i = s.hits.length - 1; i >= 0; i--) { const [x, y, w, h, c] = s.hits[i]; if (wx >= x - tol && wx <= x + w + tol && wy >= y - tol && wy <= y + h + tol) { const d = Math.hypot(wx - x - w / 2, wy - y - h / 2); if (d < bd) { bd = d; hit = c; } } } s.sel = hit && hit !== s.sel ? hit : null; },
     stats: s => { const E = s.E; return [
       ["good pages kept", pct(E.G), E.G >= 0.8 ? "ok" : E.G < 0.6 ? "bad" : "hot"],
       ["junk, copies or personal data in what you keep", pct(E.P), E.P < 0.05 ? "ok" : E.P > 0.15 ? "bad" : "hot"],
@@ -339,11 +375,11 @@ chapter("data", () => {
       { id: "calm", when: () => true, say: s => `This snapshot: ${s.pages.length} pages in, ${s.E.kept} kept (${pct(s.E.kept / s.pages.length)}). ${pct(s.E.G)} of the good pages survive, and ${pct(s.E.P)} of what you keep is a problem.` }
     ],
     facts: [
-      { id: "minhash", when: s => s.sim >= 0.6 && s.sim <= 0.9, text: "FineWeb, Hugging Face's open web dataset, found copies with MinHash on 5-word shingles and 112 hash functions, aiming at pages about 75% similar or more. It deduplicated each crawl snapshot on its own: deduplicating all 96 snapshots together removed up to 90% of the oldest ones and trained worse models.", ref: "#ref-3" },
-      { id: "edu", when: s => s.bar >= 3, text: "FineWeb-Edu kept only pages that a classifier scored 3 or more out of 5 for educational value: 1.3 trillion of FineWeb's 15 trillion tokens. Small test models trained on it did better on school science questions (46% → 57%).", ref: "#ref-3" }
+      { id: "minhash", when: s => s.sim >= 0.6 && s.sim <= 0.9, text: "Removing copies can go too far. When Hugging Face removed copies across all 96 web snapshots at once for its FineWeb dataset, up to 90% of the oldest snapshots disappeared, and models trained on what was left did worse. Removing copies within each snapshot worked better.", ref: "#ref-3" },
+      { id: "edu", when: s => s.bar >= 3, text: "A stricter filter can help when it's aimed well. FineWeb-Edu kept only the web pages a scoring model rated as most educational, under a tenth of the text, and small models trained on it answered more school science questions correctly.", ref: "#ref-3" }
     ],
     tour: [
-      { say: "Only the language check is on. Watch the training set on the right fill with red tiles: spam, menus and copies all get through.", set: { lang: "en", bar: 0, sim: 1.05, mask: false, web: 1 }, wait: 8 },
+      { say: "Only the language check is on. Watch the training set fill with red tiles: spam, menus and copies all get through.", set: { lang: "en", bar: 0, sim: 1.05, mask: false, web: 1 }, wait: 8 },
       { say: "Turn on quality at 2 out of 5. Simple rules catch spam and menus, and a scoring model rates everything else. Junk now falls into the middle bin.", set: { bar: 2 }, wait: 8 },
       { say: "Now drop pages that are 70% or more similar to one already kept. Copies of the same article with a new footer fall out.", set: { sim: 0.7 }, wait: 8 },
       { say: "Mask emails and phone numbers: the amber marks turn dark as pages pass the last filter.", set: { mask: true }, wait: 6 },

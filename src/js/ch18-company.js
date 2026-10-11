@@ -172,11 +172,11 @@ chapter("company", () => {
 
   // ---------- layout ----------
   const LW = { tl: { x: 170, y: 40, w: 1380, h: 120 }, clock: [80, 92], arr: { x0: 20, x1: 250, y0: 245, y1: 535 }, q: { x: 270, y: 230, w: 110, h: 320 },
-    grid: { x: 430, y: 236, cols: 8, pw: 62, ph: 42, g: 10 }, can: { x: 1030, y: 206, w: 540, h: 172 }, mon: { x: 1030, y: 392, w: 540, h: 190 },
+    grid: { x: 430, y: 236, cols: 8, pw: 62, ph: 42, g: 10 }, can: { x: 1030, y: 196, w: 540, h: 168 }, mon: { x: 1030, y: 376, w: 540, h: 214 },
     inc: { x: 30, y: 616, w: 1540, h: 160, cols: 4 }, view: { x: 0, y: 0, w: 1600, h: 790 } };
   const LN = { tl: { x: 16, y: 52, w: 328, h: 74 }, clock: [180, 12], q: null, arr: null,
-    grid: { x: 18, y: 216, cols: 8, pw: 36, ph: 24, g: 6 }, can: { x: 6, y: 410, w: 348, h: 84 }, mon: { x: 6, y: 504, w: 348, h: 64 },
-    inc: { x: 6, y: 580, w: 348, h: 100, cols: 2 }, view: { x: 0, y: 0, w: 360, h: 684 } };
+    grid: { x: 18, y: 216, cols: 8, pw: 36, ph: 24, g: 6 }, can: { x: 6, y: 410, w: 348, h: 84 }, mon: { x: 6, y: 504, w: 348, h: 84 },
+    inc: { x: 6, y: 600, w: 348, h: 100, cols: 2 }, view: { x: 0, y: 0, w: 360, h: 704 } };
   const lay = sim => sim.narrow ? LN : LW;
   const podXY = (G, i) => [G.x + (i % G.cols) * (G.pw + G.g), G.y + Math.floor(i / G.cols) * (G.ph + G.g)];
 
@@ -220,7 +220,7 @@ chapter("company", () => {
     const C = k.C, G = L.grid, v2 = v2Pods(s), t = s.t;
     const gw = G.cols * (G.pw + G.g) - G.g, rows = Math.ceil(M.MAXP / G.cols), gh = rows * (G.ph + G.g) - G.g;
     const fp = sim.narrow ? 8 : 14; k.box(G.x - fp, G.y - k.px(26), gw + 2 * fp, gh + k.px(26) + fp, { stroke: C.line, r: 12 });
-    k.label(G.x, G.y - k.px(13), sim.narrow ? `GPU pods · ${s.podsOn} on${M.warming(s) ? ` (${M.warming(s)} loading)` : ""} · ${pct(Math.min(1, s.u))} busy` : `GPU pods · 100 GPUs each · ${s.podsOn} on${M.warming(s) ? ` (${M.warming(s)} loading)` : ""} · ${pct(Math.min(1, s.u))} busy${s.filter ? " · filter on" : ""}`, { align: "left", col: C.ink, weight: "600", size: 12 });
+    k.label(G.x, G.y - k.px(13), sim.narrow ? `GPU pods · ${s.podsOn} on${M.warming(s) ? ` (${M.warming(s)} loading)` : ""} · ${pct(Math.min(1, s.u))} busy` : `GPU pods · ${s.podsOn} on${M.warming(s) ? ` (${M.warming(s)} loading)` : ""} · ${pct(Math.min(1, s.u))} busy${s.filter ? " · filter on" : ""}`, { align: "left", col: C.ink, weight: "600", size: 12 });
     const busy = Math.min(1, s.u);
     for (let i = 0; i < M.MAXP; i++) {
       const [x, y] = podXY(G, i), p = s.pods[i], on = i < s.podsOn;
@@ -369,7 +369,7 @@ chapter("company", () => {
   const spec = {
     label: "Ops room for one launch day. Timeline: people asking (teal) and what your GPU pods can serve (amber). Below it: people arriving, the waiting line, and 48 GPU pods; red pods have failed, click one to repair it. Version check and money panels, and an incident board.",
     cams: { default: LW.view }, camsNarrow: { default: LN.view },
-    height: w => w < 640 ? Math.round(Math.max(320, w * 2.0 + 10)) : Math.round(Math.min(640, Math.max(400, w * 0.5))),
+    height: w => w < 640 ? Math.round(Math.max(320, w * 2.06 + 10)) : Math.round(Math.min(640, Math.max(400, w * 0.5))),
     init: rand => { report.hidden = true; return M.init({ ...plan }, rand); },
     warmup: 1.2, speeds: [1, 3], grid: false, factDelay: 3,
     intro: "It's 06:00 on launch day with the plan above. The clock runs by itself (<b>Pause</b> stops it). Keep an eye on the timeline and react with the controls.",

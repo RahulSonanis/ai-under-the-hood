@@ -2,25 +2,27 @@
    Each GPU serves the chapter 8 model with 64 seats; a reply holds a seat for 20 s (≈ 600 tokens at 30 tokens/s),
    so one GPU finishes at most 3.2 replies a second. Requests are spread evenly over the GPUs that are on, and each GPU
    is treated as a queue with 64 servers (Erlang C) while it keeps up; when arrivals exceed capacity a backlog builds
-   (fluid queue). Traffic shape, peak (100 replies/s), the 11:00 spike (+70% for 30 min), the 10-minute start-up time,
+   (fluid queue). Anyone who would wait over GIVEUP seconds is turned away (counted as failed). Cost and energy are
+   divided by replies actually served. Traffic shape, peak (100 replies/s), the 11:00 spike (+70% for 30 min), the 10-minute start-up time,
    $3 per GPU-hour, idle power (25% of 700 W) and the 90% batch fill are illustrative. 700 W is the H100's maximum
    power (NVIDIA). One second of simulation is 20 minutes of the day. */
 chapter("cost", () => {
   const SEATS = 64, R = 20, MU = SEATS / R, PRICE = 3, PEAK = 100, START = 10 / 60, DOWN = 15 / 60, Y = 5, BFILL = 0.9;
-  const PMAX = 700, PIDLE = 0.25, DAYSEC = 72, DT_H = 24 / DAYSEC, MAXG = 60, SPIKE = 1.7, TV_S_PER_WH = 9 / 0.24;
+  const PMAX = 700, PIDLE = 0.25, GIVEUP = 60, DAYSEC = 72, DT_H = 24 / DAYSEC, MAXG = 60, SPIKE = 1.7, TV_S_PER_WH = 9 / 0.24;
   const BATCH = "#8fb3ff";
   const EDGES = [0, 1, 2, 3, 5, 7, 10, 15, 20, 30, 45, 60, 90, 120, 180, 300, 600, 1200, Infinity];
   const shape = h => 0.65 - 0.35 * Math.cos(2 * Math.PI * (h - 4) / 24);
   function erlangC(c, a) { if (a >= c) return 1; let B = 1; for (let k = 1; k <= c; k++) B = a * B / (k + a * B); const r = a / c; return B / (1 - r * (1 - B)); }
-  const curveP95 = (rho) => { const a = SEATS * rho; if (a >= SEATS) return Infinity; const C = erlangC(SEATS, a), th = (SEATS - a) / R; return C <= 0.05 ? 0 : Math.log(C / 0.05) / th; };
-  const CURVE = []; for (let r = 0.5; r <= 0.995; r += 0.005) CURVE.push([r, curveP95(r)]);
+  // wait that only 1 in 100 people exceed (M/M/c: P(wait > t) = P_wait · e^(−θt))
+  const curveP99 = (rho) => { const a = SEATS * rho; if (a >= SEATS) return Infinity; const C = erlangC(SEATS, a), th = (SEATS - a) / R; return C <= 0.01 ? 0 : Math.log(C / 0.01) / th; };
+  const CURVE = []; for (let r = 0.5; r <= 0.995; r += 0.005) CURVE.push([r, curveP99(r)]);
   const clock = h => { h = ((h % 24) + 24) % 24; const hh = Math.floor(h), mm = Math.floor((h - hh) * 60); return String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0"); };
   const fSec = w => w < 1 ? "under 1 s" : w >= 120 ? Math.round(w / 60) + " min" : Math.round(w) + " s";
   const money = v => "$" + v.toFixed(2);
   const pct = v => v < 0.01 && v > 0 ? (v * 100).toFixed(1) + "%" : Math.round(v * 100) + "%";
   const late = v => v < 0.1 ? (v * 100).toFixed(2) + "%" : (v * 100).toFixed(1) + "%";
 
-  function newDay(s) { s.day = { t0: s.t, bill: 0, chatBill: 0, replies: 0, late: 0, energy: 0, hist: new Array(EDGES.length).fill(0), sChat: 0, sBatch: 0, sIdle: 0, sStart: 0 }; s.trace = []; }
+  function newDay(s) { s.day = { t0: s.t, startH: hourOf(s), bill: 0, chatBill: 0, replies: 0, served: 0, failed: 0, late: 0, energy: 0, hist: new Array(EDGES.length).fill(0), sChat: 0, sBatch: 0, sIdle: 0, sStart: 0 }; s.trace = []; }
   function init(rand) {
     const s = { rand, t: 0, h0: 5, on: 30, starting: [], Q: 0, lamE: 0, downFor: 0, noise: 0, spikes: [], parts: [], partAcc: 0, dayN: 1, lastDay: null, lastDayAt: -99, goalMet: false };
     s.lamE = lam(s, s.h0); newDay(s); return s;
@@ -47,28 +49,31 @@ chapter("cost", () => {
       if (want < s.on + s.starting.length && s.starting.length) s.starting = s.starting.slice(0, Math.max(0, want - s.on));
     }
     const on = Math.max(1, s.on), cap = on * MU, n = l * dh * 3600, D = s.day;
-    let busy, waitNow, fracLate, p95now;
+    let busy, waitNow, fracLate, p99now, failed = 0, served = n;
     if (s.Q > 0 || l >= cap) {
-      s.Q = Math.max(0, s.Q + (l - cap) * dh * 3600); waitNow = s.Q / cap; busy = on * SEATS; fracLate = waitNow > Y ? 1 : 0; p95now = waitNow;
-      let b = 0; while (EDGES[b + 1] <= waitNow) b++; D.hist[b] += n; s.rho = Math.min(1, l / cap);
+      const q0 = s.Q, maxQ = cap * GIVEUP; let q = Math.max(0, q0 + (l - cap) * dh * 3600);
+      if (q > maxQ) { failed = q - maxQ; q = maxQ; } // the line is a minute long: newcomers give up (time out)
+      s.Q = q; served = Math.max(0, n - (q - q0) - failed);
+      waitNow = s.Q / cap; busy = on * SEATS; fracLate = waitNow > Y ? 1 : 0; p99now = waitNow;
+      let b = 0; while (EDGES[b + 1] <= waitNow) b++; D.hist[b] += n - failed; s.rho = Math.min(1, l / cap);
     } else {
       const a = l / on * R, C = erlangC(SEATS, a), th = (SEATS - a) / R; busy = l * R; s.rho = a / SEATS;
-      fracLate = C * Math.exp(-th * Y); waitNow = C / th; p95now = C <= 0.05 ? 0 : Math.log(C / 0.05) / th;
+      fracLate = C * Math.exp(-th * Y); waitNow = C / th; p99now = C <= 0.01 ? 0 : Math.log(C / 0.01) / th;
       D.hist[0] += n * (1 - C);
       for (let b = 0; b < EDGES.length - 1; b++) { const p0 = C * Math.exp(-th * EDGES[b]), p1 = EDGES[b + 1] === Infinity ? 0 : C * Math.exp(-th * EDGES[b + 1]); D.hist[b] += n * (p0 - p1); }
     }
-    s.waitNow = waitNow; s.p95now = p95now;
+    s.waitNow = waitNow; s.p99now = p99now; s.failNow = n > 0 ? failed / n : 0; if (failed > 0) s.lastFail = s.t;
     const paid = on + s.starting.length, seatsTot = paid * SEATS, bill = paid * PRICE * dh;
     const batchSeats = s.batch ? Math.max(0, s.on * SEATS * BFILL - busy) : 0, chatFrac = 1 - batchSeats / seatsTot;
     s.busy = busy; s.batchSeats = batchSeats; s.chatFrac = chatFrac;
-    D.bill += bill; D.chatBill += bill * chatFrac; D.replies += n; D.late += n * fracLate;
+    D.bill += bill; D.chatBill += bill * chatFrac; D.replies += n; D.served += served; D.failed += failed; D.late += failed + (n - failed) * fracLate;
     const busyFrac = (busy + batchSeats) / seatsTot; D.energy += paid * PMAX * (PIDLE + (1 - PIDLE) * busyFrac) * dh * chatFrac;
     D.sChat += busy * dh; D.sBatch += batchSeats * dh; D.sStart += s.starting.length * SEATS * dh; D.sIdle += Math.max(0, s.on * SEATS - busy - batchSeats) * dh;
     if (!s.trace.length || s.t - s.trace[s.trace.length - 1].t > 0.1) s.trace.push({ t: s.t - D.t0, h, l, cap: s.on * MU });
     s.idleCostNow = Math.max(0, s.on * SEATS - busy - batchSeats) / SEATS * PRICE;
     // particles: one dot per ~4 replies a second
     s.partAcc += dt * l / 4;
-    while (s.partAcc >= 1) { s.partAcc -= 1; s.parts.push({ age: 0, y: s.rand(), g: Math.floor(s.rand() * on) }); }
+    while (s.partAcc >= 1) { s.partAcc -= 1; s.parts.push({ age: 0, y: s.rand(), g: Math.floor(s.rand() * on), fail: s.rand() < s.failNow }); }
     s.parts.forEach(p => p.age += dt); s.parts = s.parts.filter(p => p.age < 1.3);
     // end of a day
     if (s.t - D.t0 >= 24) {
@@ -76,11 +81,10 @@ chapter("cost", () => {
     }
   }
   function summary(s) {
-    const D = s.day, rep = Math.max(1, D.replies); let cum = 0, p95 = 0;
-    for (let b = 0; b < EDGES.length; b++) { cum += D.hist[b]; if (cum >= 0.95 * rep) { p95 = b === 0 ? 0 : EDGES[b + 1] === Infinity ? EDGES[b] : EDGES[b + 1]; break; } }
-    const per1000 = D.chatBill / rep * 1000, lateF = D.late / rep, Wh = D.energy / rep;
+    const D = s.day, rep = Math.max(1, D.replies), srv = Math.max(1, D.served);
+    const per1000 = D.chatBill / srv * 1000, lateF = D.late / rep, Wh = D.energy / srv;
     const tot = D.sChat + D.sBatch + D.sIdle + D.sStart || 1;
-    return { per1000, lateF, Wh, p95, replies: D.replies, hours: (s.t - D.t0), ok: per1000 < 0.33 && lateF < 0.01, chat: D.sChat / tot, batch: D.sBatch / tot, idle: D.sIdle / tot, start: D.sStart / tot };
+    return { per1000, lateF, Wh, replies: D.replies, served: D.served, failed: D.failed, failF: D.failed / rep, hours: (s.t - D.t0), ok: per1000 < 0.33 && lateF < 0.01, chat: D.sChat / tot, batch: D.sBatch / tot, idle: D.sIdle / tot, start: D.sStart / tot };
   }
 
   // ---------- drawing ----------
@@ -103,18 +107,18 @@ chapter("cost", () => {
     const tr = s.trace; const seg = (key, col, w, dash) => { c.save(); c.strokeStyle = col; c.lineWidth = k.px(w); if (dash) c.setLineDash(dash.map(k.px)); c.beginPath(); let prev = null; for (const p of tr) { const x = X(p.h), y = Yv(p[key]); if (!prev || p.h < prev.h) c.moveTo(x, y); else c.lineTo(x, y); prev = p; } c.stroke(); c.restore(); };
     seg("cap", C.amb, 1.6, [5, 4]); seg("l", C.sig, 2.4);
     const h = hourOf(s); k.line(X(h), T.y, X(h), T.y + T.h, { col: C.ink, alpha: 0.6 }); k.dot(X(h), Yv(s.lam), k.px(4), C.sig, { glow: 8 });
-    k.label(T.x + T.w, nar ? T.y - 26 : T.y + T.h + 42, nar ? "teal asked · amber can serve" : "teal = asked for · amber dashes = what your GPUs can serve", { align: "right", col: C.muted, size: 10 });
+    k.label(T.x + T.w, nar ? T.y - 26 : T.y + T.h + 42, nar ? "teal asked · amber can serve" : "teal = asked for · amber dashes = can serve", { align: "right", col: C.muted, size: 10 });
     k.label(X(11.25), T.y + 8, "spike", { col: C.muted, size: 10 });
   }
   function waitCurve(k, s, T) {
     const C = k.C, X = r => T.x + (r - 0.5) / 0.5 * T.w, maxW = 60, Yv = w => T.y + T.h - Math.min(1, w / maxW) * T.h;
     k.box(T.x - 10, T.y - 10, T.w + 20, T.h + 20, { stroke: C.line, r: 10 });
-    k.label(T.x, T.y - 26, "How long the unluckiest 1 in 20 waits", { align: "left", col: C.ink, weight: "600" });
+    k.label(T.x, T.y - 26, "How long the unluckiest 1 in 100 waits", { align: "left", col: C.ink, weight: "600" });
     [0.5, 0.6, 0.7, 0.8, 0.9, 1].forEach(r => k.label(X(r), T.y + T.h + 22, Math.round(r * 100) + "%", { col: C.muted, size: 10 }));
     k.label(T.x + T.w / 2, T.y + T.h + 42, "how full each GPU's seats are", { col: C.muted, size: 10 });
     [5, 30, 60].forEach(v => { k.line(T.x, Yv(v), T.x + T.w, Yv(v), { col: v === 5 ? C.amb : C.line, alpha: v === 5 ? 0.6 : 0.5, dash: [2, 5] }); k.label(T.x - 14, Yv(v), v + " s", { align: "right", col: v === 5 ? C.amb : C.muted, size: 10 }); });
     const c = k.ctx; c.save(); c.strokeStyle = C.ink; c.globalAlpha = 0.85; c.lineWidth = k.px(2); c.beginPath(); CURVE.forEach(([r, w], i) => { const y = Yv(w); i ? c.lineTo(X(r), y) : c.moveTo(X(r), y); }); c.stroke(); c.restore();
-    const r = Math.max(0.5, Math.min(0.995, s.rho || 0)), w = s.Q > 0 ? s.waitNow : curveP95(r);
+    const r = Math.max(0.5, Math.min(0.995, s.rho || 0)), w = s.Q > 0 ? s.waitNow : curveP99(r);
     const hot = s.Q > 0 || w > Y;
     k.dot(X(r), Yv(w), k.px(7), hot ? C.crit : C.sig, { glow: 14 });
     k.label(X(r), Yv(w) - 18, s.Q > 0 ? "overloaded" : "you", { col: hot ? C.crit : C.sig, size: 11, weight: "700", bg: true });
@@ -147,11 +151,18 @@ chapter("cost", () => {
     for (const p of s.parts) {
       const sy = Q.y0 + p.y * (Q.y1 - Q.y0);
       if (p.age < 0.6) { const u = p.age / 0.6, x = lerp(Q.x, gate[0], u), y = lerp(sy, gate[1], easeIO(u)); k.dot(x, y, k.px(nar ? 3 : 3.5), C.sig, { glow: 6, alpha: 0.9 }); }
+      else if (p.fail) { const u = (p.age - 0.6) / 0.7, x = gate[0] - 10 - u * 60, y = gate[1] + 30 + u * 90; k.dot(x, y, k.px(nar ? 3 : 3.5), C.crit, { alpha: 1 - u * 0.8, glow: 6 }); }
       else if (s.Q <= 0) { const u = (p.age - 0.6) / 0.7, gi = Math.min(on - 1, p.g), [gx, gy] = gpuXY(G, gi), x = lerp(gate[0], gx + G.w / 2, easeOut(u)), y = lerp(gate[1], gy + G.h / 2, easeOut(u)); k.dot(x, y, k.px(nar ? 2.5 : 3), C.sig, { alpha: 1 - u * 0.7 }); }
     }
     const qn = s.Q > 0 ? Math.min(48, Math.ceil(s.Q / 150)) : 0;
     for (let i = 0; i < qn; i++) { const x = gate[0] - 20 - (i % 4) * 18, y = Q.y1 - 10 - Math.floor(i / 4) * 18; k.dot(x, y, k.px(nar ? 3.5 : 4.5), C.amb, { glow: 6 }); }
-    k.label(gate[0] - 46, Q.y1 + 22, s.Q > 0 ? `${Math.round(s.Q).toLocaleString()} waiting` : "nobody queued", { col: s.Q > 0 ? C.amb : C.muted, size: 11, weight: "600" });
+    const qlx = nar ? Q.x - 10 : gate[0] - 46, qal = nar ? "left" : "center", qsz = nar ? 13 : 11;
+    const fK = v => v >= 10000 ? Math.round(v / 1000) + "k" : Math.round(v).toLocaleString(), qtxt = s.Q > 0 ? `${fK(s.Q)} waiting` : "nobody queued";
+    if (nar) k.label(qlx, Q.y1 + k.px(12), qtxt + (s.day.failed >= 1 ? ` · ${fK(s.day.failed)} gave up today` : ""), { align: qal, col: s.Q > 0 ? C.amb : s.day.failed >= 1 ? C.crit : C.muted, size: qsz, weight: "600" });
+    else {
+      k.label(qlx, Q.y1 + 22, qtxt, { align: qal, col: s.Q > 0 ? C.amb : C.muted, size: qsz, weight: "600" });
+      if (s.day.failed >= 1) k.label(qlx, Q.y1 + 22 + k.px(16), `${fK(s.day.failed)} gave up today`, { align: qal, col: C.crit, size: qsz, weight: "600" });
+    }
     k.box(gate[0] - 4, gate[1] - 26, 8, 52, { fill: s.Q > 0 ? C.amb : C.sig, r: 4, alpha: 0.7 });
     // where today's GPU time went
     const B = L.bar, sm = summary(s), parts = [[sm.chat, C.sig, "chat"], [sm.batch, BATCH, "batch jobs"], [sm.idle, C.crit, "empty seats"], [sm.start, C.amb, "starting up"]];
@@ -165,7 +176,7 @@ chapter("cost", () => {
     cams: { default: { x: 20, y: 60, w: 1560, h: 740 } },
     camsNarrow: { default: { x: 20, y: 50, w: 810, h: 880 } },
     height: w => w < 640 ? Math.round(Math.max(380, w * 1.1)) : Math.round(Math.min(580, Math.max(380, w * 0.5))),
-    init, warmup: 2, speeds: [1, 4],
+    init, warmup: 2, speeds: [1, 3],
     intro: "It's 5 am and traffic is low. Each second here is 20 minutes of the day. Change the fleet and watch the day play out.",
     controls: [
       { id: "mode", label: "How many GPUs to run", type: "choice", value: "fixed", options: [["fixed", "A fixed number"], ["auto", "Autoscale"]], help: "Autoscale adds and removes GPUs as traffic changes.", apply: (s, v) => { s.mode = v; } },
@@ -178,15 +189,15 @@ chapter("cost", () => {
     stats: s => { const sm = summary(s), tv = sm.Wh * TV_S_PER_WH; return [
       ["GPUs on" + (s.starting.length ? ` (+${s.starting.length} starting)` : ""), String(s.on)],
       ["how full the seats are", pct(Math.min(1, s.rho || 0)), s.Q > 0 || s.rho > 0.9 ? "bad" : s.rho > 0.8 ? "hot" : "ok"],
-      ["1 in 20 waits longer than", fSec(s.p95now), s.p95now > Y ? "bad" : "ok"],
+      ["failed or waited 5 s+ today", late(sm.lateF), sm.lateF >= 0.01 ? "bad" : sm.lateF > 0.005 ? "hot" : "ok"],
       ["per 1,000 replies today*", money(sm.per1000), sm.per1000 < 0.33 ? "ok" : sm.per1000 > 0.45 ? "hot" : ""],
       ["energy per reply* ≈ " + tv.toFixed(1) + " s of TV", sm.Wh.toFixed(2) + " Wh"]]; },
-    goal: { text: "get through a whole day for under $0.33 per 1,000 replies, with fewer than 1 in 100 people waiting over 5 seconds",
-      check: s => { const sm = summary(s); return { done: s.goalMet, progress: s.lastDay && !s.goalMet ? `last day: ${money(s.lastDay.per1000)} · ${late(s.lastDay.lateF)} waited` : `${Math.round(sm.hours)} of 24 hours · ${money(sm.per1000)} · ${late(sm.lateF)} waited over 5 s` }; } },
+    goal: { text: "get through a whole day for under $0.33 per 1,000 replies, with fewer than 1 in 100 people failing or waiting over 5 seconds",
+      check: s => { const sm = summary(s); return { done: s.goalMet, progress: s.lastDay && !s.goalMet ? `last day: ${money(s.lastDay.per1000)} · ${late(s.lastDay.lateF)} failed or waited` : `${Math.round(sm.hours)} of 24 h measured (since ${clock(s.day.startH)}) · ${money(sm.per1000)} · ${late(sm.lateF)} failed or waited 5 s+` }; } },
     notices: [
-      { id: "dayEnd", when: s => s.lastDay && s.t - s.lastDayAt < 2.5, say: s => { const d = s.lastDay; return d.ok ? `Day done: <b>${money(d.per1000)}</b> per 1,000 replies and only ${late(d.lateF)} of ${Math.round(d.replies / 1e6 * 10) / 10} million people waited over 5 s. Goal reached.` : `Day done: ${money(d.per1000)} per 1,000 replies, ${late(d.lateF)} waited over 5 s, and ${Math.round(d.idle * 100)}% of the GPU time you paid for sat empty. ${d.lateF >= 0.01 ? "Too many waited: you need more room for the peak and the spike." : "Too expensive: the empty seats cost money."}`; } },
-      { id: "backlog", when: s => s.Q > 0, say: s => `More people than seats: <b>${Math.round(s.Q).toLocaleString()}</b> are queued and new arrivals wait about ${fSec(s.waitNow)}. ${s.mode === "auto" ? (s.starting.length ? `${s.starting.length} new GPUs are starting, but loading the model takes 10 minutes, so autoscaling can't catch a sudden jump.` : "The autoscaler's target leaves no room for this.") : "This fleet is too small for this moment."}` },
-      { id: "steep", when: s => s.rho >= 0.86, say: s => `Each GPU's seats are <b>${pct(s.rho)}</b> full. Near 100%, waits shoot up: a chat that arrives when every seat is taken has to wait for one to free, and that gets likelier very fast. The unluckiest 1 in 20 now wait ${fSec(s.p95now)}.` },
+      { id: "dayEnd", when: s => s.lastDay && s.t - s.lastDayAt < 2.5, say: s => { const d = s.lastDay; return d.ok ? `Last day: <b>${money(d.per1000)}</b> per 1,000 replies, and only ${late(d.lateF)} of ${Math.round(d.replies / 1e6 * 10) / 10} million people failed or waited over 5 s. Goal reached.` : `Last day: ${money(d.per1000)} per 1,000 replies, ${late(d.lateF)} failed or waited over 5 s, and ${Math.round(d.idle * 100)}% of the GPU time you paid for sat empty. ${d.lateF >= 0.01 ? "Too many waited: you need more room for the peak and the spike." : "Too expensive: the empty seats cost money."}`; } },
+      { id: "backlog", when: s => s.Q > 0, say: s => { const n = s.starting.length; return `More people than seats: <b>${Math.round(s.Q).toLocaleString()}</b> are queued and new arrivals wait about ${fSec(s.waitNow)}. ${s.failNow > 0 ? `The line is a minute long, so newcomers give up (red): ${Math.round(s.day.failed).toLocaleString()} failed today. ` : ""}${s.mode === "auto" ? (n ? `${n} new GPU${n > 1 ? "s are" : " is"} starting, but loading the model takes 10 minutes, so autoscaling can't catch a sudden jump.` : "The autoscaler's target leaves no room for this.") : "This fleet is too small for this moment."}`; } },
+      { id: "steep", when: s => s.rho >= 0.86, say: s => `Each GPU's seats are <b>${pct(s.rho)}</b> full. Near 100%, waits shoot up: a chat that arrives when every seat is taken has to wait for one to free, and that gets likelier very fast. The unluckiest 1 in 100 now wait ${fSec(s.p99now)}.` },
       { id: "starting", when: s => s.mode === "auto" && s.starting.length > 0, say: s => `Traffic is rising, so the autoscaler is starting ${s.starting.length} more GPU${s.starting.length > 1 ? "s" : ""} (dashed). Each takes 10 minutes to load the model, and you pay from the moment it starts.` },
       { id: "idle", when: s => !s.batch && s.rho < 0.55, say: s => `Only ${pct(s.rho)} of the seats are in use, but you pay for every GPU-hour: about <b>${money(s.idleCostNow)}</b> an hour right now goes on empty seats. Fewer GPUs, autoscaling, or batch work would cut that.` },
       { id: "batch", when: s => s.batch, say: s => `Batch jobs (blue) fill seats the chats aren't using and hand them back the moment a chat needs one. They share the bill, so a chat reply now costs ${money(summary(s).per1000)} per 1,000, and far less GPU time goes to waste.` },
@@ -195,11 +206,11 @@ chapter("cost", () => {
     ],
     facts: [
       { id: "energy", when: s => s.t > 3, text: "Google measured the energy for a typical text prompt to its Gemini assistant at 0.24 watt-hours, counting the whole datacenter: less than a TV uses in nine seconds.", ref: "#ref-901" },
-      { id: "batch", when: s => s.batch, text: "Providers sell spare capacity this way. Anthropic, for example, charges half price for requests sent as a batch, which finish within 24 hours and usually in under one.", ref: "#ref-902" }
+      { id: "batch", when: s => s.batch, text: "Providers sell spare capacity this way. Anthropic, for example, charges half price for requests sent as a batch, whose results come back within 24 hours (most batches in under one).", ref: "#ref-902" }
     ],
     tour: [
       { say: "A fixed fleet of 30 GPUs, enough for most of the day. It's 9 am, traffic is climbing, and a spike is due at 11:00.", set: { mode: "fixed", gpus: 30, batch: false }, act: s => jump(s, 9.4), wait: 8 },
-      { say: "The afternoon peak and the spike overflow it. People queue (amber) and waits grow to minutes.", wait: 5 },
+      { say: "The spike overflows it. People queue (amber); once the line is a minute long, newcomers give up (red) and count as failed.", wait: 5 },
       { say: "So buy for the worst moment: 46 GPUs. Nobody waits, but at night most seats are empty (red in the bar) and you still pay.", set: { gpus: 46 }, act: s => jump(s, 0.5), wait: 8 },
       { say: "Autoscaling at 90% full follows traffic, so far less is wasted. But when the spike hits, new GPUs take 10 minutes to start.", set: { mode: "auto", target: 90 }, act: s => jump(s, 10.4), wait: 9 },
       { say: "Run each GPU only 55% full: enough room to absorb the spike while new GPUs start. No more queue, but nearly half of every GPU sits empty.", set: { target: 55 }, act: s => jump(s, 10.4), wait: 9 },
@@ -207,7 +218,7 @@ chapter("cost", () => {
     ],
     publish: s => { const sm = summary(s), d = s.lastDay; return {
       cstGPUs: String(s.on), cstFull: pct(Math.min(1, s.rho || 0)), cstPer: money(sm.per1000), cstPerReply: "$" + (sm.per1000 / 1000).toFixed(5), cstWh: sm.Wh.toFixed(2) + " Wh", cstTV: (sm.Wh * TV_S_PER_WH).toFixed(1) + " seconds", cstIdle: Math.round(sm.idle * 100) + "%",
-      cstLate: late(sm.lateF), cstP95: fSec(s.p95now), cstReplies: Math.round(sm.replies).toLocaleString(), cstHours: String(Math.round(sm.hours)) }; }
+      cstLate: late(sm.lateF), cstP99: fSec(s.p99now), cstFail: late(sm.failF), cstReplies: Math.round(sm.replies).toLocaleString(), cstHours: String(Math.round(sm.hours)) }; }
   });
   function jump(s, h) { s.h0 = h - s.t; s.Q = 0; s.lamE = lam(s, h); s.trace = []; newDay(s); }
 });

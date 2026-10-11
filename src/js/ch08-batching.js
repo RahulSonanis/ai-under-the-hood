@@ -4,9 +4,11 @@
    70% of peak bandwidth and 50% of peak compute. Step time = max(bytes read / bandwidth, sums / compute).
    KV cache ("notes") stays 16-bit: 128 KiB per token. 4-bit weights are unpacked to 16-bit for the maths
    (weight-only quantisation), so INT4 uses the BF16 compute rate. 4 GB is kept free as working space (illustrative).
+   Sums per token per person = 2 × weights + attention (≈ 4 × layers × width × context: comparing the new token with
+   every earlier one, then mixing their values). Prefill (reading prompts) is not modelled or costed.
    GPU price $3 per hour is illustrative. The animation runs about 25 times slower than the real step time. */
 chapter("batching", () => {
-  const N = 8.03e9, KV = 131072, BW = 3.35e12 * 0.7, MEM = 80e9, WORK = 4e9, PRICE = 3, SLOW = 25;
+  const N = 8.03e9, LAYERS = 32, DIM = 4096, KV = 131072, BW = 3.35e12 * 0.7, MEM = 80e9, WORK = 4e9, PRICE = 3, SLOW = 25;
   const PREC = {
     bf16: { b: 2, F: 989e12 * 0.5, name: "16-bit", q: "reference quality" },
     fp8: { b: 1, F: 1979e12 * 0.5, name: "8-bit", q: "about the same quality" },
@@ -25,9 +27,9 @@ chapter("batching", () => {
   function calc(s) {
     const pr = PREC[s.prec], W = N * pr.b, perSeat = s.ctx * KV, room = MEM - W - WORK;
     const fit = Math.max(1, Math.floor(room / perSeat)), seated = Math.min(s.B, fit);
-    const kv = seated * perSeat, mem = (W + kv) / BW, comp = 2 * N * seated / pr.F, t = Math.max(mem, comp);
+    const attn = 4 * LAYERS * DIM * s.ctx, kv = seated * perSeat, mem = (W + kv) / BW, comp = (2 * N + attn) * seated / pr.F, t = Math.max(mem, comp);
     const occ = s.mode === "static" ? s.occ : 1, useful = Math.max(0.05, seated * occ);
-    return { pr, W, perSeat, room, fit, seated, kv, mem, comp, t, busy: comp / t, per: 1 / t, total: useful / t,
+    return { pr, attn, W, perSeat, room, fit, seated, kv, mem, comp, t, busy: comp / t, per: 1 / t, total: useful / t,
       cost: PRICE / 3600 * t / useful * 1e6, need: W + WORK + s.B * perSeat, used: W + WORK + kv, over: s.B > fit, wantKV: s.B * perSeat };
   }
 
@@ -83,7 +85,7 @@ chapter("batching", () => {
     }
     k.label(M.x + memW / 2, cxy(Math.max(0, Math.min(wC - 1, Math.floor(wC / 2))))[1] + M.cell / 2, nar ? `model ${fGB(m.W)}` : `the model · ${fGB(m.W)} (${m.pr.name})`, { col: C.ink, size: 12, weight: "600", bg: true });
     if (kvC >= (nar ? 5 : 12)) { const mid = wC + workC + Math.floor(kvC / 2); k.label(M.x + memW / 2, cxy(mid)[1] + M.cell / 2, nar ? `notes ${fGB(m.kv)}` : `notes · ${m.seated} × ${fmtL(s.ctx)} = ${fGB(m.kv)}`, { col: C.ink, size: 12, weight: "600", bg: true }); }
-    if (m.over) k.label(M.x + memW / 2, M.y + memH + (nar ? 28 : 26), nar ? `${fGB(m.wantKV - m.room)} won't fit` : `${fGB(m.wantKV - m.room)} of notes won't fit`, { col: C.crit, size: 13, weight: "700" });
+    if (m.over) k.label(M.x + memW / 2, M.y + memH + (nar ? 28 : 26), `needs ${fGB(m.need)} of 80 GB`, { col: C.crit, size: 13, weight: "700" });
     else if (!nar) k.label(M.x + memW / 2, M.y + memH + 26, `${fGB(MEM - m.used)} free · dashed = working space`, { col: C.muted, size: 11 });
     // ---- pipe ----
     const P = L.pipe, memShare = m.mem / m.t, reading = s.p < memShare;
@@ -118,7 +120,8 @@ chapter("batching", () => {
       k.line(T.x + s.p * T.w, T.y - 6, T.x + s.p * T.w, T.y + 54, { col: C.ink, lw: 1.5, alpha: 0.7 });
       k.label(T.x + T.w + 12, T.y + 9, `reading ${fMs(m.mem)}`, { align: "left", col: C.sig, size: 11, weight: "600" });
       k.label(T.x + T.w + 12, T.y + 39, `maths ${fMs(m.comp)}`, { align: "left", col: C.amb, size: 11, weight: "600" });
-      k.label(T.x, T.y + 72, `teal = weights · violet = notes · shown about ${SLOW}× slower than real`, { align: "left", col: C.muted, size: 11 });
+      k.label(T.x, T.y + 72, "teal = weights · violet = notes", { align: "left", col: C.muted, size: 11 });
+      k.label(T.x, T.y + 92, `white line = progress · ${SLOW}× slower than real`, { align: "left", col: C.muted, size: 11 });
     }
     // ---- seats ----
     const S = L.seat, n = s.B, colsN = Math.ceil(Math.sqrt(n * S.w / S.h)), rowsN = Math.ceil(n / colsN);
@@ -134,13 +137,13 @@ chapter("batching", () => {
       if (r > 7) { const c = k.ctx; c.save(); c.strokeStyle = seat.col; c.lineWidth = k.px(2); c.beginPath(); c.arc(x, y, r + k.px(3), -Math.PI / 2, -Math.PI / 2 + prog * Math.PI * 2); c.stroke(); c.restore(); }
       if (seat.fresh > 0.4 && r > 6) k.dot(x, y, r * 0.35, C.ink, { alpha: seat.fresh });
     }
-    if (!nar) k.label(S.x + S.w / 2, S.y + S.h + 26, s.mode === "static" ? "dashed = finished, waiting for the slowest in the batch · red = no memory" : "ring = progress through a reply · red = no memory for their notes", { col: C.muted, size: 11 });
+    if (!nar) k.label(S.x + S.w / 2, S.y + S.h + 26, s.mode === "static" ? "dashed = done, waiting for the slowest · red = no room" : "ring = progress through a reply · red = no room for notes", { col: C.muted, size: 11 });
     // ---- precision tag ----
     k.label(M.x, M.y + memH + (nar ? 64 : 50), `${m.pr.name} numbers · ${m.pr.q}`, { align: "left", col: s.prec === "int4" ? C.amb : C.muted, size: nar ? 12 : 11, weight: "600" });
   }
 
   const sim = makeSim($("#bt-sim"), {
-    label: "One GPU serving many people. Left: GPU memory holding the model's weights and each person's notes. Middle: the pipe that carries them to the maths units, and how busy the maths units are. Right: one circle per person, lighting up each time they receive a token.",
+    label: "One GPU serving many people. The memory panel holds the model's weights and each person's notes. The pipe carries them to the maths units, which show how busy they are. The people panel has one circle per person, lighting up each time they receive a token.",
     cams: { default: { x: 20, y: 70, w: 1560, h: 720 } },
     camsNarrow: { default: { x: 20, y: 80, w: 820, h: 980 } },
     height: w => w < 640 ? Math.round(Math.max(400, w * 1.22)) : Math.round(Math.min(580, Math.max(380, w * 0.5))),
@@ -150,29 +153,29 @@ chapter("batching", () => {
       { id: "people", label: "People in the batch", type: "range", min: 0, max: BS.length - 1, step: 1, value: 0, fmt: v => String(BS[v]), help: "Conversations served together in each step.", apply: (s, v) => { s.B = BS[v]; } },
       { id: "len", label: "Conversation length so far", type: "range", min: 0, max: LS.length - 1, step: 1, value: 2, fmt: v => fmtL(LS[v]), help: "Everyone's notes must be read every step.", apply: (s, v) => { s.ctx = LS[v]; } },
       { id: "prec", label: "Size of each weight", type: "choice", value: "bf16", options: [["bf16", "16-bit"], ["fp8", "8-bit"], ["int4", "4-bit"]], help: "Fewer bits: less to read, a little less accurate.", apply: (s, v) => { s.prec = v; } },
-      { id: "mode", label: "When a reply finishes", type: "choice", value: "cont", options: [["static", "Wait for the batch"], ["cont", "Refill the seat"]], help: "Wait: new people join only when the whole batch is done.", apply: (s, v, sim) => { const ch = s.mode !== v; s.mode = v; if (ch) { s.occ = 1; s.seats.forEach(x => { if (v === "static" || x.left <= 0) newReply(s, x); }); } } }
+      { id: "mode", label: "When a reply finishes", type: "choice", value: "cont", options: [["static", "Wait for the batch"], ["cont", "Refill"]], help: "Wait: new people join only when the whole batch is done. Refill: a new person takes each seat as soon as its reply ends.", apply: (s, v, sim) => { const ch = s.mode !== v; s.mode = v; if (ch) { s.occ = 1; s.seats.forEach(x => { if (v === "static" || x.left <= 0) newReply(s, x); }); } } }
     ],
     step, draw,
     stats: s => { const m = calc(s); return [
       ["tokens/s per person", m.over && m.seated < s.B ? `${Math.round(m.per)} (${m.seated} seated)` : String(Math.round(m.per)), m.per >= 20 ? "ok" : "bad"],
       ["tokens/s for the GPU", fTok(m.total)],
-      ["per million tokens*", money(m.cost), m.cost < 0.5 ? "ok" : m.cost > 3 ? "hot" : ""],
+      ["per 1M tokens ≈ 1,000 replies*", money(m.cost), m.cost < 0.5 ? "ok" : m.cost > 3 ? "hot" : ""],
       ["memory needed", `${Math.round(gb(m.need))} / 80 GB`, m.over ? "bad" : gb(m.need) > 70 ? "hot" : ""],
       ["maths units busy", (m.busy < 0.1 ? (m.busy * 100).toFixed(1) : Math.round(m.busy * 100)) + "%", m.busy > 0.95 ? "hot" : ""]]; },
-    goal: { text: "with 8k-token conversations, serve 64 people at 20+ tokens/s each for under $0.50 per million tokens", check: s => { const m = calc(s); return { done: s.goalFor >= 3, progress: `${m.seated} seated · ${Math.round(m.per)} tok/s · ${money(m.cost)}` }; } },
+    goal: { text: "with 8k-token conversations (8k = 8,192 tokens), serve 64 people at 20+ tokens/s each for under $0.50 per million tokens (about 1,000 replies)", check: s => { const m = calc(s); return { done: s.goalFor >= 3, progress: `${m.seated} seated · ${Math.round(m.per)} tok/s · ${money(m.cost)}` }; } },
     notices: [
-      { id: "oom", when: s => calc(s).over, say: s => { const m = calc(s); return `Out of memory. ${s.B} people × ${fmtL(s.ctx)} need <b>${fGB(m.wantKV)}</b> of notes, but only ${fGB(m.room)} is left after the model, so ${s.B - m.seated} can't be seated (red). Shorter chats, fewer people or smaller weights would make room.`; } },
+      { id: "oom", when: s => calc(s).over, say: s => { const m = calc(s); return `Out of memory. The model, working space and notes for ${s.B} people × ${fmtL(s.ctx)} need <b>${fGB(m.need)}</b>, but the GPU holds 80 GB, so ${s.B - m.seated} can't be seated (red). Shorter chats, fewer people or smaller weights would make room.`; } },
       { id: "static", when: s => s.mode === "static" && s.B >= 4 && s.occ < 0.85, say: s => { const m = calc(s); return `Waiting for the batch: on average only <b>${Math.round(s.occ * 100)}%</b> of seats are writing. Finished people sit idle (dashed) until the longest reply ends, but every step still costs the same ${fMs(m.t)}, so each token costs ${Math.round((1 / s.occ - 1) * 100)}% more.`; } },
       { id: "compute", when: s => calc(s).comp > calc(s).mem, say: s => { const m = calc(s); return `Now the maths is the slow part: ${fMs(m.comp)} of sums against ${fMs(m.mem)} of reading. ${s.prec === "int4" ? "4-bit weights are unpacked to 16-bit for the sums, so the maths units aren't any faster. " : ""}Adding people now slows everyone down; this is as cheap as tokens get on this GPU.`; } },
       { id: "kv", when: s => { const m = calc(s); return m.kv > m.W * 1.2; }, say: s => { const m = calc(s); return `The notes now outweigh the model: each step reads <b>${fGB(m.kv)}</b> of notes and ${fGB(m.W)} of weights. Notes aren't shared, so every extra person or longer chat slows every step. ${s.prec !== "bf16" ? "Smaller weights barely help here." : ""}`; } },
       { id: "q4", when: s => s.prec === "int4" && s.B <= 64, once: true, say: s => { const m = calc(s); return `4-bit weights: the model shrinks to ${fGB(m.W)}, a quarter of 16-bit, so reading it takes a quarter of the time. The price is a small loss of accuracy, and it varies by model.`; } },
       { id: "q8", when: s => s.prec === "fp8", once: true, say: s => { const m = calc(s); return `8-bit weights: half the bytes, so the model is ${fGB(m.W)} and the read is twice as fast. Tests find 8-bit models almost exactly as accurate as 16-bit ones.`; } },
       { id: "one", when: s => s.B === 1, say: s => { const m = calc(s); return `One person: every step reads all ${fGB(m.W)} of weights to write <b>one</b> token. The maths takes ${fMs(m.comp)}; the reading takes ${fMs(m.mem)}. The maths units are ${(m.busy * 100).toFixed(1)}% busy. Try more people.`; } },
-      { id: "share", when: s => s.B >= 2, say: s => { const m = calc(s), one = (m.W + s.ctx * KV) / BW; return `${s.B} people share each read of the weights. A step takes ${fMs(m.t)} instead of ${fMs(one)} for one person, but ${m.seated} tokens come out instead of 1, so each token costs ${money(m.cost)} per million instead of ${money(PRICE / 3600 * one * 1e6)}.`; } }
+      { id: "share", when: s => s.B >= 2, say: s => { const m = calc(s), one = (m.W + s.ctx * KV) / BW; return `${s.B} people share each read of the weights. A step takes ${fMs(m.t)} instead of ${fMs(one)} for one person, but ${m.seated} tokens come out instead of 1, so a million tokens (about 1,000 replies) cost ${money(m.cost)} instead of ${money(PRICE / 3600 * one * 1e6)}.`; } }
     ],
     facts: [
       { id: "ridge", when: s => s.B >= 64, text: "An H100 can do about 295 sums in the time it reads one byte from its memory. Writing one token does roughly one sum per byte of weights for each person in the batch, so it takes a batch of a few hundred before the maths keeps up with the reading.", ref: "#ref-23" },
-      { id: "fp8", when: s => s.prec !== "bf16", text: "A 2024 study of quantised models found 8-bit floating-point weights (FP8) effectively lossless at every model size tested, and well-tuned 4-bit weights close behind.", ref: "#ref-801" }
+      { id: "fp8", when: s => s.prec !== "bf16", text: "A 2024 study of quantised models found 8-bit floating-point numbers (FP8), used for both the weights and the in-between results, effectively lossless at every model size tested, with well-tuned 4-bit weights close behind.", ref: "#ref-801" }
     ],
     tour: [
       { say: "One person. Each step streams the whole 16 GB model (teal) through the pipe, does a little maths (amber) and writes one token. The maths units sit almost idle.", set: { people: 0, len: 2, prec: "bf16", mode: "cont" }, wait: 6 },
@@ -185,6 +188,6 @@ chapter("batching", () => {
     publish: s => { const m = calc(s), one = (m.W + s.ctx * KV) / BW; return {
       btPeople: String(m.seated), btPeopleTxt: m.seated === 1 ? "1 person" : m.seated + " people", btStep: fMs(m.t), btOne: fMs(one), btPer: String(Math.round(m.per)), btTotal: fTok(m.total), btCost: money(m.cost), btCost1: money(PRICE / 3600 * one * 1e6),
       btW: fGB(m.W), btKV: fGB(m.kv), btRead: fGB(m.W + m.kv), btMem: fMs(m.mem), btComp: fMs(m.comp), btBusy: (m.busy < 0.1 ? (m.busy * 100).toFixed(1) : Math.round(m.busy * 100)) + "%",
-      btBits: m.pr.name, btCtx: s.ctx.toLocaleString(), btKVper: (s.ctx * KV / 1e9).toFixed(2) + " GB" }; }
+      btF: s.prec === "fp8" ? "990 trillion a second (50% of the 8-bit peak, 1,979 trillion)" : "495 trillion a second (50% of 989 trillion)", btAttn: (m.attn / 1e9).toFixed(1) + " billion", btBits: m.pr.name, btCtx: s.ctx.toLocaleString(), btKVper: (s.ctx * KV / 1e9).toFixed(2) + " GB" }; }
   });
 });

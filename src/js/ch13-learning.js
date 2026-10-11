@@ -141,7 +141,7 @@ chapter("learning", () => {
   }
   const fmtL = v => v >= 10 ? v.toFixed(0) : v >= 0.1 ? v.toFixed(2) : v >= 0.001 ? v.toFixed(3) : v >= 0.0001 ? v.toFixed(4) : "< 0.0001";
   // small signed numbers as plain decimals with two significant figures (no "e-4" notation)
-  const fmtS = v => { const a = Math.abs(v); if (a < 1e-6) return "0.000000"; const d = Math.min(7, Math.max(2, 1 - Math.floor(Math.log10(a)))); return (v >= 0 ? "+" : "−") + a.toFixed(d); };
+  const fmtS = v => { const a = Math.abs(v); if (a < 1e-10) return "0"; const d = Math.min(10, Math.max(2, 1 - Math.floor(Math.log10(a)))); return (v >= 0 ? "+" : "−") + a.toFixed(d); };
   const mfix = (v, d) => (v < 0 ? "−" : "") + Math.abs(v).toFixed(d);
   const fmtLR = v => v >= 0.1 ? v.toFixed(2) : v >= 0.01 ? v.toFixed(3) : v.toFixed(4);
 
@@ -233,7 +233,7 @@ chapter("learning", () => {
   function selInfo(s) {
     const H = s.H, o = layout(H), j = Math.min(s.sel.j, H - 1), i = s.sel.layer === 1 ? o.W1 + j : o.W3 + j;
     const g = s.g[i], d = s.lastStep[i], gmax = Math.max(1e-12, ...Array.from(s.g, Math.abs)), rel = Math.abs(g) / gmax, step = Math.abs(d) / s.lr;
-    const slopeWords = rel < 0.02 || Math.abs(g) < 1e-6 ? "almost flat" : (rel > 0.3 ? "steep: " : "gentle: ") + (g > 0 ? "loss ↗ as it grows" : "loss ↘ as it grows");
+    const slopeWords = rel < 0.02 || Math.abs(g) < 1e-4 ? "almost flat" : (rel > 0.3 ? "steep: " : "gentle: ") + (g > 0 ? "loss ↗ as it grows" : "loss ↘ as it grows");
     const nudgeWords = step < 0.02 ? "barely moved" : (d < 0 ? "↓ pushed down " : "↑ pushed up ") + (step > 0.7 ? "a full step" : step > 0.2 ? "part of a step" : "a little");
     return { i, w: s.th[i], g, plain: -s.lr * g, adam: d, slopeWords, nudgeWords, paths: s.sel.layer === 1 ? s.H : 1, name: s.sel.layer === 1 ? `input → layer 1, neuron ${j + 1}` : `layer 2, neuron ${j + 1} → guess` };
   }
@@ -247,19 +247,19 @@ chapter("learning", () => {
       ["layer 1", "layer 2", "output"].forEach((t, i) => { const yy = gy + 22 + i * 22, v = s.gn[i], f = clamp01((Math.log10(Math.max(1e-7, v)) + 5) / 5);
         k.label(gx, yy, t, { align: "left", size: 11 }); k.box(gx + 70, yy - 6, 200, 12, { fill: C.line, r: 4, alpha: 0.5 }); k.box(gx + 70, yy - 6, Math.max(2, 200 * f), 12, { fill: C.amb, r: 4, alpha: 0.9, glow: 6, glowCol: C.amb }); });
       // the weight the learner picked, in words and arrows (exact numbers are in The maths)
-      const si = selInfo(s), P = { x: L.net.x - 10, y: L.net.y + L.net.h + 76, w: 500, h: 168 }, vx = P.x + 200, vw = P.w - 222;
+      const si = selInfo(s), P = { x: L.net.x - 10, y: L.net.y + L.net.h + 70, w: 500, h: 186 }, vx = P.x + 200, vw = P.w - 222;
       k.box(P.x, P.y, P.w, P.h, { fill: C.bg2, stroke: C.line, r: 12, alpha: 0.9 });
       k.label(P.x + 14, P.y + 22, "One weight up close (click a neuron)", { align: "left", col: C.ink, weight: "650", size: 12 });
-      const row = (i, a, b, col) => { k.label(P.x + 14, P.y + 52 + i * 26, a, { align: "left", size: 11.5 }); if (b) k.label(P.x + P.w - 14, P.y + 52 + i * 26, b, { align: "right", size: 11.5, col, weight: "600" }); };
+      const row = (i, a, b, col) => { k.label(P.x + 14, P.y + 52 + i * 31, a, { align: "left", size: 11.5 }); if (b) k.label(P.x + P.w - 14, P.y + 52 + i * 31, b, { align: "right", size: 11.5, col, weight: "600" }); };
       row(0, "which weight", si.name, C.ink);
       // value: a small number line from -3 to +3
-      row(1, "its value now", "", C.ink); const yy = P.y + 78, cx = vx + vw / 2, f = Math.max(-1, Math.min(1, si.w / 3));
+      row(1, "its value now", "", C.ink); const yy = P.y + 83, cx = vx + vw / 2, f = Math.max(-1, Math.min(1, si.w / 3));
       k.line(vx, yy, vx + vw, yy, { col: C.line, lw: 2 }); k.line(cx, yy - 6, cx, yy + 6, { col: C.muted, lw: 1.2 });
       k.box(Math.min(cx, cx + f * vw / 2), yy - 3, Math.abs(f * vw / 2), 6, { fill: C.ink, r: 3, alpha: 0.7 }); k.dot(cx + f * vw / 2, yy, k.px(4.5), C.ink);
       k.label(cx, yy + 14, "0", { size: 9.5 }); k.label(vx - 8, yy, "−", { size: 12, align: "right" }); k.label(vx + vw + 8, yy, "+", { size: 12, align: "left" });
       row(2, "slope (at the last step)", si.slopeWords, C.amb);
       row(3, "last nudge", si.nudgeWords, C.sig);
-      k.label(P.x + 14, P.y + P.h - 16, "The exact numbers are in The maths, below the simulation.", { align: "left", size: 10.5 });
+      k.label(P.x + 14, P.y + P.h - 16, "Exact numbers: see The maths below.", { align: "left", size: 10.5 });
     }
   }
 
@@ -281,8 +281,8 @@ chapter("learning", () => {
     click: (s, wx, wy, sim) => { const R = lay(sim.narrow).net; let best = null, bd = 1e9; for (const l of [1, 2]) for (let j = 0; j < s.H; j++) { const [x, y] = neuronXY(R, s.H, l, j), d = Math.hypot(wx - x, wy - y); if (d < bd) { bd = d; best = { layer: l, j }; } } if (best && bd < 40) s.sel = best; },
     stats: s => [["training steps", s.stepN.toLocaleString(), s.reached && s.reached <= 200 ? "ok" : s.stepN > 200 && !s.reached ? "hot" : ""], ["loss", fmtL(s.loss), s.blown ? "bad" : s.loss < 0.02 ? "ok" : ""], ["weights being trained", String(s.th.length)], ["learning rate", fmtLR(s.lr)]],
     goal: { get text() { return goalS && goalS.noise ? `noise makes 0.02 impossible, so get the loss on the held-out dots below ${fmtL(goalS.vgoal)} within 200 steps` : "get the loss below 0.02 within 200 training steps"; },
-      check: s => { goalS = s; return { done: !!s.reached && s.reached <= 200,
-        progress: s.reached ? (s.reached > 200 ? `reached too late (step ${s.reached.toLocaleString()})` : overfitting(s) ? `reached at step ${s.reached}, but now overfitting` : `reached at step ${s.reached}`) : `step ${s.stepN} · ${s.noise ? "held-out loss " + fmtL(s.vloss) : "loss " + fmtL(s.loss)}` }; } },
+      check: s => { goalS = s; const of = overfitting(s); return { done: !!s.reached && s.reached <= 200 && !of,
+        progress: of ? `overfitting: held-out loss up from ${fmtL(s.vbest)} to ${fmtL(s.vloss)}` : s.reached ? (s.reached > 200 ? `below the line only at step ${s.reached.toLocaleString()}: too slow` : `done at step ${s.reached}`) : `step ${s.stepN} · ${s.noise ? "held-out loss " + fmtL(s.vloss) : "loss " + fmtL(s.loss)}` }; } },
     notices: [
       { id: "blown", when: s => s.blown, say: s => `The loss jumped from ${fmtL(s.blownFrom)} to ${fmtL(s.loss)}. With a learning rate of ${fmtLR(s.lr)} each nudge is too big: it overshoots the bottom of the valley and lands somewhere worse. Lower it and training starts again from the same random start.` },
       { id: "stuck", when: s => s.stepN > 300 && s.loss > 0.08 && Math.max(...s.gn) < 3e-4, say: s => `The amber pulses have almost faded: the slope is nearly flat, so every nudge is tiny. The neurons are pushed to their limits, where changing a weight barely changes anything. Learning has stalled; try a new random start.` },

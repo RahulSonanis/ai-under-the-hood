@@ -61,7 +61,7 @@ chapter("tokens", () => {
   const TEXTS = {
     en: { name: "English", text: "The weather turned cold on the night of the harvest festival. Families walked into town to buy bread, apples and warm cider, while children ran between the stalls. By morning the square was quiet again, and the only sound was the bell of the old church." },
     code: { name: "Code", text: "def total_price(items, tax_rate):\n    total = 0\n    for item in items:\n        total += item.price * item.count\n    return total * (1 + tax_rate)" },
-    hi: { name: "Hindi", text: "मुझे चाय बहुत पसंद है। हर सुबह मैं चाय पीता हूँ और अख़बार पढ़ता हूँ।", gloss: "“I like tea a lot. Every morning I drink tea and read the newspaper.” (15 words in English)" },
+    hi: { name: "Hindi", text: "मुझे चाय बहुत पसंद है। हर सुबह मैं चाय पीता हूँ और अख़बार पढ़ता हूँ।", gloss: "“I like tea a lot. Every morning I drink tea and read the newspaper.” (14 words in English)" },
     straw: { name: "strawberry", text: "How many r's are in strawberry?" },
     own: { name: "Yours", text: "Type anything here, in any language." }
   };
@@ -149,8 +149,8 @@ chapter("tokens", () => {
 
   // ---------- layout ----------
   function lay(narrow) {
-    if (!narrow) return { n: false, T: { x: 20, y: 52, w: 820, h: 340 }, M: { x: 880, y: 20, w: 380, rows: 9, rh: 30 }, I: { x: 20, y: 470, w: 820, n: 9 }, E: { x: 905, y: 372, w: 255, h: 228 }, V: { x: 20, y: 572, w: 820 }, fs: [26, 11] };
-    return { n: true, T: { x: 6, y: 40, w: 388, h: 300 }, M: { x: 6, y: 368, w: 388, rows: 3, rh: 28 }, I: { x: 6, y: 520, w: 270, n: 4 }, E: { x: 300, y: 488, w: 94, h: 150 }, V: { x: 6, y: 604, w: 280 }, fs: [22, 10] };
+    if (!narrow) return { n: false, T: { x: 20, y: 52, w: 820, h: 340 }, M: { x: 880, y: 20, w: 380, rows: 9, rh: 30 }, I: { x: 20, y: 470, w: 770, n: 9 }, E: { x: 905, y: 372, w: 255, h: 228 }, V: { x: 20, y: 572, w: 820 }, fs: [26, 11] };
+    return { n: true, T: { x: 6, y: 40, w: 388, h: 290 }, M: { x: 6, y: 352, w: 388, rows: 3, rh: 28 }, I: { x: 6, y: 508, w: 270, n: 4 }, E: { x: 300, y: 490, w: 94, h: 140 }, V: { x: 6, y: 592, w: 280 }, fs: [28, 10] };
   }
   let LAY = null;
   function layoutChips(k, s, G) {
@@ -195,6 +195,7 @@ chapter("tokens", () => {
     const M = G.M, srcName = s.src === "web" ? "1,850 words of everyday English" : "your text only";
     k.label(M.x, M.y + 6, `Merges learned · ${fmtN(s.m)}`, { align: "left", col: C.ink, weight: "650", size: 13 });
     if (!G.n) k.label(M.x, M.y + 26, `learned from ${srcName}`, { align: "left", col: C.muted, size: 11.5 });
+    k.label(M.x + M.w - 4, M.y + 6, "times found", { align: "right", col: C.muted, size: 11 });
     const rows = []; if (pr) rows.push({ i: s.m, p: pr, live: true }); for (let i = s.m - 1; i >= 0 && rows.length < M.rows; i--) rows.push({ i, p: L.merges[i] });
     const y0 = M.y + (G.n ? 24 : 46);
     rows.forEach((r, j) => {
@@ -217,7 +218,8 @@ chapter("tokens", () => {
       k.text(x + cw / 2, I.y + (G.n ? 48 : 54), String(t.id), { mono: true, size: G.n ? 15 : 18, weight: "650", col: cur ? C.sig : C.muted });
     }
     // the table
-    k.label(E.x + E.w / 2, E.y - (G.n ? 12 : 16), G.n ? `table · ${fmtN(V)} rows` : `Embedding table · ${fmtN(V)} rows`, { col: C.ink, weight: "650", size: G.n ? 11 : 13 });
+    if (G.n) k.label(E.x + E.w, E.y - 12, `table · ${fmtN(V)} rows`, { col: C.ink, weight: "650", size: 11, align: "right" });
+    else k.label(E.x + E.w / 2, E.y - 16, `Embedding table · ${fmtN(V)} rows`, { col: C.ink, weight: "650", size: 13 });
     k.box(E.x, E.y, E.w, E.h, { fill: C.bg2, stroke: C.line, r: 6 });
     const yb = E.y + E.h * 256 / V, cols = G.n ? 6 : 12, bands = G.n ? 26 : 40;
     for (let b = 0; b < bands; b++) { const y = E.y + 3 + b * (E.h - 6) / bands, rid = Math.floor((b + 0.5) / bands * V); for (let q = 0; q < cols; q++) { const v = emb(rid, q); k.box(E.x + 4 + q * (E.w - 8) / cols, y, (E.w - 8) / cols - 1.5, (E.h - 6) / bands - 1.5, { fill: rid < 256 ? C.muted : C.sig, r: 1, alpha: 0.12 + 0.28 * Math.abs(v) }); } }
@@ -225,7 +227,7 @@ chapter("tokens", () => {
     if (!G.n) { k.label(E.x - 8, E.y + (yb - E.y) / 2, "256 bytes", { align: "right", col: C.muted, size: 11 }); if (s.m > 0) k.label(E.x - 8, yb + (E.y + E.h - yb) / 2, `${fmtN(s.m)} merges`, { align: "right", col: C.sig, size: 11 }); }
     const ct = s.toks[s.rc];
     if (ct) {
-      const ry = E.y + E.h * (ct.id + 0.5) / V, q = s.rc - i0, sx = I.x + q * (cw + 8) + cw / 2, sy = I.y + (G.n ? 60 : 66), by = G.n ? 636 : 614, bx = E.x - (G.n ? 12 : 30);
+      const ry = E.y + E.h * (ct.id + 0.5) / V, q = s.rc - i0, sx = I.x + q * (cw + 8) + cw / 2, sy = I.y + (G.n ? 60 : 66), by = G.n ? 624 : 614, bx = E.x - (G.n ? 12 : 30);
       k.box(E.x - 2, ry - 3, E.w + 4, 6, { fill: C.sig, r: 3, glow: 14, glowCol: C.sig });
       k.label(E.x + E.w + (G.n ? -4 : 8), ry, G.n ? "" : `row ${ct.id}`, { align: "left", col: C.sig, size: 12, weight: "600" });
       const pts = [[sx, sy], [sx, by], [bx, by], [bx, ry], [E.x - 2, ry]], seg = pts.slice(1).map((p, j) => Math.hypot(p[0] - pts[j][0], p[1] - pts[j][1])), tot = seg.reduce((a, b) => a + b, 0);
@@ -244,18 +246,21 @@ chapter("tokens", () => {
     return [["tokens in your text", fmtN(t), s.key === "straw" && strawToks(s) === 1 ? "ok" : ""], ["characters per token", (Array.from(s.text).length / Math.max(1, t)).toFixed(1)], ["tokens per word", tpw.toFixed(1), tpw > 4 ? "bad" : tpw > 2 ? "hot" : "ok"], ["vocabulary", fmtN(256 + s.m) + " tokens"]];
   }
 
+  const mlabel = (s, v) => { const eff = s ? L_(s).learnTo(v) : v; return eff < v ? `${v} (${fmtN(eff)} learned) → vocabulary ${fmtN(256 + eff)}` : `${v} → vocabulary ${fmtN(256 + v)}`; };
   const fig = $("#tok-sim");
-  const sim = makeSim(fig, {
-    label: "Tokenizer simulation. Your text is shown as a row of tokens. A byte-pair-encoding tokenizer learns merge rules one at a time, and each rule glues a frequent pair of neighbouring tokens into one. Below, each token's ID picks a row of the embedding table. Click a token to inspect it.",
+  let sim = null;
+  sim = makeSim(fig, {
+    label: "Tokenizer simulation. Your text is shown as a row of tokens. A byte-pair-encoding tokenizer learns merge rules one at a time, and each rule glues a frequent pair of neighbouring tokens into one. In \u201cWhat the model receives\u201d, each token's ID picks a row of the embedding table. Click a token to inspect it.",
     cams: { default: { x: 0, y: -10, w: 1280, h: 640 } },
     camsNarrow: { default: { x: 0, y: 0, w: 400, h: 640 } },
     height: w => w < 640 ? Math.round(w * 1.55) : Math.round(Math.min(580, Math.max(380, w * 0.52))),
-    init, step, draw, warmup: 1,
+    init, draw, warmup: 1,
+    step: (s, dt) => { step(s, dt); const out = $("output", fig), t = mlabel(s, s.target); if (out && out.textContent !== t) out.textContent = t; },
     intro: "This tokenizer is learning, one merge at a time. Each merge glues the most common pair of neighbours into a new token. Drag <b>Merges learned</b> and watch your text fall into fewer, bigger pieces.",
     controls: [
       { id: "text", label: "Text to cut up", type: "choice", value: "en", options: Object.entries(TEXTS).filter(([k]) => k !== "own").map(([k, v]) => [k, v.name]), help: "Or type your own text in the box.", apply: (s, v) => { s.key = v; s.text = TEXTS[v].text; s.sel = -1; s.rc = 0; retok(s); } },
       { id: "src", label: "Learn the merges from", type: "choice", value: "web", options: [["web", "Everyday English"], ["self", "This text only"]], help: "A real tokenizer learns once, from a huge pile of text, then cuts up everything with the same rules.", apply: (s, v) => { const ch = s.src !== v; s.src = v; if (ch) { s.m = 0; s.ph = 0; s.sel = -1; retok(s); } } },
-      { id: "merges", label: "Merges learned", type: "range", min: 0, max: MAXM, step: 10, value: 60, fmt: v => `${v} → vocabulary ${fmtN(256 + v)}`, help: "Vocabulary = the 256 possible bytes + one new token per merge.", apply: (s, v) => { s.target = v; } }
+      { id: "merges", label: "Merges learned", type: "range", min: 0, max: MAXM, step: 10, value: 60, fmt: v => mlabel(sim && sim.state, v), help: "Vocabulary = the 256 possible bytes + one new token per merge.", apply: (s, v) => { s.target = v; } }
     ],
     click: (s, wx, wy, sim) => {
       const A = LAY; if (!A) return; s.sel = -1;
@@ -263,11 +268,11 @@ chapter("tokens", () => {
       if (s.sel >= 0) { s.rc = s.sel; s.selT = s.t; }
     },
     stats,
-    goal: { text: "make “strawberry” a single token", check: s => { const n = strawToks(s); return { done: s.goalFor >= 1.5, progress: n ? `“strawberry” = ${n} token${n === 1 ? "" : "s"}` : "pick a text with “strawberry” in it" }; } },
+    goal: { text: "make “strawberry” a single token (easy here: our training text is full of strawberries)", check: s => { const n = strawToks(s); return { done: s.goalFor >= 1.5, progress: n ? `“strawberry” = ${n} token${n === 1 ? "" : "s"}` : "pick a text with “strawberry” in it" }; } },
     notices: [
-      { id: "sel", when: s => s.sel >= 0 && s.t - s.selT < 6, say: s => { const t = s.toks[s.sel]; return `“${esc(t.t)}” is token <b>${t.id}</b>${t.id < 256 ? ", one raw byte" : `, made by merge ${t.id - 255}`}. The model never sees its letters. It receives only the number ${t.id}, which picks row ${t.id} of the embedding table: a list of numbers learned for this token.`; } },
-      { id: "straw", when: s => strawToks(s) === 1, say: s => { const t = s.toks.find(x => /strawberry/i.test(x.t)); return `“strawberry” is now one token, number <b>${t ? t.id : ""}</b>. That number is all the model receives. The letters, and the three r's, are no longer visible to it: to count them it must remember how token ${t ? t.id : ""} is spelled.`; } },
-      { id: "nonEn", when: s => nonAscii(s) && s.src === "web" && words(s) > 0 && s.toks.length / words(s) > 3, say: s => `Your text is <b>${fmtN(s.toks.length)}</b> tokens for ${words(s)} words, ${(s.toks.length / words(s)).toFixed(1)} per word. This vocabulary learned only from English, so it has no merges for these letters: each one stays as its raw bytes (dashed boxes). Switch to <b>This text only</b> and watch the bytes fuse into letters.` },
+      { id: "sel", when: s => s.sel >= 0 && s.t - s.selT < 6, say: s => { const t = s.toks[s.sel]; return `“${esc(t.t)}” is token <b>${t.id}</b>${t.id < 256 ? `, one raw byte${t.part ? ` (shown in hex, a short code for the numbers 0 to 255: ${esc(t.t)} = ${t.id})` : ""}` : `, made by merge ${t.id - 255}`}. The model never sees its letters. It receives only the number ${t.id}, which picks row ${t.id} of the embedding table: a list of numbers learned for this token.`; } },
+      { id: "straw", when: s => strawToks(s) === 1, say: s => { const t = s.toks.find(x => /strawberry/i.test(x.t)); return `“strawberry” is now one token, number <b>${t ? t.id : ""}</b>. That number is all the model receives. The letters, and the three r's, are no longer visible to it: to count them it must remember how token ${t ? t.id : ""} is spelled. (It's one token here because our training text is full of strawberries; real tokenizers, such as the one for OpenAI's GPT-4, cut it into about 3.)`; } },
+      { id: "nonEn", when: s => nonAscii(s) && s.src === "web" && words(s) > 0 && s.toks.length / words(s) > 3, say: s => `Your text is <b>${fmtN(s.toks.length)}</b> tokens for ${words(s)} words, ${(s.toks.length / words(s)).toFixed(1)} per word. This vocabulary learned only from English, so it has no merges for these letters: each one stays as its raw bytes (dashed boxes, written in hex, a short code for the numbers 0 to 255: e0 = 224). Switch to <b>This text only</b> and watch the bytes fuse into letters.` },
       { id: "out", when: s => s.src === "self" && L_(s).done && s.target > L_(s).merges.length && s.m >= L_(s).merges.length, say: s => { const L = L_(s), web = WEB.encode(s.text, WEB.learnTo(s.m)).length; return /strawberry/i.test(s.text) && strawToks(s) > 1 ? `Learning from this one sentence ran out after ${L.merges.length} merges. “strawberry” appears only once, and a merge needs a pair seen at least twice, so the word can never be learned here. Learn from everyday English instead.` : `Learning ran out after <b>${L.merges.length}</b> merges: no pair of neighbours appears twice any more. The vocabulary now fits this text snugly (${fmtN(s.toks.length)} tokens), but it learned from just ${L.words} words. The same number of merges learned from everyday English gives ${fmtN(web)}.`; } },
       { id: "code", when: s => s.key === "code" && s.src === "web" && s.m >= 100, say: s => { const L = L_(s), n = L.encode(" total_price", s.m).length; return `Code is full of symbols and made-up names. This vocabulary learned from stories, so “total_price” still takes ${n} tokens, and every space of indentation is a token of its own. Tokenizers for coding models learn from lots of code.`; } },
       { id: "rare", when: s => s.m >= 150 && s.m === Math.min(s.target, L_(s).merges.length) && L_(s).merges[s.m - 1] && L_(s).merges[s.m - 1][2] <= 3, say: s => { const L = L_(s), a = L.encode(s.text, Math.max(0, s.m - 100)).length, b = s.toks.length, z = L.encode(s.text, Math.min(100, s.m)).length, z0 = L.encode(s.text, 0).length; return `Merge ${s.m} glued a pair seen only ${L.merges[s.m - 1][2]} times in the training text. Late merges buy little: the last 100 merges saved your text ${a - b} tokens, the first 100 saved ${z0 - z}. That's why real vocabularies stop at tens of thousands of tokens.`; } },
@@ -275,16 +280,16 @@ chapter("tokens", () => {
       { id: "calm", when: () => true, say: s => `${fmtN(s.m)} merges learned. Your text: ${fmtN(Array.from(s.text).length)} characters became <b>${fmtN(s.toks.length)}</b> tokens. Drag the merges slider and watch pairs glue together, or click any token.` }
     ],
     facts: [
-      { id: "gage", when: s => s.m >= 30, text: "Byte-pair encoding started life in 1994 as a way to compress files. In 2015 researchers repurposed it to split rare words into pieces for machine translation, and language models have used versions of it ever since.", ref: "#ref-4" },
+      { id: "gage", when: s => s.m >= 30, text: "Byte-pair encoding started life in 1994 as a way to compress files. In 2016 researchers repurposed it to split rare words into pieces for machine translation, and language models have used versions of it ever since.", ref: "#ref-4" },
       { id: "llama", when: s => s.m >= 500 || s.sel >= 0, text: "Meta's open Llama 3 models have a vocabulary of about 128,000 tokens, and each row of the 8-billion-parameter model's embedding table holds 4,096 numbers: over 500 million numbers just to look tokens up.", ref: "#ref-9" }
     ],
     tour: [
       { say: "With no merges, every letter is its own token (strictly, every byte). This short paragraph is over 250 tokens.", set: { text: "en", src: "web", merges: 0 }, wait: 6 },
-      { say: "Now the tokenizer learns. It counts every pair of neighbours in its training text, glues the most common pair into a new token, and repeats. Watch the list on the right and the pieces on the left.", set: { merges: 150 }, until: s => s.m >= 150, max: 14, min: 6 },
-      { say: "More merges, bigger pieces. Common words like “·the” and “·and” are single tokens now, while rare words like “harvest” stay in pieces.", set: { merges: 600 }, wait: 8 },
+      { say: "Now the tokenizer learns. It counts every pair of neighbours in its training text, glues the most common pair into a new token, and repeats. Watch the “Merges learned” list grow and your text's pieces get bigger.", set: { merges: 150 }, until: s => s.m >= 150, max: 14, min: 6 },
+      { say: "More merges, bigger pieces. Common words like “·the” and “·and” are single tokens now. Words like “weather” and “harvest” stay in pieces: the training text is only about 1,850 words, and they appear in it once or not at all.", set: { merges: 600 }, wait: 8 },
       { say: "The same English-trained rules on a Hindi sentence. They have never seen these letters, so each letter stays as 3 raw bytes: more than 10 tokens per word.", set: { text: "hi" }, wait: 8 },
       { say: "Learn from this text instead. First the bytes fuse into whole letters, then a few letters into common syllables. A short text runs out of repeated pairs quickly.", set: { src: "self", merges: 200 }, wait: 9 },
-      { say: "Finally, “strawberry”, learned from everyday English. It becomes a single token: one number. The r's inside it are hidden from the model.", set: { text: "straw", src: "web", merges: 300 }, until: s => strawToks(s) === 1, max: 16, min: 6 }
+      { say: "Finally, “strawberry”, learned from everyday English. Our small training text mentions strawberries again and again, so it becomes a single token: one number, with the r's hidden inside. Real tokenizers, such as the one for OpenAI's GPT-4, cut it into about 3 tokens, and the letters are still hidden.", set: { text: "straw", src: "web", merges: 300 }, until: s => strawToks(s) === 1, max: 16, min: 6 }
     ],
     publish: s => {
       const L = L_(s), t = s.toks.length, w = words(s), last = s.m > 0 ? L.merges[s.m - 1] : null, sel = s.toks[s.rc];

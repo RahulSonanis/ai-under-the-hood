@@ -3,17 +3,19 @@
    the GPU reads your whole prompt at once, then writes the reply one token at a time and streams it back.
    Timings are illustrative orders of magnitude (from the legacy chapter): network 40 ms each way, gateway 12 ms,
    safety 25 ms, router 4 ms, tokenizing 2 ms, reading 30 ms + 0.08 ms per uncached token, writing 18–26 ms per
-   token (slower when busier), 300 hidden thinking tokens. The line is a real M/M/1 queue: mean wait 60 ms·ρ/(1−ρ).
+   token (slower when busier), 300 hidden thinking tokens. The reading pass also produces the first token.
+   A re-send is a follow-up: the earlier conversation may be cached (5 min) and ~200 new tokens are added.
+   Above 90% busy the gateway turns some other people's requests away (load shedding). The line is a real M/M/1 queue: mean wait 60 ms·ρ/(1−ρ).
    Shown in slow motion: 1 second on screen = 0.2 s of real time (thinking is fast-forwarded a further 4×). */
 chapter("send", () => {
   const SLOW = 0.2, NET = 0.04, GW = 0.012, SAFE = 0.025, ROUTE = 0.004, TOK = 0.002, BACK = 0.04;
-  const PRE0 = 0.03, PRE_PER = 0.00008, SVC = 0.06, THINK = 300, DOC_TOK = 12000;
+  const PRE0 = 0.03, PRE_PER = 0.00008, SVC = 0.06, THINK = 300, DOC_TOK = 12000, FOLLOW = 200, CACHE_TTL = 300;
   const SYS = { app: 2000, agent: 15000, api: 0 };
   const SYS_NAME = { app: "the chat app", agent: "the coding agent", api: "your own code" };
   const PROMPTS = {
     sky: ["Why is the sky blue?", "Sunlight contains every colour. Air molecules scatter short, blue wavelengths much more strongly than long, red ones, so blue light reaches your eyes from every part of the sky."],
     haiku: ["Write a haiku about servers.", "Fans hum through the night / a thousand racks hold their breath / your answer, then dawn"],
-    doc: ["Summarise this 30-page report. [report attached]", "Summary: a configuration change to the payments service caused 38 minutes of errors. Retries overloaded the database. Rolling back fixed it; next steps are safer rollouts and retry limits."]
+    doc: ["Summarise this 20-page report. [report attached]", "Summary: a configuration change to the payments service caused 38 minutes of errors. Retries overloaded the database. Rolling back fixed it; next steps are safer rollouts and retry limits."]
   };
   const OWN_REPLY = "Here's a short, clear answer to your question, with the key idea first and a one-line summary at the end.";
   const tpotOf = rho => (18 + 8 * rho) / 1000;
@@ -70,14 +72,15 @@ chapter("send", () => {
     if (s.me) { const old = s.me; s.reqs = s.reqs.filter(r => r !== old); s.q = s.q.filter(r => r !== old); }
     const [prompt, reply] = s.promptKey === "own" ? [s.own || "Hello", OWN_REPLY] : PROMPTS[s.promptKey];
     const userTok = s.promptKey === "doc" ? DOC_TOK : Math.max(1, Math.ceil(prompt.length / 4));
+    const key = s.from + ":" + s.promptKey + ":" + (s.promptKey === "own" ? prompt : ""), follow = s.lastKey === key && !!s.me && s.me.admit != null; s.lastKey = key; // a follow-up only if the last one reached the model
     const me = newReq(s, true);
-    Object.assign(me, { prompt, reply, out: pieces(reply), userTok, sys: SYS[s.from], from: s.from, think: s.think ? THINK : 0, rho: s.rho, promptKey: s.promptKey, px: QX0 });
-    me.inTok = me.sys + me.userTok; s.me = me; s.sends++;
+    Object.assign(me, { prompt, reply, out: pieces(reply), userTok, sys: SYS[s.from], from: s.from, think: s.think ? THINK : 0, rho: s.rho, promptKey: s.promptKey, px: QX0, key, follow, extra: follow ? FOLLOW : 0 });
+    me.inTok = me.sys + me.userTok + me.extra; s.me = me; s.sends++;
   }
   const exp = (s, mean) => -Math.log(1 - s.rand() * 0.999) * mean;
 
   function init(rand) {
-    const s = { rand, t: 0, st: 0, nextId: 0, reqs: [], q: [], qFreeAt: 0, nextArr: 0, me: null, last: null, cache: new Set(), sends: 0, picked: null, goal: null, history: [] };
+    const s = { rand, t: 0, st: 0, nextId: 0, reqs: [], q: [], qFreeAt: 0, nextArr: 0, me: null, last: null, cache: new Map(), sends: 0, nRej: 0, rejAt: -99, picked: null, goal: null, history: [] };
     return s;
   }
   function admitFromQueue(s) {
@@ -88,20 +91,21 @@ chapter("send", () => {
     }
   }
   function startGpu(s, r) {
-    const sysKey = "sys:" + r.from, docKey = "doc:" + r.from + ":" + r.promptKey + ":" + (r.promptKey === "own" ? r.prompt : "");
-    r.cachedSys = r.sys && s.cache.has(sysKey) ? r.sys : 0;
-    r.cachedUser = s.cache.has(docKey) && r.userTok > 200 ? r.userTok : 0;
+    const sysKey = "sys:" + r.from, fresh = k => s.cache.has(k) && s.t - s.cache.get(k) < CACHE_TTL;
+    r.cachedSys = r.sys && fresh(sysKey) ? r.sys : 0;
+    r.cachedUser = r.follow && fresh(r.key) ? r.userTok : 0;
     r.cached = r.cachedSys + r.cachedUser; r.uncached = r.inTok - r.cached;
     r.tpot = tpotOf(s.rho);
     r.tokEnd = r.routeEnd + TOK; r.pre = PRE0 + r.uncached * PRE_PER; r.preEnd = r.tokEnd + r.pre;
     r.thinkEnd = r.preEnd + r.think * r.tpot;
-    r.emit = r.out.map((_, j) => r.thinkEnd + (j + 1) * r.tpot);
+    r.emit = r.out.map((_, j) => r.thinkEnd + j * r.tpot); // the reading pass (or the last thinking step) produces the first token
     r.land = r.emit.map(e => e + BACK);
     r.ttft = r.land[0] - r.t0; r.total = r.land[r.land.length - 1] - r.t0;
     r.qWait = r.admit - r.qArr; r.ahead0 = r.ahead0 || 0;
-    if (r.sys) s.cache.add(sysKey); if (r.userTok > 200) s.cache.add(docKey);
+    if (r.sys) s.cache.set(sysKey, s.t); s.cache.set(r.key, s.t);
   }
   function phaseOf(r, t) {
+    if (r.rejected) return t < r.door ? "net" : t < r.gwEnd ? "gw" : t < r.gwEnd + NET ? "rej" : "gone";
     if (t < r.door) return "net"; if (t < r.gwEnd) return "gw"; if (t < r.qArr) return "safe";
     if (r.admit == null || t < r.admit) return "queue"; if (t < r.routeEnd) return "route";
     if (!r.mine) return t < r.doneAt ? "gpu" : t < r.doneAt + BACK ? "back" : "gone";
@@ -115,10 +119,12 @@ chapter("send", () => {
     if (s.sendAt != null && s.t >= s.sendAt) { s.sendAt = null; send(s); }
     // other people's requests: Poisson arrivals at rate λ = ρ·μ
     const lam = s.rho / SVC;
-    if (lam > 0) { if (!isFinite(s.nextArr)) s.nextArr = s.t + exp(s, 1 / lam); while (s.t >= s.nextArr) { const r = newReq(s, false); r.t0 = s.nextArr; r.door = r.t0 + NET * r.jit; r.gwEnd = r.door + GW; r.qArr = r.gwEnd + SAFE; s.nextArr += exp(s, 1 / lam); } }
+    if (lam > 0) { if (!isFinite(s.nextArr)) s.nextArr = s.t + exp(s, 1 / lam); while (s.t >= s.nextArr) { const r = newReq(s, false); r.t0 = s.nextArr; r.door = r.t0 + NET * r.jit; r.gwEnd = r.door + GW; r.qArr = r.gwEnd + SAFE; s.nextArr += exp(s, 1 / lam);
+      // load shedding: near full, the gateway answers some requests at once with "too busy, try again later"
+      if (s.rho >= 0.9 && s.rand() < (s.rho - 0.85) * 4) { r.rejected = true; s.nRej++; s.rejAt = s.st; } } }
     else s.nextArr = Infinity;
     // requests reaching the line join it in arrival order
-    for (const r of s.reqs) if (!r.inQ && r.admit == null && s.t >= r.qArr) { r.inQ = true; if (r.mine) r.ahead0 = s.q.length; s.q.push(r); }
+    for (const r of s.reqs) if (!r.rejected && !r.inQ && r.admit == null && s.t >= r.qArr) { r.inQ = true; if (r.mine) r.ahead0 = s.q.length; s.q.push(r); }
     s.q.sort((a, b) => a.qArr - b.qArr);
     admitFromQueue(s);
     for (const r of s.reqs) if (r.admit != null) r.inQ = false;
@@ -126,7 +132,7 @@ chapter("send", () => {
     const me = s.me;
     if (me && me.land && s.t >= me.land[me.land.length - 1] && !me.finished) {
       me.finished = true;
-      s.last = { ttft: me.ttft, total: me.total, rho: me.rho, think: me.think, pre: me.pre, inTok: me.inTok, cached: me.cached, uncached: me.uncached, qWait: me.qWait, ahead: me.ahead0, tpot: me.tpot, from: me.from, promptKey: me.promptKey, sys: me.sys, nOut: me.out.length, at: s.st };
+      s.last = { ttft: me.ttft, total: me.total, rho: me.rho, think: me.think, pre: me.pre, inTok: me.inTok, cached: me.cached, uncached: me.uncached, follow: me.follow, extra: me.extra, qWait: me.qWait, ahead: me.ahead0, tpot: me.tpot, from: me.from, promptKey: me.promptKey, sys: me.sys, nOut: me.out.length, at: s.st };
       s.history.push(s.last);
       if (me.ttft < 1 && me.promptKey === "doc" && !s.goal) s.goal = s.last;
     }
@@ -136,7 +142,7 @@ chapter("send", () => {
   // ---------- drawing ----------
   function screenText(k, wx, wy, text, maxWpx, o = {}) {
     const [sx, sy] = k.toScreen(wx, wy), c = k.ctx; c.save(); k.screen();
-    font(c, o.size || 12, o.mono ? "--f-mono" : "--f-body", o.weight || ""); c.fillStyle = o.col || k.C.ink; c.textAlign = "left"; c.textBaseline = "top";
+    font(c, o.size || 12, o.mono ? "--f-mono" : "--f-display", o.weight || ""); c.fillStyle = o.col || k.C.ink; c.textAlign = "left"; c.textBaseline = "top";
     let lines = wrapLines(c, text, maxWpx); const lh = (o.size || 12) * 1.35;
     if (o.maxLines && lines.length > o.maxLines) lines = o.tail ? lines.slice(lines.length - o.maxLines) : lines.slice(0, o.maxLines);
     lines.forEach((l, i) => c.fillText(l, sx, sy + i * lh)); c.restore(); k.world(); return lines.length * lh / k.scale;
@@ -152,7 +158,7 @@ chapter("send", () => {
     k.box(L.x - 16, L.y + L.h + 6, L.w + 32, 14, { fill: C.line, r: 5 });
     if (!sc.prompt) return;
     // your message bubble (right aligned)
-    const c = k.ctx; font(c, fs, "--f-body"); const maxB = pxw * 0.85 - 16;
+    const c = k.ctx; font(c, fs, "--f-display"); const maxB = pxw * 0.85 - 16;
     const lines = wrapLines(c, sc.prompt, maxB).slice(0, 2), bwPx = Math.max(...lines.map(l => c.measureText(l).width)) + 16, bhPx = lines.length * fs * 1.35 + 10;
     const bx = L.x + L.w - 18 - bwPx / k.scale;
     k.box(bx, L.y + 16, bwPx / k.scale, bhPx / k.scale, { fill: C.line, r: 10 });
@@ -168,6 +174,7 @@ chapter("send", () => {
     if (ph === "gw") return [lerp(DOOR[0], GATE, easeIO((t - r.door) / GW)), LANE];
     if (ph === "safe") return [lerp(GATE, SCAN + 40, easeIO((t - r.gwEnd) / SAFE)), LANE];
     if (ph === "queue") return [r.px, LANE];
+    if (ph === "rej") { const u = clamp01((t - r.gwEnd) / NET); return [lerp(GATE, DOOR[0] - 40, easeIO(u)), LANE + 24 * Math.sin(u * Math.PI)]; }
     if (ph === "route") { const u = easeIO((t - r.admit) / ROUTE); const tgt = r.rep === 2 ? [GPU.x + 10, LANE] : [REPS[r.rep].x + 30 + (r.id % 6) * 26, REPS[r.rep].y + REPS[r.rep].h]; return [lerp(ROUTER[0], tgt[0], u), lerp(LANE, tgt[1], u)]; }
     if (ph === "gpu") { if (r.rep === 2) return [GPU.x + 40 + (r.id % 14) * 28, GPU.y + 470 + (Math.floor(r.id / 14) % 2) * 26]; const R = REPS[r.rep]; return [R.x + 22 + (r.id % 7) * 24, R.y + 50 + (Math.floor(r.id / 7) % 2) * 16]; }
     if (ph === "back") { const u = easeIO((t - r.doneAt) / BACK); if (r.rep === 2) return backPos(u * 0.98); const R = REPS[r.rep], a = [R.x + 20, R.y + R.h]; if (u < 0.25) { const v = u / 0.25; return [lerp(a[0], 980, v), lerp(a[1], BACKY, v)]; } return backPos(TAIL0 + (u - 0.25) / 0.75 * (0.98 - TAIL0)); }
@@ -213,7 +220,8 @@ chapter("send", () => {
     k.box(SAMP.x, SAMP.y, SAMP.w, SAMP.h, { stroke: hot(s, "samp") ? C.sig : C.line, r: 8 });
     if (me && me.admit != null && s.t >= me.routeEnd) drawGpuWork(k, s, me, mph);
     // other people's requests
-    for (const r of s.reqs) { if (r.mine) continue; const ph = phaseOf(r, s.t); if (ph === "queue") continue; const p = reqPos(s, r); if (p) k.dot(p[0], p[1], ph === "gpu" ? 5 : 6, C.muted, { alpha: ph === "gpu" ? 0.7 : 0.85 }); }
+    for (const r of s.reqs) { if (r.mine) continue; const ph = phaseOf(r, s.t); if (ph === "queue") continue; const p = reqPos(s, r); if (p) k.dot(p[0], p[1], ph === "gpu" ? 5 : 6, ph === "rej" ? C.crit : C.muted, { alpha: ph === "gpu" ? 0.7 : ph === "rej" ? 1 - 0.7 * clamp01((s.t - r.gwEnd) / NET) : 0.85 }); }
+    if (s.rho >= 0.9 && s.st - s.rejAt < 3) lab(GATE - 10, 262, "turned away: too busy", "gw", { col: C.crit, size: 11, bg: true });
     // the line: everyone waiting, in order
     s.q.forEach((r, i) => { const tx = QX1 - 8 - i * 17; r.px = r.px == null ? tx : lerp(r.px, tx, 0.25); if (r.px < QX0 + 4) return; if (r.mine) return; k.dot(r.px, LANE, 6, C.muted, { alpha: 0.9 }); });
     if (s.q.length > 9) lab(QX0 + 14, LANE - 32, `+${s.q.length - 9}`, "queue", { col: C.amb });
@@ -227,7 +235,7 @@ chapter("send", () => {
     // other people's finished replies
     // labels
     const q = s.q.length, meAhead = me && mph === "queue" ? s.q.indexOf(me) : -1;
-    lab(GATE, 300, "Gateway", "gw"); lab(SCAN, 480, "Safety check", "safe");
+    lab(GATE, 300, "Gateway (ID check)", "gw"); lab(SCAN, 480, "Safety (content check)", "safe");
     lab((QX0 + QX1) / 2, 416, meAhead >= 0 ? `Line · ${meAhead} ahead of you` : q ? `Line · ${q} waiting` : "Line · empty", "queue", { col: q > 4 || meAhead > 0 ? C.amb : C.muted });
     lab(ROUTER[0], 412, "Router", "router");
     lab(1225, 170, "Other copies of the model", "reps");
@@ -239,12 +247,13 @@ chapter("send", () => {
     drawClock(k, s);
     // picked part outline
     if (hot(s, s.picked && s.picked.key)) { const P = partOf(s.picked.key); if (P) k.box(P[1].x - 6, P[1].y - 6, P[1].w + 12, P[1].h + 12, { stroke: C.sig, r: 12, dash: [6, 5], lw: 1.5 }); }
-    // phone: a small copy of your screen while the camera is inside the datacenter
-    if (narrow && me && ["tok", "prefill", "think", "decode", "stream"].includes(mph)) {
-      const sc = screenOf(s), c2 = k.ctx; c2.save(); k.screen(); const pw = k.W - 24, ph2 = 46;
+    // phone: a small copy of your screen, with your clock, while the camera is inside the datacenter
+    if (narrow && me && ["gw", "safe", "queue", "route", "tok", "prefill", "think", "decode"].includes(mph)) {
+      const sc = screenOf(s), c2 = k.ctx; c2.save(); k.screen(); const pw = k.W - 24, ph2 = 46, now = s.t - me.t0, got = me.land && s.t >= me.land[0];
       c2.globalAlpha = 0.92; c2.fillStyle = C.bg2; rr(c2, 12, k.H - ph2 - 10, pw, ph2, 10); c2.fill(); c2.globalAlpha = 1; c2.strokeStyle = C.sig; c2.lineWidth = 1; c2.stroke();
       font(c2, 10, "--f-display", "600"); c2.fillStyle = C.muted; c2.textAlign = "left"; c2.textBaseline = "top"; c2.fillText("Your screen", 22, k.H - ph2 - 4);
-      font(c2, 12, "--f-body"); c2.fillStyle = sc.reply ? C.ink : C.muted; let ls = wrapLines(c2, sc.reply || sc.status, pw - 20); c2.fillText(ls[ls.length - 1] || "", 22, k.H - ph2 + 12); c2.restore(); k.world();
+      font(c2, 11, "--f-mono", "600"); c2.textAlign = "right"; c2.fillStyle = got ? C.ok : C.ink; c2.fillText(`clock ${now.toFixed(2)} s · ${got ? "first word at " + ms(me.ttft) : "no word yet"}`, 12 + pw - 10, k.H - ph2 - 4);
+      font(c2, 12, "--f-display"); c2.textAlign = "left"; c2.fillStyle = sc.reply ? C.ink : C.muted; let ls = wrapLines(c2, sc.reply || sc.status, pw - 20); c2.fillText(ls[ls.length - 1] || "", 22, k.H - ph2 + 12); c2.restore(); k.world();
     }
     if (s.warp > 1) k.label(GPU.x + GPU.w / 2, GPU.y + GPU.h + 2, "fast-forwarding 4× while it thinks", { col: C.amb, size: 11, weight: "600", bg: true });
   }
@@ -254,7 +263,7 @@ chapter("send", () => {
     const chips = []; let x = CH.x0, row = 0; const c = k.ctx; font(c, 11, "--f-mono");
     const add = (txt, kind) => { const w = (c.measureText(txt).width + 10) / k.scale; if (x + w > CH.x1) { row++; x = CH.x0; } if (row > 1) return false; chips.push({ txt, kind, x, w, y: CH.rows[row] }); x += w + 4; return true; };
     if (me.sys) add(`hidden instructions · ${me.sys.toLocaleString()}${me.cachedSys ? " · cached" : ""}`, "sys");
-    const ps = me.promptKey === "doc" ? pieces("Summarise this 30-page report") : pieces(me.prompt); let shown = 0;
+    const ps = me.promptKey === "doc" ? pieces("Summarise this 20-page report") : pieces(me.prompt); let shown = 0;
     const restTxt = n => `+${n.toLocaleString()} more${me.cachedUser ? " · cached" : ""}`, reserve = (c.measureText(restTxt(me.userTok)).width + 14) / k.scale;
     for (const p of ps) { const w = (c.measureText(p).width + 14) / k.scale; if (shown < ps.length - 1 || me.userTok > ps.length) { if ((row === 1 || x + w > CH.x1) && (row === 1 ? x : CH.x0) + w + reserve > CH.x1) break; } if (!add(p.replace(/\s/g, "·"), "user")) break; shown++; }
     const rest = me.userTok - shown; if (rest > 0) add(restTxt(rest), "more");
@@ -265,14 +274,16 @@ chapter("send", () => {
     const glow = (j, a) => k.box(LY.x0 + j * LY.dx, LY.y, LY.w, LY.h, { fill: C.amb, r: 5, alpha: a, glow: 18 });
     if (mph === "prefill") { const w = preK * (LY.n + 2) - 1; for (let j = 0; j < LY.n; j++) { const d = Math.abs(w - j); if (d < 1.6) glow(j, (1 - d / 1.6) * 0.95); }
       const xx = Math.min(LY.x0 + LY.n * LY.dx, LY.x0 - 8 + preK * (LY.n * LY.dx + 30)); for (let r = 0; r < 12; r++) k.pill(xx, LY.y + 12 + r * 15, 12, 6, C.sig, { glow: 6, alpha: 0.85 }); }
+    const bars = sp => [0.62, 0.21, 0.1, 0.07].forEach((p, q) => k.box(SAMP.x + 10, SAMP.y + 30 + q * 38, (SAMP.w - 20) * p / 0.62 * sp, 14, { fill: q === 0 && sp > 0.6 ? C.sig : C.muted, r: 3, alpha: 0.9 }));
+    if (mph === "prefill" && preK > 0.7) { bars(clamp01((preK - 0.7) / 0.25)); if (preK > 0.9) k.label(SAMP.x + SAMP.w / 2, SAMP.y - 14, me.think ? "hidden" : JSON.stringify(me.out[0].trim() || " "), { col: me.think ? C.muted : C.sig, mono: true, size: 12, weight: "650", bg: true }); }
     const pass = (u, col, sampler) => { const xx = LY.x0 - 10 + u * (LY.n * LY.dx + 4), j = Math.floor((xx - LY.x0) / LY.dx); if (j >= 0 && j < LY.n) glow(j, 0.85); if (u < 0.92) k.dot(Math.min(xx, SAMP.x - 8), LY.y + LY.h / 2, 7, col, { glow: 10 });
-      if (sampler) { const sp = clamp01((u - 0.5) / 0.35); [0.62, 0.21, 0.1, 0.07].forEach((p, q) => k.box(SAMP.x + 10, SAMP.y + 30 + q * 38, (SAMP.w - 20) * p / 0.62 * sp, 14, { fill: q === 0 && sp > 0.6 ? C.sig : C.muted, r: 3, alpha: 0.9 })); } };
+      if (sampler) bars(clamp01((u - 0.5) / 0.35)); };
     if (mph === "think") pass(((t - me.preEnd) / me.tpot) % 1, C.muted, false);
     if (mph === "decode") { let j = me.emit.findIndex(e => e > t); if (j < 0) j = me.emit.length - 1; const start = j ? me.emit[j - 1] : me.thinkEnd; const u = clamp01((t - start) / me.tpot); pass(u, C.sig, true);
       if (u > 0.75) k.label(SAMP.x + SAMP.w / 2, SAMP.y - 14, JSON.stringify(me.out[j].trim() || " "), { col: C.sig, mono: true, size: 12, weight: "650", bg: true }); }
     if (mph === "think") k.label(SAMP.x + SAMP.w / 2, SAMP.y + SAMP.h / 2, `${Math.round((t - me.preEnd) / me.tpot)} hidden`, { col: C.muted, mono: true, size: 11 });
     // what is happening, in words
-    const say = { tok: "Chopping your text into tokens", prefill: `Reading all ${me.uncached.toLocaleString()} new tokens at once`, think: "Thinking: writing hidden tokens first", decode: "Writing the reply, one token at a time", stream: "Last tokens on their way", done: "Reply finished" }[mph];
+    const say = { tok: "Chopping your text into tokens", prefill: `Reading all ${me.uncached.toLocaleString()} new tokens at once${me.cached && k.W >= 640 ? ` (${me.cached.toLocaleString()} cached)` : ""}`, think: "Thinking: writing hidden tokens first", decode: "Writing the reply, one token at a time", stream: "Last tokens on their way", done: "Reply finished" }[mph];
     if (say) k.label(GPU.x + 18, GPU.y + 512, say, { align: "left", col: mph === "prefill" || mph === "think" ? C.amb : C.sig, size: 13, weight: "650" });
   }
   function drawClock(k, s) {
@@ -289,7 +300,9 @@ chapter("send", () => {
     segs.forEach(([n, a, b, col], i) => { if (a == null || s.t < a) return; const e = b == null ? s.t : Math.min(s.t, b); if (e <= a) return; k.box(X(a - me.t0), by, Math.max(1, X(e - me.t0) - X(a - me.t0)), 16, { fill: col, r: 2, alpha: i === 1 ? 0.55 : i === 3 ? 0.5 : 0.9 }); });
     k.line(X(1), by - 8, X(1), by + 26, { col: C.ok, dash: [3, 3] }); k.label(X(1), by + 34, "1 s", { col: C.ok, size: 10 });
     if (first != null) { k.line(X(first), by - 6, X(first), by + 22, { col: C.ink, lw: 2 }); }
-    let lx = bx; const ky = B.y + B.h - 22, c = k.ctx; font(c, 11, "--f-display", "500"); segs.forEach(([n, , , col], i) => { k.box(lx, ky - 5, 10, 10, { fill: col, r: 2, alpha: i === 1 ? 0.55 : i === 3 ? 0.5 : 0.9 }); k.label(lx + 14, ky, n, { align: "left", size: 11 }); lx += 14 + (c.measureText(n).width + 14) / k.scale; });
+    const c = k.ctx; font(c, 11, "--f-display", "500"); const wOf = n => 14 + (c.measureText(n).width + 14) / k.scale;
+    const two = segs.reduce((a, [n]) => a + wOf(n), 0) > bw; let lx = bx, ky = B.y + B.h - (two ? 40 : 22);
+    segs.forEach(([n, , , col], i) => { if (two && i === 3) { lx = bx; ky = B.y + B.h - 16; } k.box(lx, ky - 5, 10, 10, { fill: col, r: 2, alpha: i === 1 ? 0.55 : i === 3 ? 0.5 : 0.9 }); k.label(lx + 14, ky, n, { align: "left", size: 11 }); lx += wOf(n); });
   }
 
   // ---------- the simulation ----------
@@ -303,11 +316,11 @@ chapter("send", () => {
     init, warmup: 12,
     intro: "Your question is about to leave your screen. Follow the bright teal dot. Grey dots are other people. Click any part of the machine to learn what it does.",
     controls: [
-      { id: "prompt", label: "What you send", type: "choice", value: "sky", options: [["sky", "A question"], ["haiku", "A haiku"], ["doc", "A 30-page report"]], help: "Or type your own message and press Enter.", apply: (s, v, sim) => { s.promptKey = v; if (s.ready) send(s); } },
+      { id: "prompt", label: "What you send", type: "choice", value: "sky", options: [["sky", "A question"], ["haiku", "A haiku"], ["doc", "A 20-page report"]], help: "Or type your own message and press Enter.", apply: (s, v, sim) => { s.promptKey = v; if (s.ready) send(s); } },
       { id: "from", label: "Sent from", type: "choice", value: "app", options: [["app", "Chat app"], ["agent", "Coding agent"], ["api", "Your code"]], help: "Apps quietly add their own instructions to every message.", apply: (s, v) => { s.from = v; if (s.ready) send(s); } },
-      { id: "busy", label: "How busy is the service?", type: "range", min: 0, max: 0.95, step: 0.05, value: 0.5, fmt: v => Math.round(v * 100) + "%", apply: (s, v) => { s.rho = v; s.nextArr = NaN; } },
+      { id: "busy", label: "How busy is the service?", type: "range", min: 0, max: 0.95, step: 0.05, value: 0.5, fmt: v => Math.round(v * 100) + "%", apply: (s, v) => { s.rho = v; s.nextArr = NaN; if (v < 0.9) s.nRej = 0; } },
       { id: "think", label: "Thinking model", type: "toggle", value: false, help: "Writes hidden reasoning before it answers.", apply: (s, v) => { s.think = v; if (s.ready) send(s); } },
-      { id: "send", label: "Press send", type: "button", help: "Send the same message again, like a follow-up about the same text.", apply: s => send(s) }
+      { id: "send", label: "Press send", type: "button", help: "Send a follow-up about the same text: about 200 new tokens (the last reply and your new question).", apply: s => send(s) }
     ],
     step: (s, dt) => { s.ready = true; if (!s.sendAt && !s.me && s.sends === 0) s.sendAt = 12 * SLOW - 0.05; step(s, dt); },
     draw,
@@ -319,15 +332,16 @@ chapter("send", () => {
         ["tokens the model reads", me ? me.inTok.toLocaleString() + (me.cached ? ` · ${me.cached.toLocaleString()} cached` : "") : "–", ""],
         ["waiting in line", String(s.q.length), s.q.length > 5 ? "hot" : ""],
         ["whole reply", me && me.finished ? ms(me.total) : "–", ""]]; },
-    goal: { text: "send the 30-page report and get the first word of its summary on screen in under 1 second", check: s => { const d = s.history.filter(h => h.promptKey === "doc"); return { done: !!s.goal, progress: d.length ? `best so far: ${ms(Math.min(...d.map(h => h.ttft)))}` : "" }; } },
+    goal: { text: "send the 20-page report and get the first word of its summary on screen in under 1 second", check: s => { const d = s.history.filter(h => h.promptKey === "doc"); return { done: !!s.goal, progress: d.length ? `best so far: ${ms(Math.min(...d.map(h => h.ttft)))}${s.goal ? "" : " · try sending again: the server may remember the start"}` : "" }; } },
     notices: [
       { id: "pick", when: s => s.picked && s.st - s.picked.at < 8, say: s => { const P = partOf(s.picked.key); return `<b>${P[2]}.</b> ${P[3]}`; } },
-      { id: "think", when: s => s.me && phaseOf(s.me, s.t) === "think", say: s => { const me = s.me, n = Math.round((s.t - me.preEnd) / me.tpot); return `The model is writing <b>${n}</b> of ${me.think} hidden thinking tokens before the answer. Each takes as long as a visible one (${Math.round(me.tpot * 1000)} ms), so you wait ${ms(me.think * me.tpot)} and see nothing. Shown 4× faster.`; } },
-      { id: "missBig", when: s => s.me && phaseOf(s.me, s.t) === "prefill" && s.me.uncached > 5000, say: s => { const me = s.me; return `The model is reading <b>${me.uncached.toLocaleString()}</b> tokens it hasn't seen before${me.sys && !me.cachedSys ? `, including ${me.sys.toLocaleString()} hidden instructions from ${SYS_NAME[me.from]}` : ""}. That takes ${ms(me.pre)}. Press send again: this time the start will already be stored (cached).`; } },
+      { id: "think", when: s => s.me && phaseOf(s.me, s.t) === "think", say: s => { const me = s.me, n = Math.round((s.t - me.preEnd) / me.tpot); return `The model is writing <b>${n}</b> of ${me.think} hidden thinking tokens before the answer (300 is illustrative; real models write hundreds to thousands). Each takes as long as a visible one (${Math.round(me.tpot * 1000)} ms), so you wait ${ms(me.think * me.tpot)} and see nothing. Shown 4× faster.`; } },
+      { id: "missBig", when: s => s.me && phaseOf(s.me, s.t) === "prefill" && s.me.uncached > 5000, say: s => { const me = s.me; return `The model is reading <b>${me.uncached.toLocaleString()}</b> tokens it hasn't seen before${me.sys && !me.cachedSys ? `, including ${me.sys.toLocaleString()} hidden instructions from ${SYS_NAME[me.from]}` : ""}. That takes ${ms(me.pre)}. Next, press send again with a follow-up: the start may still be stored (cached).`; } },
       { id: "line", when: s => s.me && phaseOf(s.me, s.t) === "queue" && s.q.indexOf(s.me) > 0, say: s => `You're in line behind <b>${s.q.indexOf(s.me)}</b> other ${s.q.indexOf(s.me) === 1 ? "request" : "requests"}. At ${Math.round(s.rho * 100)}% busy, a place frees up only when someone else's turn ends, and the line grows much faster than the busyness.` },
-      { id: "hit", when: s => s.last && s.st - s.last.at < 7 && s.last.cached > 1000, say: s => { const l = s.last; return `This time ${l.cached.toLocaleString()} tokens were already cached on this copy of the model, so reading took only ${ms(l.pre)} instead of about ${ms(PRE0 + l.inTok * PRE_PER)}. First word: <b>${ms(l.ttft)}</b>.`; } },
-      { id: "done", when: s => s.last && s.st - s.last.at < 7, say: s => { const l = s.last; const parts = [["the line", l.qWait], ["reading your prompt", l.pre], ["thinking", l.think * l.tpot], ["the trip there and back", NET + BACK + GW + SAFE]].sort((a, b) => b[1] - a[1]); return `First word after <b>${ms(l.ttft)}</b>, whole reply after ${ms(l.total)}. Most of the wait before the first word was ${parts[0][0]} (${ms(parts[0][1])}). ${l.promptKey !== "doc" ? "Now try the 30-page report." : l.ttft >= 1 && l.uncached > 5000 ? "Ask about the same report again with <b>Press send</b>." : ""}`; } },
-      { id: "decode", when: s => s.me && phaseOf(s.me, s.t) === "decode", say: s => { const me = s.me; return `Reading your ${me.inTok.toLocaleString()} tokens took ${ms(me.pre)}, all in one pass. Writing is different: one token every ${Math.round(me.tpot * 1000)} ms, each sent to you the moment it exists.`; } },
+      { id: "hit", when: s => s.last && s.st - s.last.at < 7 && s.last.follow && s.last.cached > 1000, say: s => { const l = s.last; return `Last reply: ${l.cached.toLocaleString()} of your ${l.inTok.toLocaleString()} tokens were already cached${l.follow ? ", because the router sent you back to the copy that read this conversation a moment ago" : ""}. Only ${l.uncached.toLocaleString()} new tokens${l.follow ? " (the previous reply and your new question)" : ""} were read, in ${ms(l.pre)} instead of about ${ms(PRE0 + l.inTok * PRE_PER)}. First word: <b>${ms(l.ttft)}</b>. Cached notes are dropped after a few minutes without use.`; } },
+      { id: "done", when: s => s.last && s.st - s.last.at < 7, say: s => { const l = s.last; const parts = [["the line", l.qWait], ["reading your prompt", l.pre], ["thinking", l.think * l.tpot], ["the trip there and back", NET + BACK + GW + SAFE]].sort((a, b) => b[1] - a[1]); return `First word after <b>${ms(l.ttft)}</b>, whole reply after ${ms(l.total)}. Most of the wait before the first word was ${parts[0][0]} (${ms(parts[0][1])}). ${l.promptKey !== "doc" ? "Now try the 20-page report." : l.ttft >= 1 && l.uncached > 5000 ? "Ask a follow-up about the same report with <b>Press send</b>." : ""}`; } },
+      { id: "shed", when: s => s.rho >= 0.9 && s.nRej > 0 && s.st - s.rejAt < 4, say: s => `At ${Math.round(s.rho * 100)}% busy the gateway is turning some requests away (red) with a "too busy, try again later" error, so the line can't grow without limit: <b>${s.nRej}</b> so far. In this simulation yours always gets through.` },
+      { id: "decode", when: s => s.me && phaseOf(s.me, s.t) === "decode", say: s => { const me = s.me, w = `Writing is different: one token every ${Math.round(me.tpot * 1000)} ms, each sent to you the moment it exists.`; return me.cached ? `${me.cached.toLocaleString()} of your ${me.inTok.toLocaleString()} tokens were already cached; only ${me.uncached.toLocaleString()} new tokens were read (${ms(me.pre)}). ${w}` : `Reading your ${me.inTok.toLocaleString()} tokens took ${ms(me.pre)}, all in one pass, and that pass also picked the first token. ${w}`; } },
       { id: "busy", when: s => s.rho >= 0.85 && s.q.length > 3, say: s => `At ${Math.round(s.rho * 100)}% busy, ${s.q.length} requests are waiting. The average wait in line is now ${ms(SVC * s.rho / (1 - s.rho))}; at 50% busy it was ${ms(SVC)}.` },
       { id: "calm", when: () => true, say: s => s.me ? "Watch your request (bright teal) move through the machine. Click any part to learn what it does." : "Press send." }
     ],
@@ -337,11 +351,11 @@ chapter("send", () => {
     ],
     tour: [
       { say: "Your question leaves your screen as a small package of data (bright teal). It crosses the internet to a datacenter, passes a gateway and a safety check, waits in line, and a router sends it to a copy of the model.", set: { prompt: "sky", from: "app", busy: 0.3, think: false }, until: s => s.me && phaseOf(s.me, s.t) === "prefill", max: 12 },
-      { say: "Inside the GPU, the model reads every token of your prompt at once (the amber wave). Then it writes the reply one token at a time, and each token flies straight back to your screen.", until: s => s.me && s.me.finished, max: 20 },
-      { say: "Now the service gets busy: 90% of its capacity in use. Watch the line.", set: { busy: 0.9 }, act: s => send(s), until: s => s.me && s.me.finished, max: 25 },
-      { say: "Paste a 30-page report from the coding agent. The model must read 27,000 tokens before it can write a word.", set: { busy: 0.5, from: "agent", prompt: "doc" }, until: s => s.me && s.me.finished, max: 25 },
-      { say: "Send it again. The start is now cached on this copy, so reading is almost free.", act: s => send(s), until: s => s.me && s.me.finished, max: 20 },
-      { say: "Finally, a thinking model. It writes hundreds of hidden tokens before the first word you see.", set: { prompt: "sky", from: "app", think: true }, until: s => s.me && s.me.land && s.t >= s.me.land[0], max: 25 }
+      { say: "Inside the GPU, the model reads every token of your prompt at once (the amber wave); that pass also picks the first token. Then it writes the reply one token at a time, and each token flies straight back to your screen.", until: s => s.me && s.me.finished, max: 20 },
+      { say: "Now the service gets busy: 90% of its capacity in use. Watch the line, and the gateway turning some requests away (red).", set: { busy: 0.9 }, act: s => send(s), until: s => s.me && s.me.finished, max: 25 },
+      { say: "Paste a 20-page report from the coding agent. The model must read 27,000 tokens (12,000 of report, 15,000 of the agent's hidden instructions) before it can write a word.", set: { busy: 0.5, from: "agent", prompt: "doc" }, until: s => s.me && s.me.finished, max: 25 },
+      { say: "Ask a follow-up. The router sends you back to the same copy, which still has the start cached, so it only reads about 200 new tokens.", act: s => send(s), until: s => s.me && s.me.finished, max: 20 },
+      { say: "Finally, a thinking model. It writes hidden tokens before the first word you see: 300 here (illustrative); real models write hundreds to thousands.", set: { prompt: "sky", from: "app", think: true }, until: s => s.me && s.me.land && s.t >= s.me.land[0], max: 25 }
     ],
     publish: s => { const l = s.last || {}; const tp = tpotOf(s.rho || 0.5); return { ttft: ms(l.ttft), total: ms(l.total), pre: ms(l.pre), inTok: l.inTok != null ? l.inTok.toLocaleString() : "–", cached: (l.cached || 0).toLocaleString(), qwait: ms(l.qWait), busy: Math.round((l.rho != null ? l.rho : s.rho) * 100) + "%", tpot: Math.round((l.tpot || tp) * 1000) + " ms", wps: String(Math.round(0.75 / (l.tpot || tp))), tps: String(Math.round(1 / (l.tpot || tp))), nout: String(l.nOut || "–"), wq: ms(SVC * (l.rho || 0) / (1 - (l.rho || 0))), thinkT: ms((l.think || 0) * (l.tpot || tp)) }; }
   });

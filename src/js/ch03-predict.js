@@ -1,7 +1,7 @@
 /* Chapter 3 · Next word. A real (tiny) language model writes live, one word at a time.
    TinyLM: a trigram model trained in the browser on 49 sentences written for this course (155 words).
    It counts which word follows each pair of words, backing off to one-word and zero-word contexts
-   (interpolated: 0.75 / 0.2 / 0.05). The learner shapes the odds (temperature, top-k, top-p), forces
+   (interpolated on every step: 0.75 / 0.2 / 0.05). Sampling runs over the full 155-word vocabulary. The learner shapes the odds (temperature, top-k, top-p), forces
    words by clicking them, and can make it "study" sentences to see its surprise (loss, −ln p). */
 const TinyLM = (() => {
   const text = `the model reads the prompt and predicts the next word .
@@ -71,7 +71,7 @@ the cache remembers the earlier tokens .`;
 })();
 
 chapter("predict", () => {
-  const STEP = 0.7, WIN = 40, TOPN = 20, HOT = 1.5;
+  const STEP = 0.7, WIN = 40, KMAX = 21, HOT = 1.5, NV = TinyLM.vocab.length;
   const NEW = ["the cat sleeps on the warm rack .", "the user waits for a quick answer .", "the gpu needs a lot of cooling .", "a long answer takes longer to read .",
     "the server is busy at night .", "the cluster needs power and cooling .", "the cat reads the answer on the screen ."].map(s => s.split(" "));
   const YOU = "#8fb3ff";
@@ -79,12 +79,12 @@ chapter("predict", () => {
   const f2 = x => x.toFixed(2);
 
   function init(rand) {
-    const s = { t: 0, toks: [], ctxStart: 0, ph: 0, u: rand(), rand, mode: "write", T: 0, k: TOPN, p: 1, sent: null, si: 0,
+    const s = { t: 0, toks: [], ctxStart: 0, ph: 0, u: rand(), rand, mode: "write", T: 0, k: Infinity, p: 1, sent: null, si: 0,
       surp: [], loss: { studied: [0, 0], new: [0, 0] }, forced: null, studyClick: -9, last: null, win: { rep: 0, un: 0, streak: 0, pair: "" }, metAt: -9, met: false, L: null };
     refresh(s); return s;
   }
   const ctxOf = s => { const a = s.toks.slice(s.ctxStart).map(t => t.w); const d = a.lastIndexOf("."); return d >= 0 ? a.slice(d + 1) : a; };
-  function refresh(s) { s.full = TinyLM.dist(ctxOf(s)); s.raw = s.full.slice(0, TOPN); }
+  function refresh(s) { s.full = TinyLM.dist(ctxOf(s)); s.raw = s.full; } // the whole vocabulary: nothing is cut unless you cut it
   /* temperature, then top-k, then top-p, then renormalise (the order most samplers use) */
   function shaped(s, plain) {
     const raw = s.raw; let probs;
@@ -125,8 +125,8 @@ chapter("predict", () => {
     const met = streak >= WIN && s.win.rep <= 0.15; if (met && !s.met) s.metAt = s.t; s.met = s.met || met;
   }
   function setMode(s, m) {
-    if (s.mode === m) return; s.mode = m; s.ctxStart = s.toks.length; s.nl = true; s.sent = null; s.surp = [];
-    if (s.toks.length) s.toks[s.toks.length - 1].brk = true; s.ph = 0; refresh(s);
+    if (s.mode === m) return; s.mode = m; s.toks = []; s.ctxStart = 0; s.sent = null; s.surp = []; s.last = null; s.forced = null; // a fresh page for each mode
+    s.ph = 0; refresh(s); score(s);
   }
   function step(s, dt) { s.t += dt; if (s.degenAt == null && s.win.rep > 0.5 && s.t > 6) s.degenAt = s.t; s.ph += dt / STEP; if (s.ph >= 1) commit(s); }
 
@@ -179,27 +179,32 @@ chapter("predict", () => {
       k.text(B.x + B.lw, cyy, x.w, { size: B.fs, align: "right", col: cut ? C.muted : C.ink, mono: true, alpha: cut ? 0.6 : 1 });
       k.box(bx, cyy - B.rh * 0.3, bw * x.raw / maxp, B.rh * 0.12, { fill: C.muted, alpha: 0.55, r: 2 });
       if (!cut) k.box(bx, cyy - B.rh * 0.12, Math.max(2, bw * x.p / maxp), B.rh * 0.36, { fill: C.sig, r: 4, glow: hl && !studying ? 10 : 0, alpha: hl || studying ? 1 : 0.85 });
-      k.text(bx + bw * Math.max(x.p, x.raw) / maxp + 10, cyy, cut ? "cut" : pct(x.p), { size: B.fs * 0.82, align: "left", col: cut ? C.muted : C.ink, mono: true });
+      k.text(bx + bw * Math.max(x.p, x.raw) / maxp + 10, cyy, cut ? (s.T === 0 && !studying ? "0% at T=0" : "cut") : pct(x.p), { size: B.fs * 0.82, align: "left", col: cut ? C.muted : C.ink, mono: true });
       if (studying && hl) k.box(B.x + 2, y + 3, B.w - 4, B.rh - 6, { stroke: C.amb, r: 8, lw: 2 });
     });
-    if (studying && nextTrue && pick < 0 || (studying && pick >= B.rows)) {
+    const further = studying && nextTrue && (pick < 0 || pick >= B.rows);
+    if (further) {
       const rk = s.full.findIndex(e => e[0] === nextTrue), q = rk >= 0 ? s.full[rk][1] : 0;
       k.label(B.x + 4, B.y + 30 + B.rows * B.rh + 10, `true word "${nextTrue}" is further down: number ${rk + 1} of ${TinyLM.vocab.length}, ${pct(q)}`, { align: "left", size: 12, col: C.amb });
     }
 
     // ---- dice strip ----
     const S = L.strip; let acc = 0;
-    k.label(S.x + 2, S.y - 26, studying ? "No dice while reading: the true word is fixed" : (s.T === 0 ? "The dice roll (temperature 0: the top word always wins)" : "The dice roll: each word's slice is its chance"), { align: "left", size: 12, col: C.ink, weight: "600" });
+    if (!(further && L.n)) k.label(S.x + 2, S.y - 26, studying ? "No dice while reading: the true word is fixed" : (s.T === 0 ? "The dice roll (temperature 0: the top word always wins)" : "The dice roll: each word's slice is its chance"), { align: "left", size: 12, col: C.ink, weight: "600" });
     k.box(S.x, S.y, S.w, S.h, { fill: C.bg2, stroke: C.line, r: 8 });
     const pal = [C.sig, "#7fdcff", "#8fb3ff", "#9be37a", "#d59cff", "#ffd27a", "#ff8fa3", "#5ce1c6"];
+    let tail = null; // slivers too thin to draw are grouped into one "rare words" block at the end
     d.forEach((x, i) => { if (x.p <= 0) return; const w = S.w * x.p, X = S.x + S.w * acc; acc += x.p;
+      if (w < 3) { if (!tail) tail = { X, n: 0, pick: false }; tail.n++; tail.w = S.x + S.w * acc - tail.X; if (i === pick) tail.pick = true; return; }
       k.box(X + 1, S.y + 2, Math.max(1, w - 2), S.h - 4, { fill: pal[i % pal.length], alpha: i === pick ? 0.95 : 0.45, r: 5, glow: i === pick && !studying && s.ph > 0.4 ? 12 : 0 });
       if (w > (L.n ? 70 : 52)) k.text(X + w / 2, S.y + S.h / 2, x.w, { size: L.n ? 20 : 14, col: C.bg, weight: "650", mono: true }); });
+    if (tail && tail.w > 0.5) { k.box(tail.X, S.y + 2, Math.max(1, tail.w - 1), S.h - 4, { fill: C.muted, alpha: tail.pick ? 0.9 : 0.35, r: 3, glow: tail.pick && !studying && s.ph > 0.4 ? 12 : 0 });
+      if (tail.w > (L.n ? 150 : 110)) k.text(tail.X + tail.w / 2, S.y + S.h / 2, `${tail.n} rare words`, { size: L.n ? 18 : 12, col: C.bg, weight: "650", mono: true }); }
     if (!studying) {
       const drop = easeOut(Math.min(1, s.ph / 0.4)), ux = S.x + S.w * s.u, uy = S.y - 34 + 34 * drop;
       k.line(ux, S.y - 6, ux, S.y + S.h + 6, { col: C.ink, lw: 2, alpha: drop });
       k.dot(ux, uy - 6, L.n ? 9 : 7, C.amb, { glow: 12 });
-      k.label(ux, S.y + S.h + 16, "dice: " + s.u.toFixed(2), { size: 11, col: C.amb, mono: true });
+      k.label(Math.max(S.x + 34 / k.scale, Math.min(S.x + S.w - 34 / k.scale, ux)), S.y + S.h + 16, "dice: " + s.u.toFixed(2), { size: 11, col: C.amb, mono: true });
     }
 
     // ---- lower-right panel ----
@@ -221,8 +226,10 @@ chapter("predict", () => {
         if (thr < 1 && thr > 0.001) k.line(P.x + pad + bw2 * thr, y + fs * 0.9 - 4, P.x + pad + bw2 * thr, y + fs * 0.9 + 12, { col: C.ink, lw: 1.5 });
       });
     } else {
-      const pad = 20, list = s.surp.slice(L.n ? -8 : -12), n = Math.max(list.length, L.n ? 8 : 12), bw2 = (P.w - pad * 2) / n, base = P.y + P.h - 40, top = P.y + 50, sc = (base - top) / 5;
+      const pad = 20, list = s.surp.slice(L.n ? -8 : -12), n = Math.max(list.length, L.n ? 8 : 12), bw2 = (P.w - pad * 2) / n, base = P.y + P.h - 40, top = P.y + 20 + 50 / k.scale, sc = (base - top) / 5;
       k.label(P.x + pad, P.y + 20, "Surprise at each true word (−ln p)", { align: "left", size: 12, col: C.ink, weight: "600" });
+      k.label(P.x + pad, P.y + 20 + 17 / k.scale, "0 = no surprise · 4.6 = a 1-in-100 guess", { align: "left", size: 10.5, col: C.muted });
+      k.label(P.x + pad, P.y + 20 + 31 / k.scale, `${Math.log(NV).toFixed(1)} = a blind guess among all ${NV} words`, { align: "left", size: 10.5, col: C.muted });
       list.forEach((e, i) => { const h = Math.min(5, e.sur) * sc, x = P.x + pad + i * bw2; k.box(x + 3, base - h, bw2 - 6, Math.max(2, h), { fill: e.sur > 1.5 ? C.amb : C.sig, r: 3, alpha: i === list.length - 1 ? 1 : 0.75 });
         k.label(x + bw2 / 2, base + 12 + (i % 2) * 13, e.w.length > 8 ? e.w.slice(0, 7) + "…" : e.w, { size: 10, col: i === list.length - 1 ? C.ink : C.muted, mono: true }); });
       const avg = s.loss[s.mode][1] ? s.loss[s.mode][0] / s.loss[s.mode][1] : 0;
@@ -244,7 +251,7 @@ chapter("predict", () => {
     controls: [
       { id: "mode", label: "What the model does", type: "choice", value: "write", options: [["write", "Write"], ["studied", "Read old"], ["new", "Read new"]], help: "Or make it read sentences it learned from (old) or never saw (new), and measure its surprise.", apply: (s, v) => setMode(s, v) },
       { id: "temp", label: "Temperature", type: "range", min: 0, max: 2, step: 0.05, value: 0, fmt: v => v === 0 ? "0 · always the top word" : v.toFixed(2), help: "Low: safe and repetitive. High: surprising, then nonsense.", apply: (s, v) => { s.T = v; } },
-      { id: "topk", label: "Top-k", type: "range", min: 1, max: 20, step: 1, value: 20, fmt: v => v === 20 ? "20 · off" : "keep " + v, help: "Keep only the k most likely words.", apply: (s, v) => { s.k = v; } },
+      { id: "topk", label: "Top-k", type: "range", min: 1, max: KMAX, step: 1, value: KMAX, fmt: v => v === KMAX ? `off · all ${NV} words` : "keep " + v, help: "Keep only the k most likely words.", apply: (s, v) => { s.k = v === KMAX ? Infinity : v; } },
       { id: "topp", label: "Top-p", type: "range", min: 0.05, max: 1, step: 0.05, value: 1, fmt: v => v >= 1 ? "1 · off" : v.toFixed(2), help: "Keep the fewest top words whose chances add up to p.", apply: (s, v) => { s.p = v; } }
     ],
     click: (s, wx, wy) => {
@@ -260,7 +267,7 @@ chapter("predict", () => {
         ["repeating (last 40 words)", pct(s.win.rep), s.win.rep > 0.15 ? "hot" : "ok"],
         ["word pairs it never saw", String(s.win.un), s.win.un ? "bad" : "ok"],
         ["average surprise: studied · new", (a == null ? "–" : f2(a)) + " · " + (b == null ? "–" : f2(b)), st ? "hot" : ""]]; },
-    goal: { text: `at temperature ${HOT} or more, write 40 words in a row with no word pair it never saw, and few repeats`,
+    goal: { text: `at temperature ${HOT} or more, write 40 words in a row without any made-up word pairs (red underlines) and few repeats`,
       check: s => ({ done: s.met, progress: s.T < HOT ? `temperature ${s.T.toFixed(2)}` : `${Math.min(s.win.streak, WIN)} / ${WIN} clean · ${pct(s.win.rep)} repeats` }) },
     notices: [
       { id: "studyClick", when: s => s.t - s.studyClick < 3, say: () => "It's reading a fixed sentence now, so you can't steer it. Switch to <b>Write</b> to pick words yourself." },
@@ -270,18 +277,19 @@ chapter("predict", () => {
       { id: "met", when: s => s.met && s.t - s.metAt < 8, say: s => `Goal reached: hot enough to vary (temperature ${s.T.toFixed(2)}), with the long tail cut so nothing it never saw slips in. Real chatbots tune exactly these two kinds of knob.` },
       { id: "loop", when: s => (s.T === 0 || s.k === 1) && s.win.rep > 0.3, say: s => `With ${s.T === 0 ? "temperature 0" : "top-k 1"} it always takes the top word. The same words always lead to the same next word, so it's stuck in a loop: <b>${pct(s.win.rep)}</b> of the last 40 words repeat. Raise the temperature so a dice roll decides.` },
       { id: "nonsense", when: s => s.win.un >= 2, say: s => `At temperature ${s.T.toFixed(2)} unlikely words get real chances. "<b>${esc(s.win.pair)}</b>" is a word pair it never saw in training (red underline). Cut the tail with <b>top-p</b> or <b>top-k</b>, or cool it down.` },
-      { id: "cut", when: s => (s.k < 20 || s.p < 1) && s.T > 0, say: s => `${s.p < 1 ? `Top-p ${s.p.toFixed(2)}` : `Top-k ${s.k}`} keeps only <b>${kept(s)}</b> word${kept(s) === 1 ? "" : "s"} for this step. The rest are cut before the dice roll, so they can never be picked. The kept odds are scaled back up to add to 100%.` },
-      { id: "dice", when: s => s.mode === "write" && s.T > 0 && s.last, say: s => `The dice landed at ${s.last.u.toFixed(2)} and picked "<b>${esc(s.last.w)}</b>", which held ${pct(s.last.p)} of the strip. A word's chance of being picked is exactly the width of its slice.` }
+      { id: "cut", when: s => (isFinite(s.k) || s.p < 1) && s.T > 0, say: s => `${s.p < 1 ? `Top-p ${s.p.toFixed(2)}` : `Top-k ${s.k}`} keeps only <b>${kept(s)}</b> word${kept(s) === 1 ? "" : "s"} for this step. The other ${NV - kept(s)} are cut before the dice roll, so they can never be picked. The kept odds are scaled back up to add to 100%.` },
+      { id: "dice", when: s => s.mode === "write" && s.T > 0 && s.last && s.last.u != null, say: s => `Last roll: the dice landed at ${s.last.u.toFixed(2)} and picked "<b>${esc(s.last.w)}</b>", which held ${pct(s.last.p)} of the strip. A word's chance of being picked is exactly the width of its slice.` },
+      { id: "calm", when: () => true, say: s => s.mode !== "write" ? "It is reading a fixed sentence, one true word at a time. Watch the surprise bars." : s.T === 0 ? "Temperature 0: the top word always wins, so the dice roll changes nothing. Raise the temperature to let chance decide." : "The model is writing: predict, roll, append, again. Change the temperature or cut the tail and watch the bars." }
     ],
     facts: [
       { id: "degen", when: s => s.win.rep > 0.5, text: "Researchers who studied this found the same thing in big models: always choosing the most likely words gives bland text that falls into repetitive loops. Their fix was top-p, also called nucleus sampling.", ref: "#ref-39" },
-      { id: "topkbug", when: s => (s.k < 20 || s.p < 1) && (s.degenAt == null || s.t - s.degenAt > 16), text: "This small step can go wrong in production. In 2025 Anthropic, the company that makes Claude, traced one of three quality bugs to a top-k operation that was miscompiled on some of its chips and sometimes dropped the most likely token.", ref: "#ref-30" }
+      { id: "topkbug", when: s => (isFinite(s.k) || s.p < 1) && (s.degenAt == null || s.t - s.degenAt > 16), text: "This small step can go wrong in production. In 2025 Anthropic, the company that makes Claude, traced one of three quality bugs to a top-k operation that was miscompiled (turned into faulty machine instructions) on some of its chips and sometimes dropped the most likely token.", ref: "#ref-30" }
     ],
     tour: [
-      { say: "Temperature 0: it always takes the most likely word. Watch it fall into a loop.", set: { mode: "write", temp: 0, topk: 20, topp: 1 }, wait: 7 },
+      { say: "Temperature 0: it always takes the most likely word. Watch it fall into a loop.", set: { mode: "write", temp: 0, topk: KMAX, topp: 1 }, wait: 7 },
       { say: "Temperature 1: now a dice roll picks, in proportion to the bars. The writing varies, and mostly still makes sense.", set: { temp: 1 }, wait: 8 },
-      { say: "Temperature 2 flattens the bars. Unlikely words get real chances, and red underlines appear: word pairs it never saw.", set: { temp: 2 }, wait: 9 },
-      { say: "Keep temperature 2, but set top-p to 0.6: only the top words that make up 60% survive. Varied, without the nonsense.", set: { topp: 0.6 }, wait: 9 },
+      { say: "Temperature 2 flattens the bars. The long tail of unlikely words gets real chances, and red underlines appear: word pairs it never saw.", set: { temp: 2 }, wait: 9 },
+      { say: "Keep temperature 2, but set top-k to 3: only the three most likely words survive each roll. Still varied, with much less nonsense.", set: { topk: 3 }, wait: 9 },
       { say: "Now it reads sentences it studied. The ring marks the true next word. Its surprise is −ln p, and the average is the loss.", set: { mode: "studied" }, wait: 9 },
       { say: "Sentences it never saw: surprise jumps. Lowering surprise on new text is what training is really after.", set: { mode: "new" }, wait: 9 }
     ],
@@ -294,7 +302,7 @@ chapter("predict", () => {
         pdCtx: ctx.length ? "“…" + ctx.slice(-2).join(" ") + "”" : "the start of a sentence", pdW1: r[0][0], pdW2: r[1][0], pdP1: pct(r[0][1]), pdP2: pct(r[1][1]),
         pdR1: (r[0][1] / r[1][1]).toFixed(1), pdRT: ratioT, pdS1: pct(d[0].p), pdS2: pct(d[1].p),
         pdLossA: a == null ? "not measured yet (try Read old)" : f2(a), pdLossB: b == null ? "not measured yet (try Read new)" : f2(b),
-        pdLastW: s.last ? s.last.w : "–", pdLastP: s.last ? s.last.p.toFixed(3) : "–", pdLastS: s.last ? (-Math.log(Math.max(1e-6, s.last.p))).toFixed(2) : "–" };
+        pdLastLine: !s.last ? "–" : s.mode === "write" ? `Last word written: "${s.last.w}", with a chance after your shaping of ${s.last.p.toFixed(3)}. (Surprise is measured when the model reads text it didn't choose: try Read new.)` : `Last true word: "${s.last.w}", which the model gave p = ${s.last.p.toFixed(3)}, so surprise −ln p = ${(-Math.log(Math.max(1e-6, s.last.p))).toFixed(2)}` };
     }
   });
 });

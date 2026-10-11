@@ -112,8 +112,10 @@ chapter("multimodal", () => {
     return { narrow, P: { x: 10, y: 40, w: 260 }, V: { x: 290, y: 40, w: 260 }, Z: { x: 10, y: 334, w: 540, h: 76 }, A: { x: 10, y: 790, w: 540, h: 50 }, G: { x: 10, y: 528, w: 540, h: 220 }, T: { x: 10, y: 478 } };
   }
   // token grid geometry (image + audio tokens; the text tokens get their own row of chips)
+  const CAP = 400;   // most cells drawn; beyond this the squares get too small to see, so only the first ones are shown
+  const shownImg = s => Math.min(imgTok(s), CAP), capped = s => imgTok(s) > CAP;
   function gridGeo(s, L) {
-    const n = imgTok(s) + voiceTok(s), G = L.G;
+    const n = shownImg(s) + (capped(s) ? 0 : voiceTok(s)), G = L.G;
     let cols = Math.max(1, Math.ceil(Math.sqrt(n * G.w / G.h))); let cell = G.w / cols; while (Math.ceil(n / cols) * cell > G.h) { cols++; cell = G.w / cols; }
     return { n, cols, cell, x: G.x, y: G.y };
   }
@@ -128,8 +130,8 @@ chapter("multimodal", () => {
     g.imageSmoothingEnabled = false;
     for (let i = 0; i < geo.n; i++) {
       const [x, y] = cellXY(geo, i), dx = (x - geo.x) * PX, dy = (y - geo.y) * PX, sz = geo.cell * PX * (1 - gap);
-      if (i < n * n) g.drawImage(v, (i % n) * p, Math.floor(i / n) * p, p, p, dx, dy, sz, sz);
-      else { const j = i - n * n; g.drawImage(spec.c, j * 2, 0, 2, BINS, dx, dy, sz, sz); }
+      if (i < shownImg(s)) g.drawImage(v, (i % n) * p, Math.floor(i / n) * p, p, p, dx, dy, sz, sz);
+      else { const j = i - shownImg(s); g.drawImage(spec.c, j * 2, 0, 2, BINS, dx, dy, sz, sz); }
     }
     return (gridCache = { key, c, geo, PX });
   }
@@ -157,16 +159,20 @@ chapter("multimodal", () => {
     k.box(V.x, V.y, V.w, V.w, { stroke: C.line, r: 2, lw: 1 });
     // label close-up
     const Z = L.Z, cr = pic.crop, vd = verdict(s), vcol = vd === "readable" ? C.ok : vd === "blurry" ? C.amb : vd === "unreadable" ? C.crit : C.muted;
-    { const c = k.ctx; c.save(); c.imageSmoothingEnabled = false; const zh = Math.min(Z.h, Z.w * cr[3] / cr[2]), zw = zh * cr[2] / cr[3]; c.drawImage(vw, cr[0] * s.res, cr[1] * s.res, cr[2] * s.res, cr[3] * s.res, Z.x, Z.y + 18, Math.min(Z.w, zw), zh); c.restore();
-      k.box(Z.x, Z.y + 18, Math.min(Z.w, zw), zh, { stroke: vcol, lw: 2, r: 2 }); }
-    k.label(Z.x, Z.y + 4, pic.letter ? `Close-up: ${vd === "readable" ? "label readable" : vd === "blurry" ? "label blurry, a guess at best" : "label unreadable"}` : "Close-up: no text to read", { align: "left", col: vcol, size: 12, weight: "600" });
-    if (pic.letter && !nar) k.label(Z.x, Z.y + Z.h + 34, `letters ≈ ${letterPx(s).toFixed(1)} px tall${s.patch > 16 ? " (after squeezing)" : ""}`, { align: "left", col: C.muted, size: 11.5, mono: true });
+    // the close-up is drawn at actual pixel size (one pixel the model gets = one screen pixel), shrunk only if it won't fit,
+    // so small letters look as small and rough as they really are
+    { const c = k.ctx; c.save(); c.imageSmoothingEnabled = false; const sw = cr[2] * s.res, sh = cr[3] * s.res, f = Math.min(k.px(1), Z.w / sw, Z.h / sh), zw = sw * f, zh = sh * f;
+      c.drawImage(vw, cr[0] * s.res, cr[1] * s.res, sw, sh, Z.x, Z.y + 18, zw, zh); c.restore();
+      k.box(Z.x - 1, Z.y + 17, zw + 2, zh + 2, { stroke: vcol, lw: 2, r: 2 });
+      if (pic.letter && !nar) k.label(Z.x, Z.y + 18 + zh + 14, `letters ${letterPx(s).toFixed(1)} px${s.patch > 16 ? ", squeezed" : ""}`, { align: "left", col: C.muted, size: 11, mono: true }); }
+    k.label(Z.x, Z.y + 4, pic.letter ? `Actual size: ${vd === "readable" ? "readable" : vd === "blurry" ? "blurry, a guess" : "unreadable"}` : "Actual size: no text to read", { align: "left", col: vcol, size: 12, weight: "600" });
     // 3) the token stream
     const T = L.T, tot = total(s), over = tot > BUDGET;
     k.label(T.x, T.y - 18, nar ? `The model's input · ${fmtN(tot)} tokens` : `The model's input, in order · ${fmtN(tot)} tokens`, { align: "left", col: over ? C.crit : C.ink, weight: "600", size: 13 });
     let cx = T.x; PROMPT.forEach((w, i) => { const ww = Math.max(34, w.trim().length * 11 + 14); const on = i < a.txt; k.box(cx, T.y, ww, 26, { fill: on ? C.sig : C.line, r: 6, alpha: on ? 0.9 : 0.3 }); if (on) k.label(cx + ww / 2, T.y + 13, w.trim(), { col: C.bg, size: 11.5, weight: "650" }); cx += ww + 5; });
-    if (!nar) k.label(cx + 8, T.y + 13, "← your words, then the picture" + (s.voice ? " and the voice note" : ""), { align: "left", col: C.muted, size: 11.5 });
-    const gc = gridCanvas(s, L), geo = gc.geo, got = Math.min(geo.n, sent + Math.max(0, a.aud));
+    if (!nar) k.label(cx + 8, T.y + 13, s.voice ? "← words, picture, sound" : "← words, then the picture", { align: "left", col: C.muted, size: 11.5 });
+    const gc = gridCanvas(s, L), geo = gc.geo, got = Math.min(geo.n, capped(s) ? sent : sent + Math.max(0, a.aud));
+    if (capped(s)) { const rowsAll = Math.ceil(geo.n / geo.cols); k.label(geo.x, geo.y + rowsAll * geo.cell + 14, `${fmtN(imgTok(s))} picture tokens, first ${CAP} drawn${s.voice && !nar ? `, then ${VOICE_TOK} sound` : ""}`, { align: "left", col: C.muted, size: 11, mono: true }); }
     { const c = k.ctx; c.save(); c.beginPath(); const rows = Math.floor(got / geo.cols); if (rows) c.rect(geo.x, geo.y, geo.cols * geo.cell, rows * geo.cell); if (got % geo.cols) c.rect(geo.x, geo.y + rows * geo.cell, (got % geo.cols) * geo.cell, geo.cell); c.clip(); c.imageSmoothingEnabled = geo.cell * gc.PX * k.scale < 3; c.drawImage(gc.c, geo.x, geo.y, L.G.w, L.G.h); c.restore(); }
     // empty slots still to come
     if (got < geo.n) { const [x, y] = cellXY(geo, got); k.box(x, y, geo.cell * 0.88, geo.cell * 0.88, { stroke: C.sig, lw: 1, r: 1, alpha: 0.8 }); }
@@ -178,11 +184,11 @@ chapter("multimodal", () => {
       k.label(bx, by - 10, `token ${BUDGET}: budget ends`, { col: C.crit, size: 11, weight: "600", bg: true, align: bx > geo.x + L.G.w * 0.7 ? "right" : "left" });
     }
     // selected patch's token
-    if (s.sel >= 0 && s.sel < geo.n && s.sel < got) { const [x, y] = cellXY(geo, s.sel); k.box(x - 2, y - 2, geo.cell + 4, geo.cell + 4, { stroke: C.amb, lw: 2.5, r: 3, glow: 14 }); }
+    if (s.sel >= 0 && s.sel < geo.n && s.sel < got && (s.sel < shownImg(s) || !capped(s))) { const [x, y] = cellXY(geo, s.sel); k.box(x - 2, y - 2, geo.cell + 4, geo.cell + 4, { stroke: C.amb, lw: 2.5, r: 3, glow: 14 }); }
     // patches in flight
     if (a.u > T_TXT && a.img < nI) {
       const lag = Math.max(1, nI * 0.45 / T_IMG), every = Math.max(1, Math.ceil(lag / 22));
-      for (let i = Math.max(0, Math.floor(a.fImg - lag)); i < Math.min(nI, a.fImg); i += every) {
+      for (let i = Math.max(0, Math.floor(a.fImg - lag)); i < Math.min(shownImg(s), a.fImg); i += every) {
         const u = easeIO(clamp01((a.fImg - i) / lag)), r = Math.floor(i / n), cc = i % n;
         const sx = P.x + (cc + 0.5) * cs, sy = P.y + (r + 0.5) * cs, [tx0, ty0] = cellXY(geo, i), tx = tx0 + geo.cell / 2, ty = ty0 + geo.cell / 2;
         const path = t => bez([[sx, sy], [sx + 120, sy - 140], [tx - 120, ty - 120], [tx, ty]], t), [x, y] = path(u), sz = lerp(cs, geo.cell, u);
@@ -227,14 +233,14 @@ chapter("multimodal", () => {
     intro: "The picture is cut into squares. Each square becomes one token in the model's input, right after your words. Change the resolution and watch the token count.",
     controls: [
       { id: "pic", label: "Picture", type: "choice", value: "bottle", options: Object.entries(PICS).map(([k, v]) => [k, v.name]), apply: (s, v) => { const ch = s.pic !== v; s.pic = v; if (ch) restart(s); } },
-      { id: "res", label: "Resolution it's sent at", type: "range", min: 64, max: 896, step: 32, value: 224, fmt: v => `${v}×${v} px`, help: "Apps shrink big photos before sending them.", apply: (s, v) => { const ch = s.res !== v; s.res = v; if (ch) restart(s); } },
+      { id: "res", label: "Resolution it's sent at", type: "range", min: 64, max: 896, step: 32, value: 224, fmt: v => `${v}×${v} px`, help: "Apps shrink big photos before sending them. The pictures here are square.", apply: (s, v) => { const ch = s.res !== v; s.res = v; if (ch) restart(s); } },
       { id: "patch", label: "Patch size", type: "choice", value: 16, options: [[14, "14 px"], [16, "16 px"], [32, "32 px"]], help: "Each square of this many pixels becomes one token.", apply: (s, v) => { const ch = s.patch !== v; s.patch = v; if (ch) restart(s); } },
       { id: "voice", label: "Add a 4-second voice note", type: "toggle", value: false, apply: (s, v) => { const ch = s.voice !== v; s.voice = v; if (ch) restart(s); } }
     ],
     click: (s, wx, wy, sim) => { const L = layout(sim.narrow), P = L.P, n = grid(s), cs = P.w / n * (s.patch * n / s.res); if (wx >= P.x && wy >= P.y && wx < P.x + P.w && wy < P.y + P.w) { const c = Math.min(n - 1, Math.floor((wx - P.x) / cs)), r = Math.min(n - 1, Math.floor((wy - P.y) / cs)); s.sel = r * n + c; } else s.sel = -1; },
     stats: s => { const t = total(s), vd = verdict(s); return [
       ["picture tokens", fmtN(imgTok(s))],
-      ["total tokens · budget 300", fmtN(t), t > BUDGET ? "bad" : "ok"],
+      ["total tokens · your budget 300", fmtN(t), t > BUDGET ? "bad" : "ok"],
       ["label", vd === "none" ? "no text" : vd, vd === "readable" ? "ok" : vd === "blurry" ? "hot" : vd === "unreadable" ? "bad" : ""],
       ["1,000 requests like this · illustrative", "$" + (t * 1000 * PRICE).toFixed(2)]
     ]; },
@@ -246,7 +252,7 @@ chapter("multimodal", () => {
       { id: "over", when: s => total(s) > BUDGET, say: s => { const n = grid(s); return `At ${s.res}×${s.res} the picture is ${n} patches across and ${n} down: <b>${fmtN(n * n)}</b> tokens, over your ${BUDGET}-token budget. Double the width and height and you get four times the patches, so four times the tokens.`; } },
       { id: "unread", when: s => verdict(s) === "unreadable" || verdict(s) === "blurry", say: s => `At ${s.res}×${s.res} the label's letters are about <b>${letterPx(s).toFixed(1)} pixels</b> tall. That's too few to tell an E from an F, so the model could only guess. Raise the resolution, but watch the token count.` },
       { id: "cat", when: s => s.pic === "cat" && s.res <= 160, say: s => `Even at ${s.res}×${s.res}, only ${fmtN(imgTok(s))} tokens, the cat is still obviously a cat. Big shapes survive low resolution; small text doesn't.` },
-      { id: "calm", when: () => true, say: s => `${fmtN(imgTok(s))} picture tokens, about as many as ${fmtN(imgTok(s) * 0.75)} words of text. Each square on the left became one token on the right, after your ${PROMPT.length} words.` }
+      { id: "calm", when: () => true, say: s => `${fmtN(imgTok(s))} picture tokens, about as many as ${fmtN(imgTok(s) * 0.75)} words of text. Each square of your picture became one token in the model's input, after the ${PROMPT.length} text tokens of your question.` }
     ],
     facts: [
       { id: "claude", when: s => s.res >= 512, text: "Anthropic, the company behind the Claude assistant, says Claude counts one token for every 28 × 28-pixel block of a picture. A 1,000 × 1,000-pixel photo is 36 × 36 = 1,296 tokens, about as many as 1,000 words of text.", ref: "#ref-602" },
@@ -256,7 +262,7 @@ chapter("multimodal", () => {
       { say: "A pill bottle sent at 224×224 pixels with 16-pixel patches, the setup of the original Vision Transformer: 14 × 14 = 196 tokens. Watch them fly in after your words.", set: { pic: "bottle", res: 224, patch: 16, voice: false }, wait: 7 },
       { say: "Send it sharper, at 640×640. The label is crisp, but the picture is now 1,600 tokens, far over budget.", set: { res: 640 }, wait: 7 },
       { say: "Go cheap: 96×96 is just 36 tokens, but look at the close-up. The letters are a smear.", set: { res: 96 }, wait: 7 },
-      { say: "The sweet spot: 256×256 is 256 tokens plus 6 words, and the letters are just big enough to read.", set: { res: 256 }, wait: 7 },
+      { say: "The sweet spot: 256×256 is 256 tokens plus 6 text tokens, and the letters are just big enough to read. Compare the close-up with 224.", set: { res: 256 }, wait: 7 },
       { say: "Now add a 4-second voice note. Sound becomes a spectrogram, and each 20 ms slice becomes a token: 200 more, over budget again.", set: { voice: true }, wait: 9 }
     ],
     publish: s => ({ mmRes: `${s.res}×${s.res}`, mmResN: String(s.res), mmPatch: String(s.patch), mmGrid: String(grid(s)), mmImgTok: fmtN(imgTok(s)), mmTotal: fmtN(total(s)), mmLetter: PICS[s.pic].letter ? letterPx(s).toFixed(1) + " pixels" : "(no text in this picture)", mmWords: fmtN(imgTok(s) * 0.75), mmVoice: s.voice ? ` + ${VOICE_TOK} voice` : "", mmPrompt: String(PROMPT.length) })

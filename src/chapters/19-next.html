@@ -32,6 +32,34 @@
   </header>
 
   <div class="nx-group">
+    <h3>Start here · No code needed</h3>
+    <p>If you don't write code, begin with two talks: <a href="https://www.3blue1brown.com/topics/neural-networks">3Blue1Brown's visual series on neural networks and transformers</a>, and <a href="https://www.youtube.com/watch?v=zjkBMFhNj_g">Andrej Karpathy's one-hour Intro to Large Language Models</a>. Then try these three projects: all you need is a chat app, a web browser and a notebook.</p>
+    <div class="nx-grid">
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="1">Chapter 1</a><a data-n="5">Chapter 5</a></div>
+        <h4>Time the replies in a chat app</h4>
+        <p>With your phone's stopwatch, time how long a chat assistant takes to show its first word and to finish, for a one-line question, a long pasted article, and a hard puzzle with "thinking" switched on. Do each three times.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>A small table of first-word and finish times for each kind of request, and one sentence for each on which chapter explains the difference.</p></div>
+        <div class="nx-start">Start with: any chat assistant and a stopwatch</div>
+      </article>
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="2">Chapter 2</a></div>
+        <h4>Count tokens in your own writing</h4>
+        <p>Paste text into an online tokenizer, such as the free tokenizer pages that model companies publish, and see how it is split. Try an email of yours, a paragraph in another language, a list of numbers and some code.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>Words per token for each sample, the strangest split you found, and a sentence on why some text costs more tokens than other text of the same length.</p></div>
+        <div class="nx-start">Start with: any online tokenizer page, and chapter 2's simulation</div>
+      </article>
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="10">Chapter 10</a></div>
+        <h4>Read a real postmortem</h4>
+        <p>Read a published incident report from an AI company, such as Anthropic's 2025 account of three bugs that quietly made some answers worse. Map what happened onto chapter 10.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>A one-page timeline: what changed, how the problem showed up, why tests missed it, how it was found, and which of chapter 10's safeguards would have caught it sooner.</p></div>
+        <div class="nx-start">Start with: A postmortem of three recent issues<sup class="ref"><a href="#ref-30">30</a></sup></div>
+      </article>
+    </div>
+  </div>
+
+  <div class="nx-group">
     <h3>Part 1 · How a model answers</h3>
     <p>Look at the model from the outside, then build a tiny one.</p>
     <div class="nx-grid">
@@ -76,6 +104,20 @@
         <p>Serve a small open model with vLLM, an open-source serving engine, on one rented GPU. Send it more and more requests at once and measure what happens.</p>
         <div class="nx-done"><b>Done when you can show</b><p>A chart of time to first token and total tokens per second at each concurrency level, with the model, GPU and prompt lengths, and where you think it saturates and why (memory for notes, or compute).</p></div>
         <div class="nx-start">Start with: vLLM<sup class="ref"><a href="#ref-54">54</a></sup>, PagedAttention<sup class="ref"><a href="#ref-34">34</a></sup></div>
+      </article>
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="9">Chapter 9</a><a data-n="18">Chapter 18</a></div>
+        <h4>Overload it, then turn people away</h4>
+        <p>Push your vLLM server well past the point where it saturates and record the slowest 5% of waits for the first token (the p95). Then put a small proxy in front that answers "busy, try again" (HTTP 429) once a set number of requests are waiting, and run the same load.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>The p95 wait and the share of requests turned away, with and without the limit, at three load levels, and a sentence on what the limit bought and what it cost.</p></div>
+        <div class="nx-start">Start with: vLLM<sup class="ref"><a href="#ref-54">54</a></sup>, chapter 18's "turn people away" lever</div>
+      </article>
+      <article class="nx-card">
+        <div class="nx-chs"><a data-n="16">Chapter 16</a><a data-n="7">Chapter 7</a></div>
+        <h4>Measure prompt caching</h4>
+        <p>Through a model API that supports prompt caching, send the same long prompt (a few thousand tokens) ten times with a different short question at the end. Then change one word near the start and send it again.</p>
+        <div class="nx-done"><b>Done when you can show</b><p>For each call, the cached and fresh input tokens the API reports, the time to the first token and the cost, and what happened when you changed the start.</p></div>
+        <div class="nx-start">Start with: Prompt caching docs<sup class="ref"><a href="#ref-71">71</a></sup></div>
       </article>
       <article class="nx-card">
         <div class="nx-chs"><a data-n="10">Chapter 10</a></div>

@@ -123,7 +123,8 @@ chapter("attention", () => {
       const tq = Math.max(0, Math.min(1, ((ax - P.cx) * (qx - P.cx) + (ay - P.cy) * (qy - P.cy)) / qq));
       const nearQ = Math.hypot(ax - P.cx - tq * (qx - P.cx), ay - P.cy - tq * (qy - P.cy)) < near, edgeL = v[0] < 0 && x < P.cx - P.R * 0.6, edgeR = L.n && v[0] > 0 && x > P.cx + P.R * 0.6;
       let lx = x + k.px(v[0] >= 0 ? 6 : -6), ly = y + k.px(v[1] >= 0 ? -10 : 10), al = v[0] >= 0 ? "left" : "right";
-      if (nearQ) { const qd = Math.hypot(qx - P.cx, qy - P.cy) || 1, sg = (qx - P.cx) >= 0 ? 1 : -1, nx = -sg * (qy - P.cy) / qd, ny = sg * (qx - P.cx) / qd;   // the normal that points down lx = x + nx * k.px(20); ly = y + ny * k.px(20); al = nx >= 0 ? "left" : "right"; }
+      if (nearQ) { const qd = Math.hypot(qx - P.cx, qy - P.cy) || 1, sg = (qx - P.cx) >= 0 ? 1 : -1, nx = -sg * (qy - P.cy) / qd, ny = sg * (qx - P.cx) / qd;   // the normal that points down
+        lx = x + nx * k.px(20); ly = y + ny * k.px(20); al = nx >= 0 ? "left" : "right"; }
       else if (edgeL) { lx = x + 6; ly = y + k.px(14); al = "left"; }
       else if (edgeR) { lx = x - 6; ly = y + k.px(14); al = "right"; }
       if (lab) k.label(lx, ly, ws[j], { align: al, size: 11, col: w >= 0.2 ? C.ink : C.muted, mono: true }); });
