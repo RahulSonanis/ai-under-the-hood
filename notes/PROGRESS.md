@@ -35,6 +35,7 @@ number without a comparison; every claim sourced; illustrative numbers labelled.
 
 - 2026-10-11: fix round 2 complete (all items in review2-1/2 ticked; one [~] in agents budget). Next: end-to-end student test, README/meta, merge, deploy.
 - 2026-10-11: end-to-end student test done (notes/e2e.md: 4 majors, contradictions). Next: e2e fixer, then README/meta, merge, deploy.
+- 2026-10-11: e2e fixes done; README rewritten; merging v4 to main.
 
 ## Checkpoint rule
 Commit and push `v4` after every batch of fixes. Tick items in the fix files as they are done.
