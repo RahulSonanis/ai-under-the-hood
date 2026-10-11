@@ -13,9 +13,11 @@ chapter("next", () => {
   let totals = {}; try { totals = JSON.parse(box.dataset.totals || "{}"); } catch (e) {}
   const paint = () => {
     obs.disconnect();
+    // only facts from chapters that still have facts count; a renamed fact id can't push a chapter past its total
     const found = store.get("facts", {}), per = {};
-    Object.values(found).forEach(f => { per[f.ch] = (per[f.ch] || 0) + 1; });
-    const nFound = Object.keys(found).length, nAll = Object.keys(totals).reduce((a, k) => a + Math.max(totals[k], per[k] || 0), 0);
+    Object.values(found).forEach(f => { if (totals[f.ch]) per[f.ch] = Math.min(totals[f.ch], (per[f.ch] || 0) + 1); });
+    $$("li:not(.todo):not(.empty)", box).forEach(li => { const a = $(".from a", li), ch = a && (a.getAttribute("href") || "").slice(1); if (ch && !totals[ch]) li.remove(); });
+    const nFound = Object.values(per).reduce((a, b) => a + b, 0), nAll = Object.values(totals).reduce((a, b) => a + b, 0);
     const cnt = $("#facts-count");
     if (cnt) cnt.innerHTML = `${nFound} of ${nAll} found<div class="bar"><i style="width:${nAll ? Math.round(nFound / nAll * 100) : 0}%"></i></div>`;
     $$("li.todo", box).forEach(li => li.remove());

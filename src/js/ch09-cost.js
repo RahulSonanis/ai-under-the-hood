@@ -22,7 +22,7 @@ chapter("cost", () => {
   const pct = v => v < 0.01 && v > 0 ? (v * 100).toFixed(1) + "%" : Math.round(v * 100) + "%";
   const late = v => v < 0.1 ? (v * 100).toFixed(2) + "%" : (v * 100).toFixed(1) + "%";
 
-  function newDay(s) { s.day = { t0: s.t, startH: hourOf(s), bill: 0, chatBill: 0, replies: 0, served: 0, failed: 0, late: 0, energy: 0, hist: new Array(EDGES.length).fill(0), sChat: 0, sBatch: 0, sIdle: 0, sStart: 0 }; s.trace = []; }
+  function newDay(s) { s.day = { t0: s.t, startH: hourOf(s), bill: 0, chatBill: 0, replies: 0, served: 0, failed: 0, late: 0, lateSpike: 0, energy: 0, hist: new Array(EDGES.length).fill(0), sChat: 0, sBatch: 0, sIdle: 0, sStart: 0 }; s.trace = []; }
   function init(rand) {
     const s = { rand, t: 0, h0: 5, on: 30, starting: [], Q: 0, lamE: 0, downFor: 0, noise: 0, spikes: [], parts: [], partAcc: 0, dayN: 1, lastDay: null, lastDayAt: -99, goalMet: false };
     s.lamE = lam(s, s.h0); newDay(s); return s;
@@ -30,6 +30,7 @@ chapter("cost", () => {
   const hourOf = s => (s.h0 + s.t) % 24;
   function lam(s, h) { let l = PEAK * shape(h) * (1 + (s.noise || 0)); const at = s.h0 + s.t; for (const sp of s.spikes) if (at >= sp && at < sp + 0.5) l *= SPIKE; if (h >= 11 && h < 11.5) l *= SPIKE; return l; }
   const spiking = s => { const h = hourOf(s), at = s.h0 + s.t; return (h >= 11 && h < 11.5) || s.spikes.some(sp => at >= sp && at < sp + 0.5); };
+  const nearSpike = s => { const h = hourOf(s), at = s.h0 + s.t; return (h >= 11 && h < 12) || s.spikes.some(sp => at >= sp && at < sp + 1); };   // a spike and the half hour after it
 
   function step(s, dt) {
     const dh = dt * DT_H; s.t += dh; const h = hourOf(s);
@@ -66,7 +67,7 @@ chapter("cost", () => {
     const paid = on + s.starting.length, seatsTot = paid * SEATS, bill = paid * PRICE * dh;
     const batchSeats = s.batch ? Math.max(0, s.on * SEATS * BFILL - busy) : 0, chatFrac = 1 - batchSeats / seatsTot;
     s.busy = busy; s.batchSeats = batchSeats; s.chatFrac = chatFrac;
-    D.bill += bill; D.chatBill += bill * chatFrac; D.replies += n; D.served += served; D.failed += failed; D.late += failed + (n - failed) * fracLate;
+    D.bill += bill; D.chatBill += bill * chatFrac; D.replies += n; D.served += served; D.failed += failed; const lateN = failed + (n - failed) * fracLate; D.late += lateN; if (nearSpike(s)) D.lateSpike += lateN;
     const busyFrac = (busy + batchSeats) / seatsTot; D.energy += paid * PMAX * (PIDLE + (1 - PIDLE) * busyFrac) * dh * chatFrac;
     D.sChat += busy * dh; D.sBatch += batchSeats * dh; D.sStart += s.starting.length * SEATS * dh; D.sIdle += Math.max(0, s.on * SEATS - busy - batchSeats) * dh;
     if (!s.trace.length || s.t - s.trace[s.trace.length - 1].t > 0.1) s.trace.push({ t: s.t - D.t0, h, l, cap: s.on * MU });
@@ -84,7 +85,7 @@ chapter("cost", () => {
     const D = s.day, rep = Math.max(1, D.replies), srv = Math.max(1, D.served);
     const per1000 = D.chatBill / srv * 1000, lateF = D.late / rep, Wh = D.energy / srv;
     const tot = D.sChat + D.sBatch + D.sIdle + D.sStart || 1;
-    return { per1000, lateF, Wh, replies: D.replies, served: D.served, failed: D.failed, failF: D.failed / rep, hours: (s.t - D.t0), ok: per1000 < 0.33 && lateF < 0.01, chat: D.sChat / tot, batch: D.sBatch / tot, idle: D.sIdle / tot, start: D.sStart / tot };
+    return { per1000, lateF, Wh, replies: D.replies, served: D.served, failed: D.failed, failF: D.failed / rep, spikeShare: D.late > 0 ? D.lateSpike / D.late : 0, hours: (s.t - D.t0), ok: per1000 < 0.33 && lateF < 0.01, chat: D.sChat / tot, batch: D.sBatch / tot, idle: D.sIdle / tot, start: D.sStart / tot };
   }
 
   // ---------- drawing ----------
@@ -121,7 +122,8 @@ chapter("cost", () => {
     const r = Math.max(0.5, Math.min(0.995, s.rho || 0)), w = s.Q > 0 ? s.waitNow : curveP99(r);
     const hot = s.Q > 0 || w > Y;
     k.dot(X(r), Yv(w), k.px(7), hot ? C.crit : C.sig, { glow: 14 });
-    k.label(X(r), Yv(w) - 18, s.Q > 0 ? "overloaded" : "you", { col: hot ? C.crit : C.sig, size: 11, weight: "700", bg: true });
+    const edge = r > 0.9;   // near the right edge: put the badge to the left of the dot so it stays inside the plot
+    k.label(edge ? X(r) - 10 : X(r), Yv(w) - 18 < T.y + 10 ? Yv(w) + 20 : Yv(w) - 18, s.Q > 0 ? "overloaded" : "you", { col: hot ? C.crit : C.sig, size: 11, weight: "700", bg: true, align: edge ? "right" : "center" });
   }
 
   function draw(k, s, sim) {
@@ -156,8 +158,8 @@ chapter("cost", () => {
     }
     const qn = s.Q > 0 ? Math.min(48, Math.ceil(s.Q / 150)) : 0;
     for (let i = 0; i < qn; i++) { const x = gate[0] - 20 - (i % 4) * 18, y = Q.y1 - 10 - Math.floor(i / 4) * 18; k.dot(x, y, k.px(nar ? 3.5 : 4.5), C.amb, { glow: 6 }); }
-    const qlx = nar ? Q.x - 10 : gate[0] - 46, qal = nar ? "left" : "center", qsz = nar ? 13 : 11;
-    const fK = v => v >= 10000 ? Math.round(v / 1000) + "k" : Math.round(v).toLocaleString(), qtxt = s.Q > 0 ? `${fK(s.Q)} waiting` : "nobody queued";
+    const qlx = nar ? Q.x - 10 : gate[0] + 6, qal = nar ? "left" : "right", qsz = nar ? 13 : 11;   // right-aligned at the gate so long counts stay clear of the GPU grid
+    const fK = v => v >= 1e6 ? (v / 1e6).toFixed(1) + " million" : Math.round(v).toLocaleString(), qtxt = s.Q > 0 ? `${fK(s.Q)} waiting` : "no lasting line";
     if (nar) k.label(qlx, Q.y1 + k.px(12), qtxt + (s.day.failed >= 1 ? ` · ${fK(s.day.failed)} gave up today` : ""), { align: qal, col: s.Q > 0 ? C.amb : s.day.failed >= 1 ? C.crit : C.muted, size: qsz, weight: "600" });
     else {
       k.label(qlx, Q.y1 + 22, qtxt, { align: qal, col: s.Q > 0 ? C.amb : C.muted, size: qsz, weight: "600" });
@@ -190,14 +192,14 @@ chapter("cost", () => {
       ["GPUs on" + (s.starting.length ? ` (+${s.starting.length} starting)` : ""), String(s.on)],
       ["how full the seats are", pct(Math.min(1, s.rho || 0)), s.Q > 0 || s.rho > 0.9 ? "bad" : s.rho > 0.8 ? "hot" : "ok"],
       ["failed or waited 5 s+ today", late(sm.lateF), sm.lateF >= 0.01 ? "bad" : sm.lateF > 0.005 ? "hot" : "ok"],
-      ["per 1,000 replies today*", money(sm.per1000), sm.per1000 < 0.33 ? "ok" : sm.per1000 > 0.45 ? "hot" : ""],
+      sm.failF >= 0.01 ? ["per 1,000 replies today*", `${money(sm.per1000)} · only ${pct(1 - sm.failF)} served`, "bad"] : ["per 1,000 replies today*", money(sm.per1000), sm.per1000 < 0.33 ? "ok" : sm.per1000 > 0.45 ? "hot" : ""],
       ["energy per reply* ≈ " + tv.toFixed(1) + " s of TV", sm.Wh.toFixed(2) + " Wh"]]; },
     goal: { text: "get through a whole day for under $0.33 per 1,000 replies, with fewer than 1 in 100 people failing or waiting over 5 seconds",
       check: s => { const sm = summary(s); return { done: s.goalMet, progress: s.lastDay && !s.goalMet ? `last day: ${money(s.lastDay.per1000)} · ${late(s.lastDay.lateF)} failed or waited` : `${Math.round(sm.hours)} of 24 h measured (since ${clock(s.day.startH)}) · ${money(sm.per1000)} · ${late(sm.lateF)} failed or waited 5 s+` }; } },
     notices: [
-      { id: "dayEnd", when: s => s.lastDay && s.t - s.lastDayAt < 2.5, say: s => { const d = s.lastDay; return d.ok ? `Last day: <b>${money(d.per1000)}</b> per 1,000 replies, and only ${late(d.lateF)} of ${Math.round(d.replies / 1e6 * 10) / 10} million people failed or waited over 5 s. Goal reached.` : `Last day: ${money(d.per1000)} per 1,000 replies, ${late(d.lateF)} failed or waited over 5 s, and ${Math.round(d.idle * 100)}% of the GPU time you paid for sat empty. ${d.lateF >= 0.01 ? "Too many waited: you need more room for the peak and the spike." : "Too expensive: the empty seats cost money."}`; } },
+      { id: "dayEnd", when: s => s.lastDay && s.t - s.lastDayAt < 2.5, say: s => { const d = s.lastDay; return d.ok ? `Last day: <b>${money(d.per1000)}</b> per 1,000 replies, and only ${late(d.lateF)} of ${Math.round(d.replies / 1e6 * 10) / 10} million people failed or waited over 5 s. Goal reached.` : `Last day: ${money(d.per1000)} per 1,000 replies, ${late(d.lateF)} failed or waited over 5 s, and ${Math.round(d.idle * 100)}% of the GPU time you paid for sat empty. ${d.lateF >= 0.01 ? (d.spikeShare >= 0.5 ? `Too many waited, most of them (${pct(d.spikeShare)}) during or just after a spike. ${s.mode === "auto" ? "New GPUs take 10 minutes to start, so lower the autoscale target to keep spare room for it." : "Add GPUs, or autoscale with spare room."}` : "Too many waited: you need more room for the peak and the spike.") : "Too expensive: the empty seats cost money."}`; } },
       { id: "backlog", when: s => s.Q > 0, say: s => { const n = s.starting.length; return `More people than seats: <b>${Math.round(s.Q).toLocaleString()}</b> are queued and new arrivals wait about ${fSec(s.waitNow)}. ${s.failNow > 0 ? `The line is a minute long, so newcomers give up (red): ${Math.round(s.day.failed).toLocaleString()} failed today. ` : ""}${s.mode === "auto" ? (n ? `${n} new GPU${n > 1 ? "s are" : " is"} starting, but loading the model takes 10 minutes, so autoscaling can't catch a sudden jump.` : "The autoscaler's target leaves no room for this.") : "This fleet is too small for this moment."}`; } },
-      { id: "steep", when: s => s.rho >= 0.86, say: s => `Each GPU's seats are <b>${pct(s.rho)}</b> full. Near 100%, waits shoot up: a chat that arrives when every seat is taken has to wait for one to free, and that gets likelier very fast. The unluckiest 1 in 100 now wait ${fSec(s.p99now)}.` },
+      { id: "steep", when: s => s.rho >= 0.86, say: s => `Each GPU's seats are <b>${pct(s.rho)}</b> full. Near 100%, waits shoot up: a chat that arrives when every seat is taken has to wait for one to free, and that gets likelier very fast. ${s.Q > 0 ? `Right now everyone arriving waits about ${fSec(s.waitNow)}.` : `No line builds up, but at this fullness the unluckiest 1 in 100 arrive just as every seat is taken and would wait ${s.p99now < 1 ? "under a second" : "up to " + fSec(s.p99now)} for one to free.`}` },
       { id: "starting", when: s => s.mode === "auto" && s.starting.length > 0, say: s => `Traffic is rising, so the autoscaler is starting ${s.starting.length} more GPU${s.starting.length > 1 ? "s" : ""} (dashed). Each takes 10 minutes to load the model, and you pay from the moment it starts.` },
       { id: "idle", when: s => !s.batch && s.rho < 0.55, say: s => `Only ${pct(s.rho)} of the seats are in use, but you pay for every GPU-hour: about <b>${money(s.idleCostNow)}</b> an hour right now goes on empty seats. Fewer GPUs, autoscaling, or batch work would cut that.` },
       { id: "batch", when: s => s.batch, say: s => `Batch jobs (blue) fill seats the chats aren't using and hand them back the moment a chat needs one. They share the bill, so a chat reply now costs ${money(summary(s).per1000)} per 1,000, and far less GPU time goes to waste.` },

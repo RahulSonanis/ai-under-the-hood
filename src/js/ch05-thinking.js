@@ -165,12 +165,12 @@ chapter("thinking", () => {
     // question
     dots(k, M.x + 22, M.y + 26, c.d, C, 5);
     k.label(M.x + 58, M.y + 26, `${DIFF[c.d].name} question`, { align: "left", col: C.muted, size: 12 });
-    k.para(M.x + 22, M.y + 44, c.prob.q, M.w - 44, { size: narrow ? 24 : 21, weight: "500", maxLines: 2, col: C.ink });
-    const top = M.y + (narrow ? 142 : 122);
+    k.para(M.x + 22, M.y + 44, c.prob.q, M.w - 44, { size: narrow ? 22 : 21, weight: "500", maxLines: narrow ? 3 : 2, col: C.ink });
+    const top = M.y + (narrow ? 168 : 122);
     // thinking lanes
     const n = c.atts.length, B = c.budget, x0 = M.x + 22, x1 = M.x + M.w - (n > 1 ? 120 : 22);
     k.label(x0, top - 6, B ? (narrow ? `Hidden thinking · ${fmtTok(B)} budget${n > 1 ? ` · ${n} tries` : ""}` : `Hidden thinking · budget ${fmtTok(B)} tokens${n > 1 ? ` · ${n} attempts side by side` : ""}`) : (narrow ? "Thinking off" : "Thinking off · the model must answer straight away"), { align: "left", col: C.muted, size: narrow ? 12 : 12.5, weight: "600" });
-    const laneTop = top + 14, laneArea = narrow ? 200 : 320, lh = n === 1 ? 30 : Math.min(36, laneArea / n), bh = Math.max(7, lh * 0.62);
+    const laneTop = top + 14, laneArea = narrow ? 180 : 320, lh = n === 1 ? 30 : Math.min(36, laneArea / n), bh = Math.max(7, lh * 0.62);
     c.atts.forEach((a, i) => {
       const y = laneTop + i * lh, w = x1 - x0;
       k.box(x0, y, w, bh, { fill: C.line, r: bh / 2, alpha: 0.35 });
@@ -183,7 +183,8 @@ chapter("thinking", () => {
           if (!a.done) k.dot(x0 + fw, y + bh / 2, Math.max(3, bh * 0.35), C.amb, { glow: 14 });
         }
         if (a.cut && a.done) k.line(x1, y - 2, x1, y + bh + 2, { col: C.amb, lw: 2.5 });
-        if (n === 1) k.label(x0 + Math.max(w * a.used / B, 0) + 8, y + bh / 2, `${fmtTok(a.used)} hidden tokens${narrow ? "" : a.done && a.cut ? " · hit the budget" : a.done ? " · done" : ""}`, { align: "left", col: C.ink, size: 12, mono: true, bg: true });
+        if (n === 1) { if (narrow) k.label(x0, y + bh + 12, `${fmtTok(a.used)} hidden tokens${a.done && a.cut ? " · hit the budget" : a.done ? " · done" : ""}`, { align: "left", col: C.ink, size: 12, mono: true });   // under the bar on phones, so it never runs off the panel
+          else k.label(x0 + Math.max(w * a.used / B, 0) + 8, y + bh / 2, `${fmtTok(a.used)} hidden tokens${a.done && a.cut ? " · hit the budget" : a.done ? " · done" : ""}`, { align: "left", col: C.ink, size: 12, mono: true, bg: true }); }
       }
       if (n > 1 && a.done) {
         const show = c.phase !== "think";
@@ -191,7 +192,7 @@ chapter("thinking", () => {
         if (lh >= 16) k.label(x1 + 57, y + bh / 2, a.ans, { col: C.bg, size: narrow ? 11 : Math.min(12, lh * 0.6), weight: "700", mono: true });
       }
     });
-    let y = laneTop + (n === 1 ? 46 : n * lh + 10);
+    let y = laneTop + (n === 1 ? (narrow ? 54 : 46) : n * lh + 10);
     // the hidden text of attempt 1 (only when there is room)
     if (n === 1 && B > 0) {
       const a = c.atts[0], H = narrow ? 172 : 280;

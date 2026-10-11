@@ -35,7 +35,7 @@ chapter("agents", () => {
     s.task = T; s.ctx = [{ id: "sys", kind: "sys", tok: SYS, full: SYS, label: "instructions + tool list" }];
     add(s, "user", 40, T.ask);
     s.stage = "tests1"; s.attempt = 0; s.phase = "call"; s.pt = 0; s.calls = []; s.billed = 0; s.noCache = 0; s.peak = used(s);
-    s.fixOk = false; s.pLocked = null; s.req = ""; s.outcome = null; s.overBudget = false; s.compacted = 0; s.manual = 0; s.lostCode = false;
+    s.fixOk = false; s.pLocked = null; s.req = ""; s.outcome = null; s.overBudget = false; s.overOnFinal = false; s.compacted = 0; s.manual = 0; s.lostCode = false;
     s.log = []; logl(s, "user", T.ask);
     // where the search query lands in the index this time: near the broken chunk, but not always nearest
     const rel = s.pts.find(p => p.fi === T.file && p.j === 1), a = s.rand() * Math.PI * 2, r = Math.pow(s.rand(), 0.85) * 0.26;
@@ -80,8 +80,11 @@ chapter("agents", () => {
     const { n, cached } = s.cur;
     const w = s.cacheOn ? WRITE_R : 1;  // with caching on, new input is also written into the cache, at a small premium
     s.calls.push({ n, cached, out, w }); s.billed += (n - cached) * w + cached * CACHE_R + out * OUT_R; s.noCache += n + out * OUT_R;
-    if (s.billed > BUDGET && !s.overBudget) { s.overBudget = true; s.ev.budget = s.t; logl(s, "harness", `budget of ${fmt(BUDGET)} tokens used up`); }
+    const crossed = s.billed > BUDGET && !s.overBudget;
+    if (crossed) { s.overBudget = true; s.ev.budget = s.t; s.overOnFinal = !tool; }
+    if (crossed && tool) logl(s, "harness", `budget of ${fmt(BUDGET)} tokens used up`);
     add(s, "call", out, req); s.req = req; logl(s, "model", (tool ? "→ " : "") + req, out);
+    if (crossed && !tool) logl(s, "harness", `that last reply took the bill to ${fmt(s.billed)}: over budget`);
     if (!tool) { s.phase = "done"; s.pt = 0; settle(s, s.fixOk ? (s.overBudget ? "budget" : "fixed") : "gaveup"); return; }
     s.tool = tool; s.phase = "tool"; s.pt = 0;
   }
@@ -254,11 +257,11 @@ chapter("agents", () => {
       ["read from cache", s.calls.length ? pct(s.calls.reduce((a, c) => a + c.cached, 0) / Math.max(1, s.calls.reduce((a, c) => a + c.n, 0))) : "–", ""],
       ["chance the fix works", pShown(s) === null ? "no code yet" : pct(pShown(s)), pShown(s) === null ? "" : pShown(s) > 0.75 ? "ok" : pShown(s) < 0.4 ? "bad" : "hot"],
       ["fixed in a row", String(s.streak), s.streak >= STREAK ? "ok" : ""]]; },
-    goal: { text: `fix ${STREAK} tasks in a row, each inside the ${fmt(WIN)}-token window and billing under ${fmt(BUDGET)} input-token equivalents`, check: s => ({ done: s.best >= STREAK, progress: `${Math.min(s.streak, STREAK)} / ${STREAK} in a row` }) },
+    goal: { text: `fix ${STREAK} tasks in a row, each inside the ${fmt(WIN)}-token window and billing under ${fmt(BUDGET)} input-token equivalents`, check: s => ({ done: s.best >= STREAK, progress: s.best >= STREAK ? `best: ${s.best} in a row · now ${s.streak}` : `${Math.min(s.streak, STREAK)} / ${STREAK} in a row` }) },
     notices: [
       { id: "over", when: s => s.phase === "over", say: s => `The context reached <b>${fmt(used(s))} tokens</b>, past the ${fmt(WIN)}-token window, so the model call was rejected and the task failed. ${s.mode === "all" ? `Pasting every file added ${fmt(6 * FILE)} tokens at once. Try <b>Search</b>.` : s.compactOn ? "Even summarising couldn't free enough room." : "Turn on summarising so old output shrinks before it overflows."}` },
       { id: "lost", when: s => s.lostCode && (s.stage === "edit" || s.stage === "tests2") && !hasCode(s), say: s => `Summarising made room, but it also squashed the broken code into a one-line summary. The model now has to guess the fix: <b>${pct(pFix(s))}</b> chance. Summaries keep the gist and lose the details.` },
-      { id: "budget", when: s => s.overBudget, say: s => s.cacheOn ? `This task has billed <b>${fmt(s.billed)}</b> token-equivalents, over the ${fmt(BUDGET)} budget even with caching. ${s.attempt ? "A failed first try means more calls, each re-reading a longer context." : "Every extra search result is re-read on every later call."} Fewer results, or summarising old output, keeps the bill down.` : `This task has billed <b>${fmt(s.billed)}</b> token-equivalents, over the ${fmt(BUDGET)} budget. Every call re-reads the whole context from scratch, and the start never changes. Turn on <b>prompt caching</b>.` },
+      { id: "budget", when: s => s.overBudget, say: s => s.overOnFinal && s.fixOk ? `The fix worked, but the final reply pushed the bill to <b>${fmt(s.billed)}</b>, just over the ${fmt(BUDGET)} budget, so the task counts as a failure. ${s.cacheOn ? "Fewer search results, or summarising old output, would leave room." : "Turn on <b>prompt caching</b>."}` : s.cacheOn ? `This task has billed <b>${fmt(s.billed)}</b> token-equivalents, over the ${fmt(BUDGET)} budget even with caching. ${s.attempt ? "A failed first try means more calls, each re-reading a longer context." : "Every extra search result is re-read on every later call."} Fewer results, or summarising old output, keeps the bill down.` : `This task has billed <b>${fmt(s.billed)}</b> token-equivalents, over the ${fmt(BUDGET)} budget. Every call re-reads the whole context from scratch, and the start never changes. Turn on <b>prompt caching</b>.` },
       { id: "miss", when: s => s.mode === "search" && s.lastHit === false && s.stage !== "find" && s.attempt === 0 && !hasCode(s), say: s => `The search's closest match to the broken code was result <b>#${s.lastRank}</b>, but you paste only ${s.k}. The model never saw the broken line, so it has a ${pct(pFix(s))} chance of guessing right. It will search again with the test's name if this fails.` },
       { id: "none", when: s => s.mode === "none" && s.stage !== "tests1", say: s => `With no code in its context, the model can only guess what the file looks like: <b>${pct(pFix(s))}</b> chance its edit works. A model can't use what isn't on the page.` },
       { id: "clutter", when: s => s.mode === "search" && s.k >= 7 && hasCode(s), say: s => `${s.k} results put ${fmt((s.k - 1) * CHUNK)} tokens of unrelated code next to the broken chunk. The model still has what it needs, but the clutter lowers its chance to ${pct(pFix(s))}, and every later call re-reads those tokens.` },

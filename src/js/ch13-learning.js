@@ -200,7 +200,7 @@ chapter("learning", () => {
     k.box(R.x - 10, R.y - 10, R.w + 20, R.h + 20, { stroke: C.line, r: 12 });
     [1, 0.1, 0.01, 0.001].forEach(v => { k.line(R.x, Y(v), R.x + R.w, Y(v), { col: C.line, alpha: 0.5, lw: 1 }); if (!narrow || v === 0.1 || v === 0.01) k.label(R.x - 6, Y(v), String(v), { align: "right", size: 10, mono: true }); });
     const gl = s.noise ? s.vgoal : 0.02;
-    k.line(R.x, Y(gl), R.x + R.w, Y(gl), { col: C.ok, dash: [5, 5], alpha: 0.8 }); if (!narrow) k.label(R.x + 8, Y(gl), s.noise ? `goal ${fmtL(gl)} (held-out)` : "goal 0.02", { align: "left", size: 10, col: C.ok, dy: s.noise ? -9 : 9, bg: true });
+    k.line(R.x, Y(gl), R.x + R.w, Y(gl), { col: C.ok, dash: [5, 5], alpha: 0.8 }); if (!narrow) { if (s.noise) k.label(R.x + R.w, R.y + 40, `green dashes: goal ${fmtL(gl)} (held-out)`, { align: "right", size: 10, col: C.ok, bg: true }); else k.label(R.x + 8, Y(gl), "goal 0.02", { align: "left", size: 10, col: C.ok, dy: 9, bg: true }); }
     const line = (idx, col, dash, al) => { const c = k.ctx; c.save(); c.strokeStyle = col; c.globalAlpha = al; c.lineWidth = k.px(2); if (dash) c.setLineDash(dash.map(k.px)); c.beginPath(); pts.forEach((p, i) => { const x = X(p[0]), y = Y(p[idx]); i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke(); c.restore(); };
     line(2, C.ink, [5, 4], 0.7); line(1, C.sig, null, 1);
     const last = pts[pts.length - 1]; k.dot(X(last[0]), Y(last[2]), k.px(3), C.ink, { alpha: 0.8 }); k.dot(X(last[0]), Y(last[1]), k.px(4), s.blown ? C.crit : C.sig, { glow: 8 });
@@ -264,7 +264,7 @@ chapter("learning", () => {
   }
 
   const sim = makeSim($("#learn-sim"), {
-    label: "Neural network training simulation. Left: the network, with teal pulses for the forward pass and amber for the backward pass. Middle: the data dots and the network's curve, and the loss over time. Right: a slice of the loss landscape with the path the weights took. Click a neuron to inspect one of its weights.",
+    label: "Neural network training simulation. Panels: the network, with teal pulses for the forward pass and amber for the backward pass; the data dots and the network's curve; the loss over time; and a slice of the loss landscape with the path the weights took. Click a neuron to inspect one of its weights.",
     cams: { default: { x: 10, y: 30, w: 1470, h: 720 } },
     camsNarrow: { default: { x: 0, y: 30, w: 1000, h: 900 } },
     height: w => w < 640 ? Math.round(Math.max(320, w * 1.0)) : Math.round(Math.min(580, Math.max(380, w * 0.52))),
@@ -279,7 +279,7 @@ chapter("learning", () => {
     ],
     step, draw,
     click: (s, wx, wy, sim) => { const R = lay(sim.narrow).net; let best = null, bd = 1e9; for (const l of [1, 2]) for (let j = 0; j < s.H; j++) { const [x, y] = neuronXY(R, s.H, l, j), d = Math.hypot(wx - x, wy - y); if (d < bd) { bd = d; best = { layer: l, j }; } } if (best && bd < 40) s.sel = best; },
-    stats: s => [["training steps", s.stepN.toLocaleString(), s.reached && s.reached <= 200 ? "ok" : s.stepN > 200 && !s.reached ? "hot" : ""], ["loss", fmtL(s.loss), s.blown ? "bad" : s.loss < 0.02 ? "ok" : ""], ["weights being trained", String(s.th.length)], ["learning rate", fmtLR(s.lr)]],
+    stats: s => [["training steps", s.stepN.toLocaleString(), s.reached && s.reached <= 200 && !overfitting(s) ? "ok" : s.stepN > 200 && !s.reached ? "hot" : ""], ["loss", fmtL(s.loss), s.blown ? "bad" : s.loss < 0.02 ? "ok" : ""], ["weights being trained", String(s.th.length)], ["learning rate", fmtLR(s.lr)]],
     goal: { get text() { return goalS && goalS.noise ? `noise makes 0.02 impossible, so get the loss on the held-out dots below ${fmtL(goalS.vgoal)} within 200 steps` : "get the loss below 0.02 within 200 training steps"; },
       check: s => { goalS = s; const of = overfitting(s); return { done: !!s.reached && s.reached <= 200 && !of,
         progress: of ? `overfitting: held-out loss up from ${fmtL(s.vbest)} to ${fmtL(s.vloss)}` : s.reached ? (s.reached > 200 ? `below the line only at step ${s.reached.toLocaleString()}: too slow` : `done at step ${s.reached}`) : `step ${s.stepN} · ${s.noise ? "held-out loss " + fmtL(s.vloss) : "loss " + fmtL(s.loss)}` }; } },
@@ -312,7 +312,8 @@ chapter("learning", () => {
     publish: s => { const si = selInfo(s); return {
       lSteps: s.stepN.toLocaleString(), lLoss: fmtL(s.loss), lParams: String(s.th.length), lLR: fmtLR(s.lr),
       lW: mfix(si.w, 6), lG: fmtS(si.g).replace("+", ""), lPlain: fmtS(si.plain), lNew: mfix(si.w + si.plain, 6), lAdam: fmtS(si.adam), lWhich: si.name,
-      lRatio: (Math.abs(si.adam) / s.lr).toFixed(2), lPaths: si.paths === 1 ? "one path (weight → guess → loss)" : `${si.paths} paths, one through each layer-2 neuron`,
+      lRatio: (r => Math.abs(r) >= 0.1 || r === 0 ? r.toFixed(2) : r.toPrecision(1))(si.adam / s.lr).replace("-", "−"),
+      lAdamNote: si.adam !== 0 && (Math.sign(si.adam) !== Math.sign(si.plain) || Math.abs(si.adam) / s.lr < 0.3) ? " (near the bottom the slope keeps flipping sign, so Adam's running average is small and can even point the other way)" : "", lPaths: si.paths === 1 ? "one path (weight → guess → loss)" : `${si.paths} paths, one through each layer-2 neuron`,
       lChainEq: s.sel.layer === 1 ? "∂L/∂w = (1/N) · Σᵢ Σₖ 2(ŷᵢ − yᵢ) · vₖ · s₂ₖ · uₖ · s₁ · xᵢ" : "∂L/∂w = (1/N) · Σᵢ 2(ŷᵢ − yᵢ) · h₂ᵢ",
       lVal: fmtL(s.vloss) }; }
   });

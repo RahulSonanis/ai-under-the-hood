@@ -62,7 +62,7 @@ chapter("datacenters", () => {
       cam: { x: -30, y: 0, w: 1660, h: 790 } };
   })();
   const NARROW = (() => {
-    const hx = i => 20 + (i % 2) * 440, hy = i => 200 + Math.floor(i / 2) * 330, HW = 420, HH = 300, P = [20, 870, 280, 150], S = [350, 18, 200, 142];
+    const hx = i => 20 + (i % 2) * 440, hy = i => 200 + Math.floor(i / 2) * 330, HW = 420, HH = 300, P = [20, 870, 280, 150], S = [330, 18, 240, 142];
     return { cols: 15, rows: 10, hw: HW, hh: HH, hall: i => [hx(i), hy(i)], sub: S, plant: P, chart: [330, 870, 550, 230],
       grid: [[450, -60], [450, S[1]]],
       bus: i => i < 2 ? [[450, S[1] + S[3]], [450, 175], [hx(i) + HW / 2, 175], [hx(i) + HW / 2, hy(i)]] : [[450, S[1] + S[3]], [450, 515], [hx(i) + HW / 2, 515], [hx(i) + HW / 2, hy(i)]],
@@ -115,7 +115,7 @@ chapter("datacenters", () => {
     // substation and cooling plant
     k.box(sx, sy, sw, sh, { fill: C.bg2, stroke: C.amb, r: 12, lw: 1.4, glow: 10 * intensity, glowCol: C.amb });
     k.label(sx + sw / 2, sy + sh / 2, "substation", { col: C.ink, weight: "650", size: 11, dy: -15 });
-    k.label(sx + sw / 2, sy + sh / 2, fmtMW(p.site * s.load), { col: s.use === "train" && p.site > GOAL_MW + 1e-9 ? C.crit : C.amb, size: 12, weight: "650", mono: true, dy: 1 });
+    k.label(sx + sw / 2, sy + sh / 2, "now " + fmtMW(p.site * s.load), { col: s.use === "train" && p.site > GOAL_MW + 1e-9 ? C.crit : C.amb, size: 12, weight: "650", mono: true, dy: 1 });
     k.label(sx + sw / 2, sy + sh / 2, "limit " + fmtMW(s.power), { col: C.muted, size: 10, dy: 16 });
     k.box(px, py, pw, ph, { fill: C.bg2, stroke: COOL, r: 12, lw: 1.4, glow: 10 * intensity, glowCol: COOL });
     k.label(px + pw / 2, py + ph / 2, "cooling plant", { col: C.ink, weight: "650", size: 11, dy: -15 });
@@ -135,7 +135,7 @@ chapter("datacenters", () => {
     k.label(cx + cw - 12, cy + 18, "- - limit", { align: "right", col: C.crit, size: 10, weight: "600" });
     s.marks.forEach((m, i) => { if (!m) return; const xx = gx + (i + HIST - s.hist.length) / (HIST - 1) * gw;
       k.line(xx, gy, xx, gy + gh, { col: C.muted, lw: 1, dash: [2, 4], alpha: 0.7 });
-      if (i === s.marks.lastIndexOf(true) && !narrow) k.label(xx - 4, gy + gh - 10, "plan changed", { align: "right", col: C.muted, size: 9 }); });
+      if (i === s.marks.lastIndexOf(true) && !narrow) k.label(xx - 4, gy + 8, "plan changed", { align: "right", col: C.muted, size: 9, bg: true }); });
     const c = k.ctx; c.save(); c.strokeStyle = C.amb; c.lineWidth = k.px(2); c.lineJoin = "round"; c.beginPath();
     s.hist.forEach((v, i) => { const xx = gx + (i + HIST - s.hist.length) / (HIST - 1) * gw, yy = gy + gh - Math.min(1, v / mx) * gh; i ? c.lineTo(xx, yy) : c.moveTo(xx, yy); }); c.stroke(); c.restore();
     k.label(cx + 12, cy + ch - 13, s.use === "train" ? "training: flat, with sudden dips at restarts" : "serving: follows people's day", { align: "left", col: C.muted, size: 10 });

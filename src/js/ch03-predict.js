@@ -145,7 +145,7 @@ chapter("predict", () => {
     const T = L.text;
     k.box(T.x, T.y, T.w, T.h, { fill: C.bg2, stroke: C.line, r: 14 });
     k.label(T.x + 16, T.y + 16, studying ? (s.mode === "studied" ? "Reading a sentence it studied (it is not writing now)" : "Reading a new sentence it never saw") : "What it has written", { align: "left", size: 12, col: studying ? C.amb : C.muted, weight: "600" });
-    if (!L.n) k.label(T.x + T.w - 16, T.y + 16, "red underline: a word pair it never saw · amber: repeating itself · blue: your pick", { align: "right", size: 11, col: C.muted });
+    if (!L.n) k.label(T.x + T.w - 16, T.y + 16, studying ? "amber: surprising word · teal: expected word" : "red underline: a word pair it never saw · amber: repeating itself · blue: your pick", { align: "right", size: 11, col: C.muted });
     font(c, T.fs, "--f-display", "500");
     const sp = c.measureText(" ").width, maxW = T.w - 40, lines = [[]]; let lw = 0;
     const toks = s.toks.slice(-120);

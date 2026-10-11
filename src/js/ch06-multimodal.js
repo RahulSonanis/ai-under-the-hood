@@ -7,7 +7,7 @@
 chapter("multimodal", () => {
   const MASTER = 1024, PROMPT = ["What", " does", " the", " label", " say", "?"], BUDGET = 300, VOICE_S = 4, VOICE_TOK = VOICE_S * 50, PRICE = 3 / 1e6;
   const PICS = {
-    bottle: { name: "Pill bottle", letter: 0.034, crop: [0.31, 0.44, 0.38, 0.17], text: "TAKE 2 DAILY" },
+    bottle: { name: "Pill bottle", letter: 0.034, crop: [0.31, 0.465, 0.38, 0.06], text: "TAKE 2 DAILY" },
     sign: { name: "Shop sign", letter: 0.08, crop: [0.13, 0.28, 0.74, 0.19], text: "BAKERY" },
     cat: { name: "Cat", letter: 0, crop: [0.3, 0.42, 0.4, 0.3], text: "" }
   };
@@ -109,7 +109,7 @@ chapter("multimodal", () => {
   // ---------- layout ----------
   function layout(narrow) {
     if (!narrow) return { narrow, P: { x: 20, y: 46, w: 360 }, V: { x: 420, y: 46, w: 230 }, Z: { x: 420, y: 316, w: 230, h: 90 }, A: { x: 20, y: 470, w: 630, h: 140 }, G: { x: 700, y: 100, w: 560, h: 500 }, T: { x: 700, y: 46 } };
-    return { narrow, P: { x: 10, y: 40, w: 260 }, V: { x: 290, y: 40, w: 260 }, Z: { x: 10, y: 334, w: 540, h: 76 }, A: { x: 10, y: 790, w: 540, h: 50 }, G: { x: 10, y: 528, w: 540, h: 220 }, T: { x: 10, y: 478 } };
+    return { narrow, P: { x: 10, y: 40, w: 260 }, V: { x: 290, y: 40, w: 260 }, Z: { x: 10, y: 334, w: 540, h: 106 }, A: { x: 10, y: 800, w: 540, h: 50 }, G: { x: 10, y: 558, w: 540, h: 200 }, T: { x: 10, y: 508 } };
   }
   // token grid geometry (image + audio tokens; the text tokens get their own row of chips)
   const CAP = 400;   // most cells drawn; beyond this the squares get too small to see, so only the first ones are shown
@@ -159,13 +159,14 @@ chapter("multimodal", () => {
     k.box(V.x, V.y, V.w, V.w, { stroke: C.line, r: 2, lw: 1 });
     // label close-up
     const Z = L.Z, cr = pic.crop, vd = verdict(s), vcol = vd === "readable" ? C.ok : vd === "blurry" ? C.amb : vd === "unreadable" ? C.crit : C.muted;
-    // the close-up is drawn at actual pixel size (one pixel the model gets = one screen pixel), shrunk only if it won't fit,
-    // so small letters look as small and rough as they really are
-    { const c = k.ctx; c.save(); c.imageSmoothingEnabled = false; const sw = cr[2] * s.res, sh = cr[3] * s.res, f = Math.min(k.px(1), Z.w / sw, Z.h / sh), zw = sw * f, zh = sh * f;
+    // the close-up is cut from the downsampled picture the model gets and magnified with nearest-neighbour scaling,
+    // so each block on screen is one of the model's pixels and small letters look as coarse as they really are
+    { const c = k.ctx; c.save(); c.imageSmoothingEnabled = false; const sw = cr[2] * s.res, sh = cr[3] * s.res, f = Math.min(Z.w / sw, (Z.h - 40) / sh), zw = sw * f, zh = sh * f, mag = f / k.px(1);
       c.drawImage(vw, cr[0] * s.res, cr[1] * s.res, sw, sh, Z.x, Z.y + 18, zw, zh); c.restore();
       k.box(Z.x - 1, Z.y + 17, zw + 2, zh + 2, { stroke: vcol, lw: 2, r: 2 });
-      if (pic.letter && !nar) k.label(Z.x, Z.y + 18 + zh + 14, `letters ${letterPx(s).toFixed(1)} px${s.patch > 16 ? ", squeezed" : ""}`, { align: "left", col: C.muted, size: 11, mono: true }); }
-    k.label(Z.x, Z.y + 4, pic.letter ? `Actual size: ${vd === "readable" ? "readable" : vd === "blurry" ? "blurry, a guess" : "unreadable"}` : "Actual size: no text to read", { align: "left", col: vcol, size: 12, weight: "600" });
+      const magT = mag >= 1.05 ? `×${mag.toFixed(1)}` : "shrunk";
+      k.label(Z.x, Z.y + 18 + zh + 14, pic.letter ? `${magT} · ${letterPx(s).toFixed(1)} px ${s.patch > 16 ? "tall, squeezed" : "tall (need 8)"}` : magT, { align: "left", col: C.muted, size: 11, mono: true }); }
+    k.label(Z.x, Z.y + 4, pic.letter ? `Close-up: ${vd === "readable" ? "readable" : vd === "blurry" ? "blurry, a guess" : "unreadable"}` : "Close-up: no text to read", { align: "left", col: vcol, size: 12, weight: "600" });
     // 3) the token stream
     const T = L.T, tot = total(s), over = tot > BUDGET;
     k.label(T.x, T.y - 18, nar ? `The model's input · ${fmtN(tot)} tokens` : `The model's input, in order · ${fmtN(tot)} tokens`, { align: "left", col: over ? C.crit : C.ink, weight: "600", size: 13 });
@@ -250,7 +251,7 @@ chapter("multimodal", () => {
       { id: "voice", when: s => s.voice && s.t - s.t0 > 4, say: s => `The ${VOICE_S}-second voice note became <b>${VOICE_TOK}</b> tokens: the sound is turned into a spectrogram, a picture of which pitches are loud at each moment, and every 20 ms slice becomes one token. That's ${VOICE_TOK} tokens of your ${BUDGET}.` },
       { id: "patch32", when: s => s.patch === 32, say: s => `With 32-pixel patches, each token has to hold ${fmtN(32 * 32 * 3)} colour values in a list the same size as before, so fine detail gets squeezed out. Fewer tokens (${fmtN(imgTok(s))}), but the letters are now worth only about ${letterPx(s).toFixed(1)} pixels.` },
       { id: "over", when: s => total(s) > BUDGET, say: s => { const n = grid(s); return `At ${s.res}×${s.res} the picture is ${n} patches across and ${n} down: <b>${fmtN(n * n)}</b> tokens, over your ${BUDGET}-token budget. Double the width and height and you get four times the patches, so four times the tokens.`; } },
-      { id: "unread", when: s => verdict(s) === "unreadable" || verdict(s) === "blurry", say: s => `At ${s.res}×${s.res} the label's letters are about <b>${letterPx(s).toFixed(1)} pixels</b> tall. That's too few to tell an E from an F, so the model could only guess. Raise the resolution, but watch the token count.` },
+      { id: "unread", when: s => verdict(s) === "unreadable" || verdict(s) === "blurry", say: s => `At ${s.res}×${s.res} the label's letters are about <b>${letterPx(s).toFixed(1)} pixels</b> tall. That's under the ~8 pixels our illustrative rule asks for: at this size a model starts mixing up similar letters, like E and F, so it could only guess. Raise the resolution, but watch the token count.` },
       { id: "cat", when: s => s.pic === "cat" && s.res <= 160, say: s => `Even at ${s.res}×${s.res}, only ${fmtN(imgTok(s))} tokens, the cat is still obviously a cat. Big shapes survive low resolution; small text doesn't.` },
       { id: "calm", when: () => true, say: s => `${fmtN(imgTok(s))} picture tokens, about as many as ${fmtN(imgTok(s) * 0.75)} words of text. Each square of your picture became one token in the model's input, after the ${PROMPT.length} text tokens of your question.` }
     ],
@@ -262,7 +263,7 @@ chapter("multimodal", () => {
       { say: "A pill bottle sent at 224×224 pixels with 16-pixel patches, the setup of the original Vision Transformer: 14 × 14 = 196 tokens. Watch them fly in after your words.", set: { pic: "bottle", res: 224, patch: 16, voice: false }, wait: 7 },
       { say: "Send it sharper, at 640×640. The label is crisp, but the picture is now 1,600 tokens, far over budget.", set: { res: 640 }, wait: 7 },
       { say: "Go cheap: 96×96 is just 36 tokens, but look at the close-up. The letters are a smear.", set: { res: 96 }, wait: 7 },
-      { say: "The sweet spot: 256×256 is 256 tokens plus 6 text tokens, and the letters are just big enough to read. Compare the close-up with 224.", set: { res: 256 }, wait: 7 },
+      { say: "The sweet spot: 256×256 is 256 tokens plus 6 text tokens, and the letters reach about 9 pixels, just over the ~8 our rule needs. Each block in the close-up is one pixel the model gets.", set: { res: 256 }, wait: 7 },
       { say: "Now add a 4-second voice note. Sound becomes a spectrogram, and each 20 ms slice becomes a token: 200 more, over budget again.", set: { voice: true }, wait: 9 }
     ],
     publish: s => ({ mmRes: `${s.res}×${s.res}`, mmResN: String(s.res), mmPatch: String(s.patch), mmGrid: String(grid(s)), mmImgTok: fmtN(imgTok(s)), mmTotal: fmtN(total(s)), mmLetter: PICS[s.pic].letter ? letterPx(s).toFixed(1) + " pixels" : "(no text in this picture)", mmWords: fmtN(imgTok(s) * 0.75), mmVoice: s.voice ? ` + ${VOICE_TOK} voice` : "", mmPrompt: String(PROMPT.length) })

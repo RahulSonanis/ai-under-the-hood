@@ -27,8 +27,8 @@ chapter("start", () => {
   // The message travels as text; it is cut into tokens inside the GPU panel ("what the model receives").
   const LAY = {
     wide: { W: 1000, H: 380, fs: 17, chipFs: 13, sm: 12.5, chat: { x: 14, y: 14, w: 372, h: 352 }, gpu: { x: 620, y: 14, w: 366, h: 352 },
-      out: [[386, 110], [470, 30], [560, 40], [640, 74]], back: [[928, 262], [944, 372], [520, 392], [386, 300]],
-      chips: { x: 640, y: 72, w: 330, rows: 2 }, ctx: { x: 640, y: 142, w: 326 }, stack: { x: 664, y: 162, w: 196, h: 150, n: 8 }, odds: { x: 880, y: 174, w: 92 }, net: [503, 190], slow: [503, 372] },
+      out: [[386, 110], [470, 30], [560, 40], [640, 74]], back: [[930, 318], [944, 384], [520, 400], [386, 300]],
+      chips: { x: 640, y: 72, w: 330, rows: 2 }, ctx: { x: 640, y: 142, w: 326 }, stack: { x: 664, y: 162, w: 196, h: 150, n: 8 }, odds: { x: 880, y: 174, w: 92 }, net: [503, 190], slow: [503, 212] },
     narrow: { W: 360, H: 700, fs: 16.5, chipFs: 13.5, sm: 12.5, chat: { x: 6, y: 6, w: 348, h: 290 }, gpu: { x: 6, y: 378, w: 348, h: 296 },
       out: [[70, 296], [30, 330], [110, 350], [70, 392]], back: [[296, 392], [322, 356], [300, 330], [280, 296]],
       chips: { x: 18, y: 436, w: 330, rows: 2 }, ctx: { x: 18, y: 506, w: 330 }, stack: { x: 24, y: 530, w: 168, h: 112, n: 8 }, odds: { x: 214, y: 540, w: 124 }, net: [190, 326], slow: [180, 690] }
@@ -117,7 +117,7 @@ chapter("start", () => {
     if (split && cl.hidden) k.text(cp.x + cp.w, cp.y + cl.h + 10, `+${cl.hidden} more`, { align: "right", col: C.muted, size: Y.sm });
     // tokens in play
     const cx = Y.ctx, read = t >= m.tW ? nIn : 0, total = read + wr, dx = Math.min(9, (cx.w - 10) / Math.max(1, nIn + nOut));
-    k.text(cx.x + 4, cx.y - 12, `tokens in play · ${read} read + ${wr} written`, { align: "left", col: C.muted, size: Y.sm });
+    k.text(cx.x + 4, cx.y - 12, ph === "read" ? `tokens in play · reading ${nIn}…` : `tokens in play · ${read} read + ${wr} written`, { align: "left", col: C.muted, size: Y.sm });
     for (let i = 0; i < total; i++) k.dot(cx.x + 8 + i * dx, cx.y, Math.min(3, dx * 0.38), i < read ? C.sig : C.ink, { alpha: i < read ? 0.9 : 0.75 });
     // layers
     const bwid = 14, gap = (st.w - bwid) / (st.n - 1), barX = j => st.x + j * gap;
@@ -166,7 +166,7 @@ chapter("start", () => {
       if (!sim.narrow || j === wr - 1) k.label(x, y, show(m.outT[j]), { mono: true, size: 11, col: C.ink, bg: true, dy: -14 });
     }
     // slow-motion note
-    k.label(Y.slow[0], Y.slow[1], "slow motion · the real trip takes about a second", { col: C.muted, size: 10.5, alpha: 0.8 });
+    k.label(Y.slow[0], Y.slow[1], "slow motion · the real trip ≈ 1 second", { col: C.muted, size: 10.5, alpha: 0.8 });
   }
 
   const chHref = n => { const sec = $(`section.chapter[data-num="${n}"]`); return sec ? "#" + sec.id : "#start"; };
@@ -189,7 +189,7 @@ chapter("start", () => {
     stats: s => { const m = s.m; if (!m) return []; const wr = written(m, s.t), ph = phase(m, s.t), pre = ["send", "out"].includes(ph);
       return [["tokens in your message", pre ? "–" : String(m.inT.length), ""],
         ["tokens written so far", `${wr} / ${m.outT.length}`, ""],
-        ["passes through the model", String(passes(m, s.t)), wr > 1 ? "hot" : wr === 1 ? "ok" : ""]]; },
+        ["passes through the model", ph === "read" ? "1 (reading)" : String(passes(m, s.t)), wr > 1 ? "hot" : wr === 1 || ph === "read" ? "ok" : ""]]; },
     notices: [
       { id: "nums", when: s => s.nums && s.t - s.numsAt < 6, say: s => `The model never sees letters. In the datacenter each token is looked up in a fixed list and replaced by its number, so the model receives your message as <b>${s.m.inT.length} numbers</b>. (These IDs are made up.)` },
       { id: "send", when: s => s.m && phase(s.m, s.t) === "send", say: s => `Your app sends your message as ordinary text, over an encrypted connection.` },

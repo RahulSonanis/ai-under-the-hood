@@ -210,12 +210,20 @@ chapter("tokens", () => {
     // 3) what the model receives: IDs -> rows of the embedding table
     const I = G.I, E = G.E, V = 256 + s.m, n = Math.min(I.n, s.toks.length);
     k.label(I.x, I.y - (G.n ? 26 : 32), G.n ? "What the model receives" : "What the model receives: one ID number per token", { align: "left", col: C.ink, weight: "650", size: 13 });
-    let i0 = Math.max(0, Math.min(s.rc - Math.floor(n / 2), s.toks.length - n)); const cw = (I.w - (n - 1) * 8) / Math.max(1, n);
-    for (let q = 0; q < n; q++) {
-      const i = i0 + q, t = s.toks[i], x = I.x + q * (cw + 8), cur = i === s.rc;
-      const fs = Math.min(G.n ? 15 : 17, cw / Math.max(2, (t.part ? t.t.length * 0.6 : t.t.length)) / 0.62);
-      chip(k, t, { x, y: I.y, w: cw, h: G.n ? 30 : 34 }, fs, cur ? { stroke: s.sel === i ? C.amb : C.sig, lw: 2.2, glow: 10, glowCol: C.sig } : { alpha: 0.75 });
-      k.text(x + cw / 2, I.y + (G.n ? 48 : 54), String(t.id), { mono: true, size: G.n ? 15 : 18, weight: "650", col: cur ? C.sig : C.muted });
+    let i0 = Math.max(0, Math.min(s.rc - Math.floor(n / 2), s.toks.length - n)), cw = (I.w - (n - 1) * 8) / Math.max(1, n), chipCols = null;
+    if (G.n && s.toks.length) {
+      // phone: chips sized to their text (a long token like "·strawberry" gets a wider chip), as many as fit around the current one
+      const tw = t => Math.max(48, (t.part ? t.t.length * 0.6 : t.t.length) * 13 * 0.62 + 14), rc = Math.max(0, Math.min(s.rc, s.toks.length - 1));
+      let a = rc, b = rc, used = tw(s.toks[rc]);
+      for (let side = 0, stuck = 0; stuck < 2 && b - a + 1 < I.n; side ^= 1) { const j = side ? b + 1 : a - 1; if (j < 0 || j >= s.toks.length || used + 8 + tw(s.toks[j]) > I.w) { stuck++; continue; } stuck = 0; used += 8 + tw(s.toks[j]); if (side) b = j; else a = j; }
+      const sc = Math.min(1, I.w / used); i0 = a; chipCols = []; let x = I.x; for (let i = a; i <= b; i++) { const w = tw(s.toks[i]) * sc; chipCols.push({ x, w }); x += w + 8; }
+    }
+    const nq = chipCols ? chipCols.length : n, colX = q => chipCols ? chipCols[q].x : I.x + q * (cw + 8), colW = q => chipCols ? chipCols[q].w : cw;
+    for (let q = 0; q < nq; q++) {
+      const i = i0 + q, t = s.toks[i], x = colX(q), w = colW(q), cur = i === s.rc;
+      const fs = Math.min(G.n ? 13 : 17, w / Math.max(2, (t.part ? t.t.length * 0.6 : t.t.length)) / 0.62);
+      chip(k, t, { x, y: I.y, w, h: G.n ? 30 : 34 }, fs, cur ? { stroke: s.sel === i ? C.amb : C.sig, lw: 2.2, glow: 10, glowCol: C.sig } : { alpha: 0.75 });
+      k.text(x + w / 2, I.y + (G.n ? 48 : 54), String(t.id), { mono: true, size: G.n ? 15 : 18, weight: "650", col: cur ? C.sig : C.muted });
     }
     // the table
     if (G.n) k.label(E.x + E.w, E.y - 12, `table · ${fmtN(V)} rows`, { col: C.ink, weight: "650", size: 11, align: "right" });
@@ -224,18 +232,18 @@ chapter("tokens", () => {
     const yb = E.y + E.h * 256 / V, cols = G.n ? 6 : 12, bands = G.n ? 26 : 40;
     for (let b = 0; b < bands; b++) { const y = E.y + 3 + b * (E.h - 6) / bands, rid = Math.floor((b + 0.5) / bands * V); for (let q = 0; q < cols; q++) { const v = emb(rid, q); k.box(E.x + 4 + q * (E.w - 8) / cols, y, (E.w - 8) / cols - 1.5, (E.h - 6) / bands - 1.5, { fill: rid < 256 ? C.muted : C.sig, r: 1, alpha: 0.12 + 0.28 * Math.abs(v) }); } }
     if (s.m > 0) { k.line(E.x - 4, yb, E.x + E.w + 4, yb, { col: C.ink, lw: 1, dash: [3, 3], alpha: 0.6 }); }
-    if (!G.n) { k.label(E.x - 8, E.y + (yb - E.y) / 2, "256 bytes", { align: "right", col: C.muted, size: 11 }); if (s.m > 0) k.label(E.x - 8, yb + (E.y + E.h - yb) / 2, `${fmtN(s.m)} merges`, { align: "right", col: C.sig, size: 11 }); }
+    if (!G.n) { k.label(E.x - 8, E.y + (yb - E.y) / 2, "256 bytes", { align: "right", col: C.muted, size: 11 }); if (s.m > 0) { let my = yb + (E.y + E.h - yb) / 2; const cur = s.toks[s.rc]; if (cur) { const hy = E.y + E.h * (cur.id + 0.5) / V; if (Math.abs(my - hy) < 14) my = hy - 14 > yb + 6 ? hy - 14 : hy + 14; } k.label(E.x - 8, my, `${fmtN(s.m)} merges`, { align: "right", col: C.sig, size: 11 }); } }
     const ct = s.toks[s.rc];
     if (ct) {
-      const ry = E.y + E.h * (ct.id + 0.5) / V, q = s.rc - i0, sx = I.x + q * (cw + 8) + cw / 2, sy = I.y + (G.n ? 60 : 66), by = G.n ? 624 : 614, bx = E.x - (G.n ? 12 : 30);
+      const ry = E.y + E.h * (ct.id + 0.5) / V, q = s.rc - i0, sx = q >= 0 && q < nq ? colX(q) + colW(q) / 2 : I.x, sy = I.y + (G.n ? 60 : 66), by = G.n ? 624 : 614, bx = E.x - (G.n ? 12 : 30);
       k.box(E.x - 2, ry - 3, E.w + 4, 6, { fill: C.sig, r: 3, glow: 14, glowCol: C.sig });
       k.label(E.x + E.w + (G.n ? -4 : 8), ry, G.n ? "" : `row ${ct.id}`, { align: "left", col: C.sig, size: 12, weight: "600" });
       const pts = [[sx, sy], [sx, by], [bx, by], [bx, ry], [E.x - 2, ry]], seg = pts.slice(1).map((p, j) => Math.hypot(p[0] - pts[j][0], p[1] - pts[j][1])), tot = seg.reduce((a, b) => a + b, 0);
       const path = u => { let d = u * tot; for (let j = 0; j < seg.length; j++) { if (d <= seg[j] || j === seg.length - 1) { const f = Math.min(1, d / seg[j]); return [lerp(pts[j][0], pts[j + 1][0], f), lerp(pts[j][1], pts[j + 1][1], f)]; } d -= seg[j]; } };
-      if (q >= 0 && q < n) { for (let j = 0; j + 1 < pts.length; j++) k.line(pts[j][0], pts[j][1], pts[j + 1][0], pts[j + 1][1], { col: C.sig, lw: 1, alpha: 0.25 }); }
-      if (q >= 0 && q < n) k.flow(path, 3, (s.t * 0.6) % 1, C.sig, { len: 0.06, size: 3 });
+      if (q >= 0 && q < nq) { for (let j = 0; j + 1 < pts.length; j++) k.line(pts[j][0], pts[j][1], pts[j + 1][0], pts[j + 1][1], { col: C.sig, lw: 1, alpha: 0.25 }); }
+      if (q >= 0 && q < nq) k.flow(path, 3, (s.t * 0.6) % 1, C.sig, { len: 0.06, size: 3 });
       // the row's numbers
-      const Vv = G.V, nums = G.n ? 4 : 6, txt = Array.from({ length: nums }, (_, j) => { const v = emb(ct.id, j); return (v < 0 ? "−" : "") + Math.abs(v).toFixed(2); }).join("  ");
+      const Vv = G.V, nums = G.n ? 3 : 6, txt = Array.from({ length: nums }, (_, j) => { const v = emb(ct.id, j); return (v < 0 ? "−" : "") + Math.abs(v).toFixed(2); }).join("  ");
       k.label(Vv.x, Vv.y, G.n ? `row ${ct.id}: ${txt} …` : `“${ct.t}” → ID ${ct.id} → row ${ct.id}:  ${txt}  …`, { align: "left", col: C.sig, mono: true, size: G.n ? 11 : 13 });
       if (!G.n) k.label(Vv.x, Vv.y + 22, "the numbers are illustrative; in a real model they are learned, and there are thousands per row", { align: "left", col: C.muted, size: 11 });
     }
@@ -273,7 +281,7 @@ chapter("tokens", () => {
       { id: "sel", when: s => s.sel >= 0 && s.t - s.selT < 6, say: s => { const t = s.toks[s.sel]; return `“${esc(t.t)}” is token <b>${t.id}</b>${t.id < 256 ? `, one raw byte${t.part ? ` (shown in hex, a short code for the numbers 0 to 255: ${esc(t.t)} = ${t.id})` : ""}` : `, made by merge ${t.id - 255}`}. The model never sees its letters. It receives only the number ${t.id}, which picks row ${t.id} of the embedding table: a list of numbers learned for this token.`; } },
       { id: "straw", when: s => strawToks(s) === 1, say: s => { const t = s.toks.find(x => /strawberry/i.test(x.t)); return `“strawberry” is now one token, number <b>${t ? t.id : ""}</b>. That number is all the model receives. The letters, and the three r's, are no longer visible to it: to count them it must remember how token ${t ? t.id : ""} is spelled. (It's one token here because our training text is full of strawberries; real tokenizers, such as the one for OpenAI's GPT-4, cut it into about 3.)`; } },
       { id: "nonEn", when: s => nonAscii(s) && s.src === "web" && words(s) > 0 && s.toks.length / words(s) > 3, say: s => `Your text is <b>${fmtN(s.toks.length)}</b> tokens for ${words(s)} words, ${(s.toks.length / words(s)).toFixed(1)} per word. This vocabulary learned only from English, so it has no merges for these letters: each one stays as its raw bytes (dashed boxes, written in hex, a short code for the numbers 0 to 255: e0 = 224). Switch to <b>This text only</b> and watch the bytes fuse into letters.` },
-      { id: "out", when: s => s.src === "self" && L_(s).done && s.target > L_(s).merges.length && s.m >= L_(s).merges.length, say: s => { const L = L_(s), web = WEB.encode(s.text, WEB.learnTo(s.m)).length; return /strawberry/i.test(s.text) && strawToks(s) > 1 ? `Learning from this one sentence ran out after ${L.merges.length} merges. “strawberry” appears only once, and a merge needs a pair seen at least twice, so the word can never be learned here. Learn from everyday English instead.` : `Learning ran out after <b>${L.merges.length}</b> merges: no pair of neighbours appears twice any more. The vocabulary now fits this text snugly (${fmtN(s.toks.length)} tokens), but it learned from just ${L.words} words. The same number of merges learned from everyday English gives ${fmtN(web)}.`; } },
+      { id: "out", when: s => s.src === "self" && L_(s).done && s.target > L_(s).merges.length && s.m >= L_(s).merges.length, say: s => { const L = L_(s), web = WEB.encode(s.text, WEB.learnTo(s.m)).length; return /strawberry/i.test(s.text) && strawToks(s) > 1 ? `Learning from this one sentence ran out after ${L.merges.length} merges. “strawberry” appears only once, and a merge needs a pair seen at least twice, so the word can never be learned here. Learn from everyday English instead.` : `Learning ran out after <b>${L.merges.length}</b> merges: no pair of neighbours appears twice any more. The vocabulary now fits this text snugly (${fmtN(s.toks.length)} tokens), but it learned from just ${words(s)} words. The same number of merges learned from everyday English gives ${fmtN(web)}.`; } },
       { id: "code", when: s => s.key === "code" && s.src === "web" && s.m >= 100, say: s => { const L = L_(s), n = L.encode(" total_price", s.m).length; return `Code is full of symbols and made-up names. This vocabulary learned from stories, so “total_price” still takes ${n} tokens, and every space of indentation is a token of its own. Tokenizers for coding models learn from lots of code.`; } },
       { id: "rare", when: s => s.m >= 150 && s.m === Math.min(s.target, L_(s).merges.length) && L_(s).merges[s.m - 1] && L_(s).merges[s.m - 1][2] <= 3, say: s => { const L = L_(s), a = L.encode(s.text, Math.max(0, s.m - 100)).length, b = s.toks.length, z = L.encode(s.text, Math.min(100, s.m)).length, z0 = L.encode(s.text, 0).length; return `Merge ${s.m} glued a pair seen only ${L.merges[s.m - 1][2]} times in the training text. Late merges buy little: the last 100 merges saved your text ${a - b} tokens, the first 100 saved ${z0 - z}. That's why real vocabularies stop at tens of thousands of tokens.`; } },
       { id: "space", when: s => s.m >= 20 && s.m <= 300 && s.toks.some(t => /^·\p{L}{2,}/u.test(t.t)), say: s => { const t = s.toks.find(t => /^·\p{L}{2,}/u.test(t.t)); return `See the dot at the start of “${esc(t.t)}”? The space before a word belongs to the word, so “${esc(t.t)}” is one token (ID ${t.id}) instead of two. A word at the start of a sentence, with no space, is a different token with a different ID.`; } },

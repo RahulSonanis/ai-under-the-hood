@@ -85,8 +85,8 @@ chapter("batching", () => {
     }
     k.label(M.x + memW / 2, cxy(Math.max(0, Math.min(wC - 1, Math.floor(wC / 2))))[1] + M.cell / 2, nar ? `model ${fGB(m.W)}` : `the model · ${fGB(m.W)} (${m.pr.name})`, { col: C.ink, size: 12, weight: "600", bg: true });
     if (kvC >= (nar ? 5 : 12)) { const mid = wC + workC + Math.floor(kvC / 2); k.label(M.x + memW / 2, cxy(mid)[1] + M.cell / 2, nar ? `notes ${fGB(m.kv)}` : `notes · ${m.seated} × ${fmtL(s.ctx)} = ${fGB(m.kv)}`, { col: C.ink, size: 12, weight: "600", bg: true }); }
-    if (m.over) k.label(M.x + memW / 2, M.y + memH + (nar ? 28 : 26), `needs ${fGB(m.need)} of 80 GB`, { col: C.crit, size: 13, weight: "700" });
-    else if (!nar) k.label(M.x + memW / 2, M.y + memH + 26, `${fGB(MEM - m.used)} free · dashed = working space`, { col: C.muted, size: 11 });
+    if (m.over) k.label(M.x + memW / 2, M.y + memH + (nar ? 35 : 32), `needs ${fGB(m.need)} of 80 GB`, { col: C.crit, size: nar ? 12 : 13, weight: "700" });
+    else if (!nar) k.label(M.x + memW / 2, M.y + memH + 32, `${fGB(MEM - m.used)} free · dashed = working space`, { col: C.muted, size: 11 });
     // ---- pipe ----
     const P = L.pipe, memShare = m.mem / m.t, reading = s.p < memShare;
     k.box(P.x0, P.y - 20, P.x1 - P.x0, 40, { fill: C.bg2, stroke: reading ? C.sig : C.line, r: 20, glow: reading ? 10 : 0, glowCol: C.sig });
@@ -118,8 +118,8 @@ chapter("batching", () => {
       if (rK > 1) k.box(T.x + rW, T.y, rK, 18, { fill: NOTE, r: 4, alpha: 0.8 });
       k.box(T.x, T.y + 30, Math.max(2, cW), 18, { fill: C.amb, r: 4, alpha: 0.85 });
       k.line(T.x + s.p * T.w, T.y - 6, T.x + s.p * T.w, T.y + 54, { col: C.ink, lw: 1.5, alpha: 0.7 });
-      k.label(T.x + T.w + 12, T.y + 9, `reading ${fMs(m.mem)}`, { align: "left", col: C.sig, size: 11, weight: "600" });
-      k.label(T.x + T.w + 12, T.y + 39, `maths ${fMs(m.comp)}`, { align: "left", col: C.amb, size: 11, weight: "600" });
+      k.label(T.x + T.w + 20, T.y + 9, `reading ${fMs(m.mem)}`, { align: "left", col: C.sig, size: 11, weight: "600" });
+      k.label(T.x + T.w + 20, T.y + 39, `maths ${fMs(m.comp)}`, { align: "left", col: C.amb, size: 11, weight: "600" });
       k.label(T.x, T.y + 72, "teal = weights · violet = notes", { align: "left", col: C.muted, size: 11 });
       k.label(T.x, T.y + 92, `white line = progress · ${SLOW}× slower than real`, { align: "left", col: C.muted, size: 11 });
     }
@@ -139,7 +139,7 @@ chapter("batching", () => {
     }
     if (!nar) k.label(S.x + S.w / 2, S.y + S.h + 26, s.mode === "static" ? "dashed = done, waiting for the slowest · red = no room" : "ring = progress through a reply · red = no room for notes", { col: C.muted, size: 11 });
     // ---- precision tag ----
-    k.label(M.x, M.y + memH + (nar ? 64 : 50), `${m.pr.name} numbers · ${m.pr.q}`, { align: "left", col: s.prec === "int4" ? C.amb : C.muted, size: nar ? 12 : 11, weight: "600" });
+    k.label(M.x, M.y + memH + (nar ? 69 : 52), `${m.pr.name} numbers · ${m.pr.q}`, { align: "left", col: s.prec === "int4" ? C.amb : C.muted, size: nar ? 12 : 11, weight: "600" });
   }
 
   const sim = makeSim($("#bt-sim"), {

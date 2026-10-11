@@ -1050,7 +1050,7 @@ dfn[data-g]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 
   <div class="beat" data-toc="Play">
     <h3>Cut a picture into tokens</h3>
-    <p class="beat-intro">First is the picture you're sending, with the grid that cuts it into squares called <b>patches</b>. Next to it is what the model actually gets at the resolution you chose, with a close-up of the label at actual size (one pixel the model gets is one pixel on your screen). Then comes the model's input: the six tokens of your question, then one token per patch. You have a budget of 300 tokens, a per-request limit your app might set to keep cost and <dfn data-g="latency">latency</dfn> (waiting time) down; real models accept far more. Change the resolution and patch size, add a voice note, or click a patch to follow it.</p>
+    <p class="beat-intro">First is the picture you're sending, with the grid that cuts it into squares called <b>patches</b>. Next to it is what the model actually gets at the resolution you chose, with a magnified close-up of the label in which each block is one pixel the model gets. Then comes the model's input: the six tokens of your question, then one token per patch. You have a budget of 300 tokens, a per-request limit your app might set to keep cost and <dfn data-g="latency">latency</dfn> (waiting time) down; real models accept far more. Change the resolution and patch size, add a voice note, or click a patch to follow it.</p>
     <figure class="sim" id="mm-sim"></figure>
   </div>
 
@@ -1277,7 +1277,7 @@ dfn[data-g]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
     <h3>What's going on</h3>
     <p>Running a model for millions of people means changing it all the time: new versions, new settings, faster code. Each change is a risk. Google's reliability engineers report that most of their incidents are triggered by pushing new code or new settings<sup class="ref"><a href="#ref-1001">1001</a></sup>. So the new version first goes to a small slice of traffic, the <b>canary</b> (named after the birds miners carried to warn of bad air). Its numbers are compared with the old version's at the same moment, on the same kind of traffic.</p>
     <p>The hard part is choosing what to watch. Error counts and speed catch crashes and slowdowns. A reply full of wrong characters is neither: it arrives on time and counts as a success. Only something that reads replies, an automatic quality check, sees it quickly. Right now <span data-live="prShare">0%</span> of traffic is on the new version and <span data-live="prGarbled">0</span> garbled replies have reached people, out of the <span data-live="prLimit">20</span> you're allowed.</p>
-    <p>The slice also has to be the right shape. The router weights servers, so a 1% slice can be a single server. In the simulation, the first 1% and 5% land only on one chip A server, so a fault on chip C can't appear there; 25% is the first slice that reaches chip C. Real providers run the same model on several kinds of chip, and a bug can live on one of them.</p>
+    <p>The slice also has to be the right shape. The router weights servers, so a 1% slice can be a single server. In the simulation, the first 1% and 5% land only on one chip A server, so a fault on chip C can't appear there; 25% is the first slice that reaches chip C. That is a weakness of this "in steps" plan: a better first slice would hold one server of each chip type, so a fault on any of them shows up while only a few people are exposed. Real providers run the same model on several kinds of chip, and a bug can live on one of them.</p>
     <p>When a watched line crosses its limit, the router sends everyone back to the old version: a <b>rollback</b>. It doesn't fix anything. It stops the damage and buys engineers time to find the cause. Rollback is fast only because the old version is kept running and warm alongside the new one (often called blue/green); loading a model's <dfn data-g="weight">weights</dfn> onto fresh servers takes minutes.</p>
     <p>Teams write their targets down as <b>service-level objectives</b> (SLOs), such as "99.9% of replies succeed". The gap between the target and perfect is an <b>error budget</b>: while it lasts, releases go ahead; once it is spent, releases stop<sup class="ref"><a href="#ref-1002">1002</a></sup>. Your 20 garbled replies are a budget of that kind. When a watched signal moves past its target, including the quality signal, an alert pages (calls) the engineer on duty, day or night.</p>
     <details class="how"><summary>How it works <span class="sub">canaries, signals and a real incident</span></summary><div class="body">
@@ -1286,7 +1286,7 @@ dfn[data-g]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
       <p><b>Why it was hard to see.</b> Anthropic says its usual changes go to small canary groups first, yet "the evaluations we ran simply didn't capture the degradation users were reporting", partly because the model often recovers from a single bad token. Privacy rules also limit engineers' access to conversations people haven't sent as feedback. Its fixes match the lesson of the simulation: more sensitive quality checks, and running them continuously on live production traffic, not just before release<sup class="ref"><a href="#ref-30">30</a></sup>.</p>
       <details class="maths"><summary>The maths <span class="sub">how many people a bug reaches</span></summary><div class="body">
         <div class="mstep"><span class="mk">In words</span><p>The bad replies that reach people are: replies per second, times the share of traffic on the new version, times how often the new version gets a reply wrong, times how many seconds pass before someone rolls back.</p></div>
-        <div class="mstep"><span class="mk">With your numbers</span><p class="calc">On chip C the new version garbles 1 in 25 replies. Once a third of the new servers are chip C, that is about 1 in 75 of all the new version's replies; until the slice reaches a chip C server, it is 0.<br><span data-live="prWhich">Your last rollout</span>: <span data-live="prR">400</span> replies a second × <span data-live="prA">25%</span> × <span data-live="prFf">1/75</span> × <span data-live="prT">10 s</span> before rollback ≈ <b data-live="prPred">13</b> garbled replies. The simulation counted <b data-live="prCount">nothing yet</b>.<br>Everyone at once for the same time: 400 × 100% × 1/75 × <span data-live="prT">10 s</span> ≈ <b data-live="prPredAll">53</b></p></div>
+        <div class="mstep"><span class="mk">With your numbers</span><p class="calc">On chip C the new version garbles 1 in 25 replies. Once a third of the new servers are chip C, that is about 1 in 75 of all the new version's replies; until the slice reaches a chip C server, it is 0.<br><span data-live="prWhich">Your last rollout</span>: <span data-live="prR">400</span> replies a second × <span data-live="prA">25%</span><span data-live="prAvg"></span> × <span data-live="prFf">1/75</span> × <span data-live="prT">10 s</span> <span data-live="prTEnd">before rollback</span> ≈ <b data-live="prPred">13</b> garbled replies. The simulation counted <b data-live="prCount">nothing yet</b>.<br>Everyone at once for the same time: 400 × 100% × 1/75 × <span data-live="prT">10 s</span> ≈ <b data-live="prPredAll">53</b></p></div>
         <div class="mstep"><span class="mk">In symbols</span><div><div class="eq">B = R · a · f · T</div><p class="sym"><i>B</i> bad replies that reach people · <i>R</i> replies per second across the whole service · <i>a</i> share of traffic on the new version · <i>f</i> share of the new version's replies that are bad (0 until the slice reaches the faulty chip) · <i>T</i> seconds until rollback. A canary shrinks <i>a</i>; watching the right signal shrinks <i>T</i>. If nothing watches the right signal, <i>T</i> keeps growing and so does <i>B</i>.</p></div></div>
       </div></details>
     </div></details>
@@ -1331,7 +1331,7 @@ dfn[data-g]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
   <div class="beat explain" data-toc="Explain">
     <h3>What's going on</h3>
     <p><b>Every chip is a heater.</b> The chips here are a newer kind of <dfn data-g="gpu">GPU</dfn> (the Blackwell generation from NVIDIA, the largest maker of AI chips, launched in 2024), each drawing about 1 kW. With its share of the processors, memory and network around it, each chip in your cluster needs about 1.67 kW<sup class="ref"><a href="#ref-60">60</a></sup>, a little more than an average American home draws (about 1.23 kW). Your <span data-live="dcGpus">0</span> chips draw <span data-live="dcIT">0 MW</span>, and every bit of that becomes heat the building must carry away.</p>
-    <p><b>Cooling sets how tightly chips can be packed.</b> Fans blowing cold air can cool an ordinary rack: the most common ones hold 4–6 kW of equipment, a few microwaves' worth<sup class="ref"><a href="#ref-1103">1103</a></sup>. Air can stretch to two or three AI servers per rack; in this simulation an air-cooled rack holds 16 chips, about 27 kW (illustrative). The newest AI racks hold 72 chips and about 120 kW, as much as 100 homes on average, which only works with liquid piped straight onto the chips<sup class="ref"><a href="#ref-60">60</a></sup>. Packing matters because chips that work together need to sit close, joined by short, fast cables. With air, your halls fill up long before your power runs out.</p>
+    <p><b>Cooling sets how tightly chips can be packed.</b> Fans blowing cold air can cool an ordinary rack: the most common ones hold 4–6 kW of equipment, a few microwaves' worth<sup class="ref"><a href="#ref-1103">1103</a></sup>. Air can stretch to two or three AI servers per rack; in this simulation an air-cooled rack holds 16 chips, about 27 kW (illustrative). The newest AI racks hold 72 chips and about 120 kW, as much as 100 homes on average, which only works with liquid piped straight onto the chips<sup class="ref"><a href="#ref-60">60</a></sup>. Packing matters because chips that work together need to sit close, joined by short, fast cables. With air and the default overhead, the halls fill up once the site has more than about 24 MW; try 30 MW and watch power go unused.</p>
     <p><b>The building takes its share.</b> PUE (power usage effectiveness) is the site's total power divided by the power that reaches the computers. At your PUE of <span data-live="dcPue">1.5</span>, <span data-live="dcOvh">0 MW</span> goes to chillers, fans and power conversion. The industry average in 2024 was 1.56<sup class="ref"><a href="#ref-1103">1103</a></sup>; Google reports about 1.09 for its own datacenters<sup class="ref"><a href="#ref-45">45</a></sup>.</p>
     <p><b>So power is the limit.</b> Your site draws <span data-live="dcSite">0 MW</span>, as much as <span data-live="dcHomes">0</span> homes, the size of <span data-live="dcPlace">a town</span>. The International Energy Agency estimates that a typical AI datacenter uses as much electricity as 100,000 households, and the largest being built will use 20 times that. Connecting that much to the grid takes years: new power lines take four to eight years to build in rich countries<sup class="ref"><a href="#ref-1102">1102</a></sup>. So companies build where power already is, and pay for new power plants.</p>
     <details class="how"><summary>How it works <span class="sub">from chip to campus</span></summary><div class="body">
@@ -1455,7 +1455,7 @@ dfn[data-g]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
       <p><b>Held-out data.</b> The training loss can't reveal overfitting, because memorising the training dots lowers it. So teams keep some data the model never trains on (a <b>validation set</b>, the rings here) and watch its loss. When the training loss keeps falling but the held-out loss rises, the model has started memorising. Large language models usually read each token only about once, which leaves little room to memorise, but held-out loss is still the number teams watch.</p>
       <details class="maths"><summary>The maths <span class="sub">one nudge to one weight</span></summary><div class="body">
         <div class="mstep"><span class="mk">In words</span><p>For each weight, find the slope: how much the loss would go up if that weight grew a tiny bit. Then move the weight a small step the other way, the learning rate times the slope. Backpropagation finds the slope by the chain rule: <b>multiply the small effects along each path from the weight to the loss, then add up over all the paths</b>. A weight into the guess has one path (weight → guess → loss). A weight into layer 1 reaches the guess through every neuron of layer 2, so it has one path per neuron.</p><p>Adam changes the last step. It keeps a running average of each weight's slope and of the slope's typical size, and moves the weight by the learning rate times their ratio. When the slope is steady that ratio is about 1, so each nudge is about the learning rate, however steep or shallow the slope.</p></div>
-        <div class="mstep"><span class="mk">With your numbers</span><p class="calc">The weight you picked: <span data-live="lWhich">layer 2, neuron 1 → guess</span>, which reaches the loss along <span data-live="lPaths">one path</span><br>its value now: <span data-live="lW">0</span> · its slope (measured at the last step): <span data-live="lG">0</span> · learning rate: <span data-live="lLR">0</span><br>plain gradient descent: nudge = −<span data-live="lLR">0</span> × (<span data-live="lG">0</span>) = <b data-live="lPlain">0</b>, so the weight would become <span data-live="lNew">0</span><br>Adam's actual last nudge: <b data-live="lAdam">0</b>, which is <span data-live="lRatio">1</span> × the learning rate</p></div>
+        <div class="mstep"><span class="mk">With your numbers</span><p class="calc">The weight you picked: <span data-live="lWhich">layer 2, neuron 1 → guess</span>, which reaches the loss along <span data-live="lPaths">one path</span><br>its value now: <span data-live="lW">0</span> · its slope (measured at the last step): <span data-live="lG">0</span> · learning rate: <span data-live="lLR">0</span><br>plain gradient descent: nudge = −<span data-live="lLR">0</span> × (<span data-live="lG">0</span>) = <b data-live="lPlain">0</b>, so the weight would become <span data-live="lNew">0</span><br>Adam's actual last nudge: <b data-live="lAdam">0</b>, which is <span data-live="lRatio">1</span> × the learning rate<span data-live="lAdamNote"></span></p></div>
         <div class="mstep"><span class="mk">In symbols</span><div><div class="eq">L = (1/N) · Σ (ŷᵢ − yᵢ)²</div><div class="eq">w ← w − η · ∂L/∂w</div><div class="eq" data-live="lChainEq">∂L/∂w = (1/N) · Σᵢ 2(ŷᵢ − yᵢ) · h₂ᵢ</div><div class="eq">Adam: w ← w − η · m̂ / (√v̂ + ε)</div><p class="sym"><i>L</i> the loss · <i>N</i> the number of dots (40) · <i>ŷᵢ</i> the network's guess for dot <i>i</i> · <i>yᵢ</i> that dot's true height · Σ add up over all dots · <i>w</i> one weight · ← "becomes" · <i>η</i> (eta) the learning rate · ∂<i>L</i>/∂<i>w</i> the slope of the loss with respect to <i>w</i>: how much <i>L</i> changes per tiny change in <i>w</i> · the third line is the chain rule for the weight you picked (it changes when you click another neuron): for a weight into the guess, <i>h₂ᵢ</i> is the output of the layer-2 neuron it comes from, for dot <i>i</i>; for a weight into layer 1, Σₖ adds up the paths through each layer-2 neuron <i>k</i>, <i>vₖ</i> is that neuron's weight into the guess, <i>uₖ</i> its weight from your neuron, <i>s₁</i> and <i>s₂ₖ</i> the slopes of the two neurons' S-shapes, and <i>xᵢ</i> the dot's position · <i>m̂</i> Adam's running average of this weight's slope · <i>v̂</i> its running average of the slope squared, so √<i>v̂</i> is the slope's typical size · <i>ε</i> (epsilon) a tiny number that avoids dividing by zero. Backpropagation computes these products for every weight in one backward pass, reusing the shared parts, so it costs about as much as two forward passes no matter how many weights there are.</p></div></div>
       </div></details>
     </div></details>
@@ -1502,7 +1502,7 @@ dfn[data-g]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
     <p><b>The work.</b> In training, every parameter (one of the model's adjustable numbers) does a few calculations for every <dfn data-g="token">token</dfn> it reads. The total is about 6 × parameters × tokens. Your plan, <span data-live="scNw">70 billion</span> parameters reading <span data-live="scDw">15 trillion</span> tokens, is <span data-live="scFlops">0</span> operations: one GPU working flat out would need about <span data-live="scOneGPU">0</span> years. For a fixed amount of work there is a best balance: a model too big for its data is undertrained, and one too small can't hold what it reads. Here the best size is <span data-live="scBest">0</span>, at roughly 20 tokens per parameter.</p>
     <p><b>The score.</b> Panel 1 predicts the model's loss: how surprised it is by the next token, on average. Your plan scores <span data-live="scLoss">0</span>. That means that on typical text the model is as unsure as if it had to pick among <span data-live="scPpl">0</span> equally likely next tokens. The goal, 1.905, is a pick among 6.7. Small gaps in loss are big gaps in quality: each step down means fewer wrong guesses on every token of every reply.</p>
     <p><b>The split.</b> Training needs about 16 <dfn data-g="byte">bytes</dfn> per parameter: the <dfn data-g="weight">weights</dfn> plus notes used for learning. Your model needs <span data-live="scTB">0</span>, and a GPU holds 80 GB, about 20 HD films' worth. So each copy of the model is spread over <span data-live="scTP">32</span> GPUs, leaving each one <span data-live="scMem">0</span>. The other GPUs run <span data-live="scCopies">0</span> copies side by side, each reading different text, and after every step they combine what they learned. Splitting the <dfn data-g="layer">layers</dfn> into an assembly line costs time: GPUs wait while work fills and drains the line (the bubble, <span data-live="scBubble">0</span> here).</p>
-    <p><b>The failures.</b> One GPU in 16,384 failing stops everyone, because every step waits for every chip. The job restarts from the last saved copy, a checkpoint. Save rarely and each failure throws away hours; save constantly and you spend the time saving. Saving every <span data-live="scTau">2 h</span>, only <span data-live="scKept">0</span> of the time produces work that's kept. Putting it together, <span data-live="scUseful">0</span> of the time is not lost to waits, saves or failures, and this run needs about <span data-live="scDays">0</span> days. Even that kept time doesn't use a GPU's full speed: data has to move between chips, so Meta's largest Llama 3 run kept about 40% of its H100s' peak maths busy<sup class="ref"><a href="#ref-9">9</a></sup>.</p>
+    <p><b>The failures.</b> One GPU in 16,384 failing stops everyone, because every step waits for every chip. The job restarts from the last saved copy, a checkpoint. Save rarely and each failure throws away hours; save constantly and you spend the time saving. Saving every <span data-live="scTau">2 h</span>, your run so far has kept the work of only <span data-live="scKept">0</span> of the time. Add the pipeline waits from panel 2 and <span data-live="scUseful">0</span> of the time is not lost to waits, saves or failures (the stat under the simulation), and this run needs about <span data-live="scDays">0</span> days. Even that kept time doesn't use a GPU's full speed: data has to move between chips, so Meta's largest Llama 3 run kept about 40% of its H100s' peak maths busy<sup class="ref"><a href="#ref-9">9</a></sup>.</p>
     <details class="how"><summary>How it works <span class="sub">scaling laws, parallelism and checkpoints</span></summary><div class="body">
       <p><b>Scaling laws.</b> Researchers found that loss (how surprised the model is by the next token) falls smoothly and predictably as models and data grow, so a team can test small models and predict a big one<sup class="ref"><a href="#ref-7">7</a></sup>. DeepMind's Chinchilla study showed that for a fixed budget, parameters and tokens should grow together, around 20 tokens per parameter<sup class="ref"><a href="#ref-8">8</a></sup>. Panel 1 uses Epoch AI's re-fit of that law<sup class="ref"><a href="#ref-50">50</a></sup>. In practice teams often train small models far past that point, because a smaller model is cheaper to run for millions of users: Meta's Llama 3 8B read about 15 trillion tokens, close to 1,900 per parameter<sup class="ref"><a href="#ref-9">9</a></sup>.</p>
       <p><b>Memory.</b> With mixed-precision training, each parameter has a 2-byte weight and a 2-byte gradient (its "which way to nudge"), plus 12 bytes the optimiser keeps: a precise copy of the weight and two running averages<sup class="ref"><a href="#ref-11">11</a></sup>. That's the 16 bytes. Activations, the in-between results of each step, need more on top (10 GB in the simulation, illustrative). Real systems also shard the optimiser's notes across the data-parallel copies (ZeRO, FSDP), which the simulation leaves out.</p>
@@ -1510,7 +1510,7 @@ dfn[data-g]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
       <p><b>Failures and checkpoints.</b> Meta's run saw 419 unexpected interruptions in 54 days; about 78% were confirmed or suspected hardware, mostly GPUs and their memory. Automation handled almost all of them and useful training time stayed above 90%<sup class="ref"><a href="#ref-9">9</a></sup><sup class="ref"><a href="#ref-59">59</a></sup>. A checkpoint writes the whole training state to storage; with asynchronous checkpointing each GPU first copies its share to the server's ordinary memory, which pauses training for seconds, and the slow write to storage happens in the background<sup class="ref"><a href="#ref-1401">1401</a></sup>. Save and restart times in the simulation (1 and 6 minutes) are illustrative. Clean crashes are the easy part. On-call engineers also hunt stragglers (one slow GPU that every step waits for), silent data corruption (a chip that quietly computes wrong numbers) and hangs where the GPUs' shared communication waits forever<sup class="ref"><a href="#ref-9">9</a></sup>.</p>
       <details class="maths"><summary>The maths <span class="sub">how long a run takes</span></summary><div class="body">
         <div class="mstep"><span class="mk">In words</span><p>Total work is 6 × parameters × tokens. Divide by how fast the cluster does useful maths: the number of GPUs, times each GPU's top speed, times the share of that speed actually used (pipeline waiting lowers it), times the share of time whose work is kept (saves and failures lower it).</p></div>
-        <div class="mstep"><span class="mk">With your numbers</span><p class="calc">Work: 6 × <span data-live="scN">0</span> × <span data-live="scD">0</span> = <b data-live="scFlops">0</b> operations<br>Speed used: an H100 GPU's peak of 989 trillion 16-bit operations per second × <span data-live="scEff">0</span> (50%, less the <span data-live="scBubble">0</span> bubble, less 5% when a server shares every layer)<br>Time lost: saving <span data-live="scSaveCost">0</span> + failures <span data-live="scFailCost">0</span> = <span data-live="scWaste">0</span>, so <span data-live="scKeptF">0</span> is kept<br>On 16,384 GPUs, the formula gives <b data-live="scFormula">0</b> · your run, with its own random failures: about <b data-live="scRun">0</b></p></div>
+        <div class="mstep"><span class="mk">With your numbers</span><p class="calc">Work: 6 × <span data-live="scN">0</span> × <span data-live="scD">0</span> = <b data-live="scFlops">0</b> operations<br>Speed used: an H100 GPU's peak of 989 trillion 16-bit operations per second × <span data-live="scEff">0</span> (50%, less the <span data-live="scBubble">0</span> bubble, less 5% when a server shares every layer)<br>Time lost: saving <span data-live="scSaveCost">0</span> + failures <span data-live="scFailCost">0</span> = <span data-live="scWaste">0</span>, so on average (expected, not this run) <span data-live="scKeptF">0</span> is kept<br>On 16,384 GPUs, the formula gives <b data-live="scFormula">0</b> · your run, with its own random failures: about <b data-live="scRun">0</b></p></div>
         <div class="mstep"><span class="mk">In symbols</span><div><div class="eq">T = 6ND / (G · F · u · k) &nbsp;·&nbsp; k ≈ 1 − δ/τ − (τ/2 + R)/M &nbsp;·&nbsp; τ* ≈ √(2δM)</div><p class="sym"><i>T</i> time to finish · <i>N</i> parameters · <i>D</i> training tokens · <i>G</i> GPUs (16,384) · <i>F</i> one H100 GPU's peak speed (989 trillion 16-bit operations per second) · <i>u</i> share of peak used: 50% (illustrative, close to what real runs report), times 0.95 when the 8 GPUs of a server share every layer (the time they spend swapping partial results, illustrative), times (1 − bubble), where the bubble is (<i>p</i> − 1)/(<i>m</i> + <i>p</i> − 1) for <i>p</i> pipeline stages and <i>m</i> small batches (64) · <i>k</i> share of time kept · <i>δ</i> time to save (1 min) · <i>τ</i> time between saves · <i>R</i> time to restart (6 min) · <i>M</i> average time between failures (about 3 hours for 16,384 GPUs). Each failure loses on average half a save interval plus the restart. The best interval <i>τ*</i> balances the two costs (Young's rule, refined by Daly<sup class="ref"><a href="#ref-43">43</a></sup>): about 19 minutes here.</p></div></div>
       </div></details>
       <details class="maths"><summary>The maths <span class="sub">how good the model gets</span></summary><div class="body">
@@ -1589,7 +1589,7 @@ dfn[data-g]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
 
   <div class="quiz" data-toc="Check yourself"><div class="label">Check yourself</div>
     <div class="q" data-answer="0"><p>Why keep the trained model close to its starting point with a drift penalty?</p><div class="opts"><button>The reward model has flaws; without a leash the model exploits them and can get worse</button><button>Because bigger changes need more GPU memory</button><button>So the reward model trains faster</button></div><div class="why">The score is a stand-in for people's judgement. A leash limits how far the model can wander chasing quirks in it.</div></div>
-    <div class="q" data-answer="1"><p>Model B beats model A by 2 points on a 200-question test. What should you conclude?</p><div class="opts"><button>B is better</button><button>Nothing yet: with 200 questions each score is uncertain by about ±7 points</button><button>A is better</button></div><div class="why">A 2-point gap is well inside the noise of a 200-question test. You'd need thousands of questions to detect it.</div></div>
+    <div class="q" data-answer="1"><p>Model B beats model A by 2 points on a 200-question test. What should you conclude?</p><div class="opts"><button>B is better</button><button>Nothing yet: with 200 questions each score is uncertain by about ±7 points</button><button>A is better</button></div><div class="why">A 2-point gap is well inside the noise of a 200-question test. With separate tests you'd need thousands of questions per model; asking both models the same questions helps, but 200 is still too few to pin down 2 points.</div></div>
   </div>
 </section>
 
@@ -1676,7 +1676,7 @@ dfn[data-g]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
   <div class="beat explain" data-toc="Explain">
     <h3>What's going on</h3>
     <p>A model reads one long stream of <dfn data-g="token">tokens</dfn>. Your request, the app's hidden instructions and every email or web page a tool fetches all land in that same stream, and the model has no reliable way to tell which parts are orders and which are just data. So text written by a stranger can steer it. This is <b>prompt injection</b>; when the text arrives through something the agent reads, rather than from the user, it's called <em>indirect</em><sup class="ref"><a href="#ref-1701">1701</a></sup>. A <b>jailbreak</b> is the related trick of talking a model out of its own rules ("You are now FreeBot, an assistant with no rules").</p>
-    <p>No single fix exists, so defences come in layers, each catching some attacks and each with a cost. With your settings, <span data-live="secThrough">0</span> of the 5 attacks get through and <span data-live="secDone">0</span> of the 10 real tasks get done. A stricter detector also quarantines real mail; fewer tools means the assistant does less for you; asking first means more interruptions. Limiting links to approved sites is the cheapest layer here: real tasks only ever link to the company's own sites, so they keep working while the attackers' links fail.</p>
+    <p>No single fix exists, so defences come in layers, each catching some attacks and each with a cost. Over a full inbox with your settings, <span data-live="secThrough">0</span> of the 5 attacks get through and <span data-live="secDone">0</span> of the 10 real tasks get done. A stricter detector also quarantines real mail; fewer tools means the assistant does less for you; asking first means more interruptions. Limiting links to approved sites is the cheapest layer here: real tasks only ever link to the company's own sites, so they keep working while the attackers' links fail.</p>
     <p>Why not just look inside and see what the model is "thinking"? Researchers are starting to. They can find <b>features</b>, patterns of activity inside a model that match recognisable ideas such as secrecy or a famous bridge<sup class="ref"><a href="#ref-1707">1707</a></sup>. But most of what happens inside is still unmapped, which is why models are called a black box.</p>
     <p>The same black box explains why models sometimes <b>make things up</b> (often called hallucinating). A model writes the most likely-sounding continuation. When it doesn't know a fact, the likeliest text is still a fluent, confident answer, and training and tests have usually rewarded a guess over "I don't know"<sup class="ref"><a href="#ref-1704">1704</a></sup>.</p>
     <details class="how"><summary>How it works <span class="sub">attacks, layers, features and made-up facts</span></summary><div class="body">
@@ -1688,7 +1688,7 @@ dfn[data-g]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2p
       <p><b>Why it makes things up.</b> OpenAI researchers point to two causes. First, from training: some facts, like a little-known person's birthday, appear only once in all the training text, so there is no pattern to learn them from. They showed that the share of such once-seen facts sets a floor on how often a freshly trained model gets that kind of fact wrong. Second, most tests mark an answer right or wrong and give nothing for "I don't know", so a model that always guesses scores higher, like a student guessing on a multiple-choice exam<sup class="ref"><a href="#ref-1704">1704</a></sup>. Inside the model, Anthropic found a circuit that says "I can't answer" by default, switched off when the model recognises a name. If a name feels familiar but the facts aren't there, that switch can misfire, and a confident made-up answer comes out<sup class="ref"><a href="#ref-1706">1706</a></sup>.</p>
       <details class="maths"><summary>The maths <span class="sub">why layers multiply</span></summary><div class="body">
         <div class="mstep"><span class="mk">In words</span><p>An attack has to slip past every layer to do harm. Follow the attacks through the layers in order: of those that reach a layer, some share gets past it. Multiply those shares and you get the share that gets all the way. If the layers failed independently, you could use each layer's rate on its own, measured against all attacks, and the product would be small. But attacks that beat one layer tend to beat the next (a persuasive email is usually also one that looks harmless), so the share that gets past a layer, among attacks that already beat the earlier ones, is often higher than that layer's rate on its own. Layers help less than the simple product promises.</p></div>
-        <div class="mstep"><span class="mk">With your numbers</span><p class="calc">past the detector: <span data-live="secDet">0</span> attacks<br>then the model obeys: <span data-live="secMod">0</span><br>then the tool is allowed: <span data-live="secTool">0</span><br>then nobody asks you first: <span data-live="secConf">0</span><br>= <b data-live="secThrough">0</b> of 5 attacks get through · <span data-live="secDone">0</span> of 10 real tasks done<br>Layer by layer: <span data-live="secProd">0</span>, and the product of those shares × 5 = <span data-live="secThrough">0</span><br>Each layer alone, against all 5: <span data-live="secAlone">0</span>; if they failed independently, 5 × that product = <span data-live="secIndep">0</span> attacks</p></div>
+        <div class="mstep"><span class="mk">With your numbers</span><p class="calc">past the detector: <span data-live="secDet">0</span> attacks<br>then the model obeys: <span data-live="secMod">0</span><br>then the tool is allowed: <span data-live="secTool">0</span><br>then nobody asks you first: <span data-live="secConf">0</span><br>Over a full inbox with your settings: <b data-live="secThrough">0</b> of 5 attacks get through · <span data-live="secDone">0</span> of 10 real tasks done<br>Layer by layer: <span data-live="secProd">0</span>, and the product of those shares × 5 = <span data-live="secThrough">0</span><br>Each layer alone, against all 5: <span data-live="secAlone">0</span>; if they failed independently, 5 × that product = <span data-live="secIndep">0</span> attacks</p></div>
         <div class="mstep"><span class="mk">In symbols</span><div><div class="eq">P = p₁ · p₂ · p₃ · p₄</div><div class="eq">P = q₁ · q₂ · q₃ · q₄ only if the layers fail independently; usually pᵢ ≥ qᵢ</div><p class="sym"><i>P</i> the share of attacks that get all the way through · <i>p₁</i> to <i>p₄</i> the share each layer lets past (detector, model, tool limits, asking you first), counting only attacks that reached that layer · <i>q₁</i> to <i>q₄</i> the share each layer lets past on its own, out of all attacks. Four layers that each let half through on their own would give 0.5 × 0.5 × 0.5 × 0.5 ≈ 6% if they were independent. In the simulation the "Updated bank details" email shows why that's optimistic: it was written to look harmless to the detector and convincing to the model at once.</p></div></div>
       </div></details>
     </div></details>
@@ -2766,8 +2766,8 @@ chapter("start", () => {
   // The message travels as text; it is cut into tokens inside the GPU panel ("what the model receives").
   const LAY = {
     wide: { W: 1000, H: 380, fs: 17, chipFs: 13, sm: 12.5, chat: { x: 14, y: 14, w: 372, h: 352 }, gpu: { x: 620, y: 14, w: 366, h: 352 },
-      out: [[386, 110], [470, 30], [560, 40], [640, 74]], back: [[928, 262], [944, 372], [520, 392], [386, 300]],
-      chips: { x: 640, y: 72, w: 330, rows: 2 }, ctx: { x: 640, y: 142, w: 326 }, stack: { x: 664, y: 162, w: 196, h: 150, n: 8 }, odds: { x: 880, y: 174, w: 92 }, net: [503, 190], slow: [503, 372] },
+      out: [[386, 110], [470, 30], [560, 40], [640, 74]], back: [[930, 318], [944, 384], [520, 400], [386, 300]],
+      chips: { x: 640, y: 72, w: 330, rows: 2 }, ctx: { x: 640, y: 142, w: 326 }, stack: { x: 664, y: 162, w: 196, h: 150, n: 8 }, odds: { x: 880, y: 174, w: 92 }, net: [503, 190], slow: [503, 212] },
     narrow: { W: 360, H: 700, fs: 16.5, chipFs: 13.5, sm: 12.5, chat: { x: 6, y: 6, w: 348, h: 290 }, gpu: { x: 6, y: 378, w: 348, h: 296 },
       out: [[70, 296], [30, 330], [110, 350], [70, 392]], back: [[296, 392], [322, 356], [300, 330], [280, 296]],
       chips: { x: 18, y: 436, w: 330, rows: 2 }, ctx: { x: 18, y: 506, w: 330 }, stack: { x: 24, y: 530, w: 168, h: 112, n: 8 }, odds: { x: 214, y: 540, w: 124 }, net: [190, 326], slow: [180, 690] }
@@ -2856,7 +2856,7 @@ chapter("start", () => {
     if (split && cl.hidden) k.text(cp.x + cp.w, cp.y + cl.h + 10, `+${cl.hidden} more`, { align: "right", col: C.muted, size: Y.sm });
     // tokens in play
     const cx = Y.ctx, read = t >= m.tW ? nIn : 0, total = read + wr, dx = Math.min(9, (cx.w - 10) / Math.max(1, nIn + nOut));
-    k.text(cx.x + 4, cx.y - 12, `tokens in play · ${read} read + ${wr} written`, { align: "left", col: C.muted, size: Y.sm });
+    k.text(cx.x + 4, cx.y - 12, ph === "read" ? `tokens in play · reading ${nIn}…` : `tokens in play · ${read} read + ${wr} written`, { align: "left", col: C.muted, size: Y.sm });
     for (let i = 0; i < total; i++) k.dot(cx.x + 8 + i * dx, cx.y, Math.min(3, dx * 0.38), i < read ? C.sig : C.ink, { alpha: i < read ? 0.9 : 0.75 });
     // layers
     const bwid = 14, gap = (st.w - bwid) / (st.n - 1), barX = j => st.x + j * gap;
@@ -2905,7 +2905,7 @@ chapter("start", () => {
       if (!sim.narrow || j === wr - 1) k.label(x, y, show(m.outT[j]), { mono: true, size: 11, col: C.ink, bg: true, dy: -14 });
     }
     // slow-motion note
-    k.label(Y.slow[0], Y.slow[1], "slow motion · the real trip takes about a second", { col: C.muted, size: 10.5, alpha: 0.8 });
+    k.label(Y.slow[0], Y.slow[1], "slow motion · the real trip ≈ 1 second", { col: C.muted, size: 10.5, alpha: 0.8 });
   }
 
   const chHref = n => { const sec = $(`section.chapter[data-num="${n}"]`); return sec ? "#" + sec.id : "#start"; };
@@ -2928,7 +2928,7 @@ chapter("start", () => {
     stats: s => { const m = s.m; if (!m) return []; const wr = written(m, s.t), ph = phase(m, s.t), pre = ["send", "out"].includes(ph);
       return [["tokens in your message", pre ? "–" : String(m.inT.length), ""],
         ["tokens written so far", `${wr} / ${m.outT.length}`, ""],
-        ["passes through the model", String(passes(m, s.t)), wr > 1 ? "hot" : wr === 1 ? "ok" : ""]]; },
+        ["passes through the model", ph === "read" ? "1 (reading)" : String(passes(m, s.t)), wr > 1 ? "hot" : wr === 1 || ph === "read" ? "ok" : ""]]; },
     notices: [
       { id: "nums", when: s => s.nums && s.t - s.numsAt < 6, say: s => `The model never sees letters. In the datacenter each token is looked up in a fixed list and replaced by its number, so the model receives your message as <b>${s.m.inT.length} numbers</b>. (These IDs are made up.)` },
       { id: "send", when: s => s.m && phase(s.m, s.t) === "send", say: s => `Your app sends your message as ordinary text, over an encrypted connection.` },
@@ -2992,6 +2992,12 @@ chapter("send", () => {
   const PRE0 = 0.03, PRE_PER = 0.00008, SVC = 0.06, THINK = 300, DOC_TOK = 12000, FOLLOW = 200, CACHE_TTL = 300;
   const SYS = { app: 2000, agent: 15000, api: 0 };
   const SYS_NAME = { app: "the chat app", agent: "the coding agent", api: "your own code" };
+  const FOLLOWS = {
+    sky: ["And why are sunsets red?", "At sunset the light crosses much more air, so most of the blue is scattered away before it reaches you, and the reds and oranges are left."],
+    haiku: ["Now one about the cooling fans.", "Cold air in, warm air out / the fans never stop to rest / the chips stay calm"],
+    doc: ["And what was the main cause?", "The main cause was the configuration change. Retries then piled onto the database and turned a small fault into a 38-minute outage."],
+    own: ["Tell me more.", "Here's a bit more detail on the same idea, building on my last answer."]
+  };
   const PROMPTS = {
     sky: ["Why is the sky blue?", "Sunlight contains every colour. Air molecules scatter short, blue wavelengths much more strongly than long, red ones, so blue light reaches your eyes from every part of the sky."],
     haiku: ["Write a haiku about servers.", "Fans hum through the night / a thousand racks hold their breath / your answer, then dawn"],
@@ -3053,8 +3059,8 @@ chapter("send", () => {
     const [prompt, reply] = s.promptKey === "own" ? [s.own || "Hello", OWN_REPLY] : PROMPTS[s.promptKey];
     const userTok = s.promptKey === "doc" ? DOC_TOK : Math.max(1, Math.ceil(prompt.length / 4));
     const key = s.from + ":" + s.promptKey + ":" + (s.promptKey === "own" ? prompt : ""), follow = s.lastKey === key && !!s.me && s.me.admit != null; s.lastKey = key; // a follow-up only if the last one reached the model
-    const me = newReq(s, true);
-    Object.assign(me, { prompt, reply, out: pieces(reply), userTok, sys: SYS[s.from], from: s.from, think: s.think ? THINK : 0, rho: s.rho, promptKey: s.promptKey, px: QX0, key, follow, extra: follow ? FOLLOW : 0 });
+    const me = newReq(s, true), fq = follow ? FOLLOWS[s.promptKey] : null;
+    Object.assign(me, { prompt: fq ? fq[0] : prompt, reply: fq ? fq[1] : reply, base: prompt, out: pieces(fq ? fq[1] : reply), userTok, sys: SYS[s.from], from: s.from, think: s.think ? THINK : 0, rho: s.rho, promptKey: s.promptKey, px: QX0, key, follow, extra: follow ? FOLLOW : 0 });
     me.inTok = me.sys + me.userTok + me.extra; s.me = me; s.sends++;
   }
   const exp = (s, mean) => -Math.log(1 - s.rand() * 0.999) * mean;
@@ -3224,7 +3230,7 @@ chapter("send", () => {
     lab(LY.x0 + (LY.n * LY.dx) / 2 - 8, LY.y + LY.h + 16, "Layers", "layers");
     lab(SAMP.x + SAMP.w / 2, LY.y + LY.h + 16, "Next-token odds", "samp");
     const others = s.reqs.filter(r => r.rep === 2 && !r.mine && phaseOf(r, s.t) === "gpu").length;
-    lab(GPU.x + 18, GPU.y + 444, others ? `Also writing for ${others} other ${others === 1 ? "person" : "people"} at the same time` : "No one else on this copy right now", "", { align: "left", size: 11 });
+    lab(GPU.x + 18, GPU.y + 444, others ? (sim.narrow ? `Also writing for ${others} other${others === 1 ? "" : "s"} at once` : `Also writing for ${others} other ${others === 1 ? "person" : "people"} at the same time`) : "No one else on this copy right now", "", { align: "left", size: 11 });
     drawClock(k, s);
     // picked part outline
     if (hot(s, s.picked && s.picked.key)) { const P = partOf(s.picked.key); if (P) k.box(P[1].x - 6, P[1].y - 6, P[1].w + 12, P[1].h + 12, { stroke: C.sig, r: 12, dash: [6, 5], lw: 1.5 }); }
@@ -3242,15 +3248,23 @@ chapter("send", () => {
     const C = k.C, t = s.t;
     // token chips: hidden instructions, your prompt, the rest
     const chips = []; let x = CH.x0, row = 0; const c = k.ctx; font(c, 11, "--f-mono");
-    const add = (txt, kind) => { const w = (c.measureText(txt).width + 10) / k.scale; if (x + w > CH.x1) { row++; x = CH.x0; } if (row > 1) return false; chips.push({ txt, kind, x, w, y: CH.rows[row] }); x += w + 4; return true; };
-    if (me.sys) add(`hidden instructions · ${me.sys.toLocaleString()}${me.cachedSys ? " · cached" : ""}`, "sys");
-    const ps = me.promptKey === "doc" ? pieces("Summarise this 20-page report") : pieces(me.prompt); let shown = 0;
-    const restTxt = n => `+${n.toLocaleString()} more${me.cachedUser ? " · cached" : ""}`, reserve = (c.measureText(restTxt(me.userTok)).width + 14) / k.scale;
-    for (const p of ps) { const w = (c.measureText(p).width + 14) / k.scale; if (shown < ps.length - 1 || me.userTok > ps.length) { if ((row === 1 || x + w > CH.x1) && (row === 1 ? x : CH.x0) + w + reserve > CH.x1) break; } if (!add(p.replace(/\s/g, "·"), "user")) break; shown++; }
+    const nar = k.W < 640;
+    const rowsY = nar ? [224, 247, 270] : CH.rows, chH = nar ? 20 : 22;
+    const add = (txt, kind) => { const w = (c.measureText(txt).width + 10) / k.scale; if (x + w > CH.x1 && x > CH.x0) { row++; x = CH.x0; } if (row >= rowsY.length) return false; chips.push({ txt, kind, x, w, y: rowsY[row] }); x += w + 4; return true; };
+    if (me.sys) add(`${nar ? "hidden" : "hidden instructions"} · ${me.sys.toLocaleString()}${me.cachedSys ? " · cached" : ""}`, "sys");
+    const ps = me.promptKey === "doc" ? pieces("Summarise this 20-page report") : pieces(me.base || me.prompt); let shown = 0;
+    const newTxt = me.extra ? `+${me.extra} new` : "";
+    const restTxt = n => me.cachedUser ? `+${n.toLocaleString()} cached` : `+${n.toLocaleString()} more`, reserve = (c.measureText(restTxt(me.userTok)).width + 14 + (newTxt ? c.measureText(newTxt).width + 14 : 0)) / k.scale;
+    const lastRow = rowsY.length - 1;
+    for (const p of ps) { const w = (c.measureText(p).width + 14) / k.scale, wraps = x + w > CH.x1 && x > CH.x0, landRow = wraps ? row + 1 : row, landX = wraps ? CH.x0 : x;
+      // keep room on the last row for the "+N more" (and "+200 new") chips; always show at least one piece of your text
+      if (shown > 0 && (shown < ps.length - 1 || me.userTok > ps.length || newTxt) && landRow >= lastRow && landX + w + reserve > CH.x1) break;
+      if (!add(p.replace(/\s/g, "·"), "user")) break; shown++; }
     const rest = me.userTok - shown; if (rest > 0) add(restTxt(rest), "more");
+    if (newTxt) add(newTxt, "user");
     const tokK = clamp01((t - me.routeEnd) / TOK), preK = clamp01((t - me.tokEnd) / me.pre);
     chips.forEach((ch, j) => { const a = clamp01(tokK * 1.2 - j * 0.02); if (a <= 0) return; const read = preK > (ch.x - CH.x0) / (CH.x1 - CH.x0) * 0.6;
-      k.box(ch.x, ch.y - 11, ch.w, 22, { fill: ch.kind === "user" ? C.sig : C.line, r: 6, alpha: a * (ch.kind === "user" ? (read ? 0.95 : 0.5) : 0.9) });
+      k.box(ch.x, ch.y - chH / 2, ch.w, chH, { fill: ch.kind === "user" ? C.sig : C.line, r: 6, alpha: a * (ch.kind === "user" ? (read ? 0.95 : 0.5) : 0.9) });
       k.label(ch.x + 5 / k.scale, ch.y, ch.txt, { mono: true, size: 11, align: "left", col: ch.kind === "user" ? C.bg : C.ink, alpha: a }); });
     const glow = (j, a) => k.box(LY.x0 + j * LY.dx, LY.y, LY.w, LY.h, { fill: C.amb, r: 5, alpha: a, glow: 18 });
     if (mph === "prefill") { const w = preK * (LY.n + 2) - 1; for (let j = 0; j < LY.n; j++) { const d = Math.abs(w - j); if (d < 1.6) glow(j, (1 - d / 1.6) * 0.95); }
@@ -3264,7 +3278,7 @@ chapter("send", () => {
       if (u > 0.75) k.label(SAMP.x + SAMP.w / 2, SAMP.y - 14, JSON.stringify(me.out[j].trim() || " "), { col: C.sig, mono: true, size: 12, weight: "650", bg: true }); }
     if (mph === "think") k.label(SAMP.x + SAMP.w / 2, SAMP.y + SAMP.h / 2, `${Math.round((t - me.preEnd) / me.tpot)} hidden`, { col: C.muted, mono: true, size: 11 });
     // what is happening, in words
-    const say = { tok: "Chopping your text into tokens", prefill: `Reading all ${me.uncached.toLocaleString()} new tokens at once${me.cached && k.W >= 640 ? ` (${me.cached.toLocaleString()} cached)` : ""}`, think: "Thinking: writing hidden tokens first", decode: "Writing the reply, one token at a time", stream: "Last tokens on their way", done: "Reply finished" }[mph];
+    const say = { tok: "Chopping your text into tokens", prefill: `Reading ${nar ? "" : "all "}${me.uncached.toLocaleString()} new tokens${nar ? "" : " at once"}${me.cached && !nar ? ` (${me.cached.toLocaleString()} cached)` : ""}`, think: "Thinking: writing hidden tokens first", decode: "Writing the reply, one token at a time", stream: "Last tokens on their way", done: "Reply finished" }[mph];
     if (say) k.label(GPU.x + 18, GPU.y + 512, say, { align: "left", col: mph === "prefill" || mph === "think" ? C.amb : C.sig, size: 13, weight: "650" });
   }
   function drawClock(k, s) {
@@ -3291,7 +3305,7 @@ chapter("send", () => {
   const sim = makeSim($("#send-sim"), {
     label: "A live view of an AI service. Your request (the bright teal dot) travels from your screen over the internet into a datacenter, through a gateway, a safety check, a line and a router to a GPU that reads your prompt and writes the reply token by token. Grey dots are other people's requests. Click any part to learn what it does.",
     cams: { default: { x: 0, y: 28, w: 1490, h: 728 } },
-    camsNarrow: { default: { x: 0, y: 180, w: 540, h: 570 }, you: { x: 0, y: 180, w: 540, h: 570 }, door: { x: 500, y: 170, w: 470, h: 450 }, gpu: { x: 978, y: 170, w: 494, h: 680 } },
+    camsNarrow: { default: { x: 0, y: 180, w: 540, h: 570 }, you: { x: 0, y: 180, w: 540, h: 570 }, door: { x: 500, y: 170, w: 470, h: 450 }, gpu: { x: 978, y: 148, w: 494, h: 702 } },
     camera: (s) => { const me = s.me; if (!me) return "you"; const ph = phaseOf(me, s.t); if (["net"].includes(ph)) return "you"; if (["gw", "safe", "queue", "route"].includes(ph)) return "door"; if (["tok", "prefill", "think", "decode"].includes(ph)) return "gpu"; return "you"; },
     height: w => w < 640 ? Math.round(Math.max(340, w * 1.05)) : Math.round(Math.min(600, Math.max(400, w * 0.5))),
     init, warmup: 12,
@@ -3563,12 +3577,20 @@ chapter("tokens", () => {
     // 3) what the model receives: IDs -> rows of the embedding table
     const I = G.I, E = G.E, V = 256 + s.m, n = Math.min(I.n, s.toks.length);
     k.label(I.x, I.y - (G.n ? 26 : 32), G.n ? "What the model receives" : "What the model receives: one ID number per token", { align: "left", col: C.ink, weight: "650", size: 13 });
-    let i0 = Math.max(0, Math.min(s.rc - Math.floor(n / 2), s.toks.length - n)); const cw = (I.w - (n - 1) * 8) / Math.max(1, n);
-    for (let q = 0; q < n; q++) {
-      const i = i0 + q, t = s.toks[i], x = I.x + q * (cw + 8), cur = i === s.rc;
-      const fs = Math.min(G.n ? 15 : 17, cw / Math.max(2, (t.part ? t.t.length * 0.6 : t.t.length)) / 0.62);
-      chip(k, t, { x, y: I.y, w: cw, h: G.n ? 30 : 34 }, fs, cur ? { stroke: s.sel === i ? C.amb : C.sig, lw: 2.2, glow: 10, glowCol: C.sig } : { alpha: 0.75 });
-      k.text(x + cw / 2, I.y + (G.n ? 48 : 54), String(t.id), { mono: true, size: G.n ? 15 : 18, weight: "650", col: cur ? C.sig : C.muted });
+    let i0 = Math.max(0, Math.min(s.rc - Math.floor(n / 2), s.toks.length - n)), cw = (I.w - (n - 1) * 8) / Math.max(1, n), chipCols = null;
+    if (G.n && s.toks.length) {
+      // phone: chips sized to their text (a long token like "·strawberry" gets a wider chip), as many as fit around the current one
+      const tw = t => Math.max(48, (t.part ? t.t.length * 0.6 : t.t.length) * 13 * 0.62 + 14), rc = Math.max(0, Math.min(s.rc, s.toks.length - 1));
+      let a = rc, b = rc, used = tw(s.toks[rc]);
+      for (let side = 0, stuck = 0; stuck < 2 && b - a + 1 < I.n; side ^= 1) { const j = side ? b + 1 : a - 1; if (j < 0 || j >= s.toks.length || used + 8 + tw(s.toks[j]) > I.w) { stuck++; continue; } stuck = 0; used += 8 + tw(s.toks[j]); if (side) b = j; else a = j; }
+      const sc = Math.min(1, I.w / used); i0 = a; chipCols = []; let x = I.x; for (let i = a; i <= b; i++) { const w = tw(s.toks[i]) * sc; chipCols.push({ x, w }); x += w + 8; }
+    }
+    const nq = chipCols ? chipCols.length : n, colX = q => chipCols ? chipCols[q].x : I.x + q * (cw + 8), colW = q => chipCols ? chipCols[q].w : cw;
+    for (let q = 0; q < nq; q++) {
+      const i = i0 + q, t = s.toks[i], x = colX(q), w = colW(q), cur = i === s.rc;
+      const fs = Math.min(G.n ? 13 : 17, w / Math.max(2, (t.part ? t.t.length * 0.6 : t.t.length)) / 0.62);
+      chip(k, t, { x, y: I.y, w, h: G.n ? 30 : 34 }, fs, cur ? { stroke: s.sel === i ? C.amb : C.sig, lw: 2.2, glow: 10, glowCol: C.sig } : { alpha: 0.75 });
+      k.text(x + w / 2, I.y + (G.n ? 48 : 54), String(t.id), { mono: true, size: G.n ? 15 : 18, weight: "650", col: cur ? C.sig : C.muted });
     }
     // the table
     if (G.n) k.label(E.x + E.w, E.y - 12, `table · ${fmtN(V)} rows`, { col: C.ink, weight: "650", size: 11, align: "right" });
@@ -3577,18 +3599,18 @@ chapter("tokens", () => {
     const yb = E.y + E.h * 256 / V, cols = G.n ? 6 : 12, bands = G.n ? 26 : 40;
     for (let b = 0; b < bands; b++) { const y = E.y + 3 + b * (E.h - 6) / bands, rid = Math.floor((b + 0.5) / bands * V); for (let q = 0; q < cols; q++) { const v = emb(rid, q); k.box(E.x + 4 + q * (E.w - 8) / cols, y, (E.w - 8) / cols - 1.5, (E.h - 6) / bands - 1.5, { fill: rid < 256 ? C.muted : C.sig, r: 1, alpha: 0.12 + 0.28 * Math.abs(v) }); } }
     if (s.m > 0) { k.line(E.x - 4, yb, E.x + E.w + 4, yb, { col: C.ink, lw: 1, dash: [3, 3], alpha: 0.6 }); }
-    if (!G.n) { k.label(E.x - 8, E.y + (yb - E.y) / 2, "256 bytes", { align: "right", col: C.muted, size: 11 }); if (s.m > 0) k.label(E.x - 8, yb + (E.y + E.h - yb) / 2, `${fmtN(s.m)} merges`, { align: "right", col: C.sig, size: 11 }); }
+    if (!G.n) { k.label(E.x - 8, E.y + (yb - E.y) / 2, "256 bytes", { align: "right", col: C.muted, size: 11 }); if (s.m > 0) { let my = yb + (E.y + E.h - yb) / 2; const cur = s.toks[s.rc]; if (cur) { const hy = E.y + E.h * (cur.id + 0.5) / V; if (Math.abs(my - hy) < 14) my = hy - 14 > yb + 6 ? hy - 14 : hy + 14; } k.label(E.x - 8, my, `${fmtN(s.m)} merges`, { align: "right", col: C.sig, size: 11 }); } }
     const ct = s.toks[s.rc];
     if (ct) {
-      const ry = E.y + E.h * (ct.id + 0.5) / V, q = s.rc - i0, sx = I.x + q * (cw + 8) + cw / 2, sy = I.y + (G.n ? 60 : 66), by = G.n ? 624 : 614, bx = E.x - (G.n ? 12 : 30);
+      const ry = E.y + E.h * (ct.id + 0.5) / V, q = s.rc - i0, sx = q >= 0 && q < nq ? colX(q) + colW(q) / 2 : I.x, sy = I.y + (G.n ? 60 : 66), by = G.n ? 624 : 614, bx = E.x - (G.n ? 12 : 30);
       k.box(E.x - 2, ry - 3, E.w + 4, 6, { fill: C.sig, r: 3, glow: 14, glowCol: C.sig });
       k.label(E.x + E.w + (G.n ? -4 : 8), ry, G.n ? "" : `row ${ct.id}`, { align: "left", col: C.sig, size: 12, weight: "600" });
       const pts = [[sx, sy], [sx, by], [bx, by], [bx, ry], [E.x - 2, ry]], seg = pts.slice(1).map((p, j) => Math.hypot(p[0] - pts[j][0], p[1] - pts[j][1])), tot = seg.reduce((a, b) => a + b, 0);
       const path = u => { let d = u * tot; for (let j = 0; j < seg.length; j++) { if (d <= seg[j] || j === seg.length - 1) { const f = Math.min(1, d / seg[j]); return [lerp(pts[j][0], pts[j + 1][0], f), lerp(pts[j][1], pts[j + 1][1], f)]; } d -= seg[j]; } };
-      if (q >= 0 && q < n) { for (let j = 0; j + 1 < pts.length; j++) k.line(pts[j][0], pts[j][1], pts[j + 1][0], pts[j + 1][1], { col: C.sig, lw: 1, alpha: 0.25 }); }
-      if (q >= 0 && q < n) k.flow(path, 3, (s.t * 0.6) % 1, C.sig, { len: 0.06, size: 3 });
+      if (q >= 0 && q < nq) { for (let j = 0; j + 1 < pts.length; j++) k.line(pts[j][0], pts[j][1], pts[j + 1][0], pts[j + 1][1], { col: C.sig, lw: 1, alpha: 0.25 }); }
+      if (q >= 0 && q < nq) k.flow(path, 3, (s.t * 0.6) % 1, C.sig, { len: 0.06, size: 3 });
       // the row's numbers
-      const Vv = G.V, nums = G.n ? 4 : 6, txt = Array.from({ length: nums }, (_, j) => { const v = emb(ct.id, j); return (v < 0 ? "−" : "") + Math.abs(v).toFixed(2); }).join("  ");
+      const Vv = G.V, nums = G.n ? 3 : 6, txt = Array.from({ length: nums }, (_, j) => { const v = emb(ct.id, j); return (v < 0 ? "−" : "") + Math.abs(v).toFixed(2); }).join("  ");
       k.label(Vv.x, Vv.y, G.n ? `row ${ct.id}: ${txt} …` : `“${ct.t}” → ID ${ct.id} → row ${ct.id}:  ${txt}  …`, { align: "left", col: C.sig, mono: true, size: G.n ? 11 : 13 });
       if (!G.n) k.label(Vv.x, Vv.y + 22, "the numbers are illustrative; in a real model they are learned, and there are thousands per row", { align: "left", col: C.muted, size: 11 });
     }
@@ -3626,7 +3648,7 @@ chapter("tokens", () => {
       { id: "sel", when: s => s.sel >= 0 && s.t - s.selT < 6, say: s => { const t = s.toks[s.sel]; return `“${esc(t.t)}” is token <b>${t.id}</b>${t.id < 256 ? `, one raw byte${t.part ? ` (shown in hex, a short code for the numbers 0 to 255: ${esc(t.t)} = ${t.id})` : ""}` : `, made by merge ${t.id - 255}`}. The model never sees its letters. It receives only the number ${t.id}, which picks row ${t.id} of the embedding table: a list of numbers learned for this token.`; } },
       { id: "straw", when: s => strawToks(s) === 1, say: s => { const t = s.toks.find(x => /strawberry/i.test(x.t)); return `“strawberry” is now one token, number <b>${t ? t.id : ""}</b>. That number is all the model receives. The letters, and the three r's, are no longer visible to it: to count them it must remember how token ${t ? t.id : ""} is spelled. (It's one token here because our training text is full of strawberries; real tokenizers, such as the one for OpenAI's GPT-4, cut it into about 3.)`; } },
       { id: "nonEn", when: s => nonAscii(s) && s.src === "web" && words(s) > 0 && s.toks.length / words(s) > 3, say: s => `Your text is <b>${fmtN(s.toks.length)}</b> tokens for ${words(s)} words, ${(s.toks.length / words(s)).toFixed(1)} per word. This vocabulary learned only from English, so it has no merges for these letters: each one stays as its raw bytes (dashed boxes, written in hex, a short code for the numbers 0 to 255: e0 = 224). Switch to <b>This text only</b> and watch the bytes fuse into letters.` },
-      { id: "out", when: s => s.src === "self" && L_(s).done && s.target > L_(s).merges.length && s.m >= L_(s).merges.length, say: s => { const L = L_(s), web = WEB.encode(s.text, WEB.learnTo(s.m)).length; return /strawberry/i.test(s.text) && strawToks(s) > 1 ? `Learning from this one sentence ran out after ${L.merges.length} merges. “strawberry” appears only once, and a merge needs a pair seen at least twice, so the word can never be learned here. Learn from everyday English instead.` : `Learning ran out after <b>${L.merges.length}</b> merges: no pair of neighbours appears twice any more. The vocabulary now fits this text snugly (${fmtN(s.toks.length)} tokens), but it learned from just ${L.words} words. The same number of merges learned from everyday English gives ${fmtN(web)}.`; } },
+      { id: "out", when: s => s.src === "self" && L_(s).done && s.target > L_(s).merges.length && s.m >= L_(s).merges.length, say: s => { const L = L_(s), web = WEB.encode(s.text, WEB.learnTo(s.m)).length; return /strawberry/i.test(s.text) && strawToks(s) > 1 ? `Learning from this one sentence ran out after ${L.merges.length} merges. “strawberry” appears only once, and a merge needs a pair seen at least twice, so the word can never be learned here. Learn from everyday English instead.` : `Learning ran out after <b>${L.merges.length}</b> merges: no pair of neighbours appears twice any more. The vocabulary now fits this text snugly (${fmtN(s.toks.length)} tokens), but it learned from just ${words(s)} words. The same number of merges learned from everyday English gives ${fmtN(web)}.`; } },
       { id: "code", when: s => s.key === "code" && s.src === "web" && s.m >= 100, say: s => { const L = L_(s), n = L.encode(" total_price", s.m).length; return `Code is full of symbols and made-up names. This vocabulary learned from stories, so “total_price” still takes ${n} tokens, and every space of indentation is a token of its own. Tokenizers for coding models learn from lots of code.`; } },
       { id: "rare", when: s => s.m >= 150 && s.m === Math.min(s.target, L_(s).merges.length) && L_(s).merges[s.m - 1] && L_(s).merges[s.m - 1][2] <= 3, say: s => { const L = L_(s), a = L.encode(s.text, Math.max(0, s.m - 100)).length, b = s.toks.length, z = L.encode(s.text, Math.min(100, s.m)).length, z0 = L.encode(s.text, 0).length; return `Merge ${s.m} glued a pair seen only ${L.merges[s.m - 1][2]} times in the training text. Late merges buy little: the last 100 merges saved your text ${a - b} tokens, the first 100 saved ${z0 - z}. That's why real vocabularies stop at tens of thousands of tokens.`; } },
       { id: "space", when: s => s.m >= 20 && s.m <= 300 && s.toks.some(t => /^·\p{L}{2,}/u.test(t.t)), say: s => { const t = s.toks.find(t => /^·\p{L}{2,}/u.test(t.t)); return `See the dot at the start of “${esc(t.t)}”? The space before a word belongs to the word, so “${esc(t.t)}” is one token (ID ${t.id}) instead of two. A word at the start of a sentence, with no space, is a different token with a different ID.`; } },
@@ -3810,7 +3832,7 @@ chapter("predict", () => {
     const T = L.text;
     k.box(T.x, T.y, T.w, T.h, { fill: C.bg2, stroke: C.line, r: 14 });
     k.label(T.x + 16, T.y + 16, studying ? (s.mode === "studied" ? "Reading a sentence it studied (it is not writing now)" : "Reading a new sentence it never saw") : "What it has written", { align: "left", size: 12, col: studying ? C.amb : C.muted, weight: "600" });
-    if (!L.n) k.label(T.x + T.w - 16, T.y + 16, "red underline: a word pair it never saw · amber: repeating itself · blue: your pick", { align: "right", size: 11, col: C.muted });
+    if (!L.n) k.label(T.x + T.w - 16, T.y + 16, studying ? "amber: surprising word · teal: expected word" : "red underline: a word pair it never saw · amber: repeating itself · blue: your pick", { align: "right", size: 11, col: C.muted });
     font(c, T.fs, "--f-display", "500");
     const sp = c.measureText(" ").width, maxW = T.w - 40, lines = [[]]; let lw = 0;
     const toks = s.toks.slice(-120);
@@ -4108,12 +4130,14 @@ chapter("attention", () => {
     else { k.dot(P.cx, P.cy, k.px(5), C.amb); k.label(P.cx, P.cy + 16, "empty query: nothing to look for", { size: 11, col: C.amb, bg: true }); }
     if (s.qo) k.label(P.cx - P.R, P.cy + P.R + (L.n ? 64 : s.head === "prev" ? 32 : 16), "query aimed by you · pick another word to undo", { size: 10, col: C.amb, align: "left" });
     // score table
-    const rowsT = A.w.map((w, j) => j).sort((a, b) => A.w[b] - A.w[a]).slice(0, L.n ? 5 : 6), rh = L.n ? 50 : 36, fs = L.n ? 27 : 15;
-    k.text(P.lx, P.ly, "word", { size: fs * 0.8, align: "left", col: C.muted }); if (s.nums) k.text(P.lx + P.lw * 0.62, P.ly, "q·k ÷ √2", { size: fs * 0.8, align: "right", col: C.muted }); k.text(P.lx + P.lw, P.ly, "weight", { size: fs * 0.8, align: "right", col: C.muted });
+    const rowsT = A.w.map((w, j) => j).sort((a, b) => A.w[b] - A.w[a]).slice(0, L.n ? 5 : 6), rh = L.n ? 50 : 36, fs = L.n ? 27 : 15, scX = L.n ? 0.66 : 0.62, scD = L.n ? 1 : 2;
+    k.text(P.lx, P.ly, "word", { size: fs * 0.8, align: "left", col: C.muted }); if (s.nums) k.text(P.lx + P.lw * scX, P.ly, "q·k ÷ √2", { size: fs * 0.8, align: "right", col: C.muted }); k.text(P.lx + P.lw, P.ly, "weight", { size: fs * 0.8, align: "right", col: C.muted });
     rowsT.forEach((j, r) => { const y = P.ly + (r + 1) * rh, w = headOff ? 0 : A.w[j];
       k.box(P.lx, y + fs * 0.55, P.lw * w, 4, { fill: j === s.sel ? C.amb : C.sig, r: 2 });
-      k.text(P.lx, y, ws[j], { size: fs, align: "left", mono: true, col: j === s.sel ? C.amb : C.ink });
-      if (s.nums) k.text(P.lx + P.lw * 0.62, y, A.sc[j].toFixed(2), { size: fs, align: "right", mono: true, col: C.muted });
+      // with the numbers on, keep a gap before the score column (long words such as "because" are shortened)
+      const maxCh = s.nums ? Math.max(3, Math.floor((P.lw * scX - (A.sc[j].toFixed(scD).length + 1) * fs * 0.62) / (fs * 0.62))) : 99, wd = ws[j].length > maxCh ? ws[j].slice(0, maxCh - 1) + "…" : ws[j];
+      k.text(P.lx, y, wd, { size: fs, align: "left", mono: true, col: j === s.sel ? C.amb : C.ink });
+      if (s.nums) k.text(P.lx + P.lw * scX, y, A.sc[j].toFixed(scD), { size: fs, align: "right", mono: true, col: C.muted });
       k.text(P.lx + P.lw, y, headOff ? "–" : pc(w), { size: fs, align: "right", mono: true, col: j === s.sel ? C.amb : C.sig, weight: "600" }); });
     k.text(P.lx, P.ly + (rowsT.length + 1) * rh + 4, s.nums ? (L.n ? "softmax: scores → weights" : "softmax turns scores into weights") : L.n ? "shares, adding to 100%" : "shares of attention, adding to 100%", { size: fs * 0.75, align: "left", col: C.muted });
 
@@ -4149,7 +4173,7 @@ chapter("attention", () => {
       });
       return;
     }
-    if (!L.n) k.label(K.x + K.w - 14, streamTop - 4, "stream after: animal · street", { align: "right", size: 10, col: C.muted });
+    if (!L.n) k.label(K.x + K.w - 14, streamTop - 1, "stream after: animal · street", { align: "right", size: 10, col: C.muted });
     const fmtD = d => { const a = d[0], b = d[1]; if (a < 0.005 && b < 0.005) return "adds nothing yet"; return `+${a.toFixed(2)} animal · +${b.toFixed(2)} street`; };
     st.rows.forEach((r, i) => {
       const y = top0 + rowH * (3 - i), al = r.on ? 1 : 0.3, bx = sx + 26, bw = (K.w - 60) * (L.n ? 0.55 : 0.4), mw = (K.w - 60) * (L.n ? 0.3 : 0.17);
@@ -4398,12 +4422,12 @@ chapter("thinking", () => {
     // question
     dots(k, M.x + 22, M.y + 26, c.d, C, 5);
     k.label(M.x + 58, M.y + 26, `${DIFF[c.d].name} question`, { align: "left", col: C.muted, size: 12 });
-    k.para(M.x + 22, M.y + 44, c.prob.q, M.w - 44, { size: narrow ? 24 : 21, weight: "500", maxLines: 2, col: C.ink });
-    const top = M.y + (narrow ? 142 : 122);
+    k.para(M.x + 22, M.y + 44, c.prob.q, M.w - 44, { size: narrow ? 22 : 21, weight: "500", maxLines: narrow ? 3 : 2, col: C.ink });
+    const top = M.y + (narrow ? 168 : 122);
     // thinking lanes
     const n = c.atts.length, B = c.budget, x0 = M.x + 22, x1 = M.x + M.w - (n > 1 ? 120 : 22);
     k.label(x0, top - 6, B ? (narrow ? `Hidden thinking · ${fmtTok(B)} budget${n > 1 ? ` · ${n} tries` : ""}` : `Hidden thinking · budget ${fmtTok(B)} tokens${n > 1 ? ` · ${n} attempts side by side` : ""}`) : (narrow ? "Thinking off" : "Thinking off · the model must answer straight away"), { align: "left", col: C.muted, size: narrow ? 12 : 12.5, weight: "600" });
-    const laneTop = top + 14, laneArea = narrow ? 200 : 320, lh = n === 1 ? 30 : Math.min(36, laneArea / n), bh = Math.max(7, lh * 0.62);
+    const laneTop = top + 14, laneArea = narrow ? 180 : 320, lh = n === 1 ? 30 : Math.min(36, laneArea / n), bh = Math.max(7, lh * 0.62);
     c.atts.forEach((a, i) => {
       const y = laneTop + i * lh, w = x1 - x0;
       k.box(x0, y, w, bh, { fill: C.line, r: bh / 2, alpha: 0.35 });
@@ -4416,7 +4440,8 @@ chapter("thinking", () => {
           if (!a.done) k.dot(x0 + fw, y + bh / 2, Math.max(3, bh * 0.35), C.amb, { glow: 14 });
         }
         if (a.cut && a.done) k.line(x1, y - 2, x1, y + bh + 2, { col: C.amb, lw: 2.5 });
-        if (n === 1) k.label(x0 + Math.max(w * a.used / B, 0) + 8, y + bh / 2, `${fmtTok(a.used)} hidden tokens${narrow ? "" : a.done && a.cut ? " · hit the budget" : a.done ? " · done" : ""}`, { align: "left", col: C.ink, size: 12, mono: true, bg: true });
+        if (n === 1) { if (narrow) k.label(x0, y + bh + 12, `${fmtTok(a.used)} hidden tokens${a.done && a.cut ? " · hit the budget" : a.done ? " · done" : ""}`, { align: "left", col: C.ink, size: 12, mono: true });   // under the bar on phones, so it never runs off the panel
+          else k.label(x0 + Math.max(w * a.used / B, 0) + 8, y + bh / 2, `${fmtTok(a.used)} hidden tokens${a.done && a.cut ? " · hit the budget" : a.done ? " · done" : ""}`, { align: "left", col: C.ink, size: 12, mono: true, bg: true }); }
       }
       if (n > 1 && a.done) {
         const show = c.phase !== "think";
@@ -4424,7 +4449,7 @@ chapter("thinking", () => {
         if (lh >= 16) k.label(x1 + 57, y + bh / 2, a.ans, { col: C.bg, size: narrow ? 11 : Math.min(12, lh * 0.6), weight: "700", mono: true });
       }
     });
-    let y = laneTop + (n === 1 ? 46 : n * lh + 10);
+    let y = laneTop + (n === 1 ? (narrow ? 54 : 46) : n * lh + 10);
     // the hidden text of attempt 1 (only when there is room)
     if (n === 1 && B > 0) {
       const a = c.atts[0], H = narrow ? 172 : 280;
@@ -4566,7 +4591,7 @@ chapter("thinking", () => {
 chapter("multimodal", () => {
   const MASTER = 1024, PROMPT = ["What", " does", " the", " label", " say", "?"], BUDGET = 300, VOICE_S = 4, VOICE_TOK = VOICE_S * 50, PRICE = 3 / 1e6;
   const PICS = {
-    bottle: { name: "Pill bottle", letter: 0.034, crop: [0.31, 0.44, 0.38, 0.17], text: "TAKE 2 DAILY" },
+    bottle: { name: "Pill bottle", letter: 0.034, crop: [0.31, 0.465, 0.38, 0.06], text: "TAKE 2 DAILY" },
     sign: { name: "Shop sign", letter: 0.08, crop: [0.13, 0.28, 0.74, 0.19], text: "BAKERY" },
     cat: { name: "Cat", letter: 0, crop: [0.3, 0.42, 0.4, 0.3], text: "" }
   };
@@ -4668,7 +4693,7 @@ chapter("multimodal", () => {
   // ---------- layout ----------
   function layout(narrow) {
     if (!narrow) return { narrow, P: { x: 20, y: 46, w: 360 }, V: { x: 420, y: 46, w: 230 }, Z: { x: 420, y: 316, w: 230, h: 90 }, A: { x: 20, y: 470, w: 630, h: 140 }, G: { x: 700, y: 100, w: 560, h: 500 }, T: { x: 700, y: 46 } };
-    return { narrow, P: { x: 10, y: 40, w: 260 }, V: { x: 290, y: 40, w: 260 }, Z: { x: 10, y: 334, w: 540, h: 76 }, A: { x: 10, y: 790, w: 540, h: 50 }, G: { x: 10, y: 528, w: 540, h: 220 }, T: { x: 10, y: 478 } };
+    return { narrow, P: { x: 10, y: 40, w: 260 }, V: { x: 290, y: 40, w: 260 }, Z: { x: 10, y: 334, w: 540, h: 106 }, A: { x: 10, y: 800, w: 540, h: 50 }, G: { x: 10, y: 558, w: 540, h: 200 }, T: { x: 10, y: 508 } };
   }
   // token grid geometry (image + audio tokens; the text tokens get their own row of chips)
   const CAP = 400;   // most cells drawn; beyond this the squares get too small to see, so only the first ones are shown
@@ -4718,13 +4743,14 @@ chapter("multimodal", () => {
     k.box(V.x, V.y, V.w, V.w, { stroke: C.line, r: 2, lw: 1 });
     // label close-up
     const Z = L.Z, cr = pic.crop, vd = verdict(s), vcol = vd === "readable" ? C.ok : vd === "blurry" ? C.amb : vd === "unreadable" ? C.crit : C.muted;
-    // the close-up is drawn at actual pixel size (one pixel the model gets = one screen pixel), shrunk only if it won't fit,
-    // so small letters look as small and rough as they really are
-    { const c = k.ctx; c.save(); c.imageSmoothingEnabled = false; const sw = cr[2] * s.res, sh = cr[3] * s.res, f = Math.min(k.px(1), Z.w / sw, Z.h / sh), zw = sw * f, zh = sh * f;
+    // the close-up is cut from the downsampled picture the model gets and magnified with nearest-neighbour scaling,
+    // so each block on screen is one of the model's pixels and small letters look as coarse as they really are
+    { const c = k.ctx; c.save(); c.imageSmoothingEnabled = false; const sw = cr[2] * s.res, sh = cr[3] * s.res, f = Math.min(Z.w / sw, (Z.h - 40) / sh), zw = sw * f, zh = sh * f, mag = f / k.px(1);
       c.drawImage(vw, cr[0] * s.res, cr[1] * s.res, sw, sh, Z.x, Z.y + 18, zw, zh); c.restore();
       k.box(Z.x - 1, Z.y + 17, zw + 2, zh + 2, { stroke: vcol, lw: 2, r: 2 });
-      if (pic.letter && !nar) k.label(Z.x, Z.y + 18 + zh + 14, `letters ${letterPx(s).toFixed(1)} px${s.patch > 16 ? ", squeezed" : ""}`, { align: "left", col: C.muted, size: 11, mono: true }); }
-    k.label(Z.x, Z.y + 4, pic.letter ? `Actual size: ${vd === "readable" ? "readable" : vd === "blurry" ? "blurry, a guess" : "unreadable"}` : "Actual size: no text to read", { align: "left", col: vcol, size: 12, weight: "600" });
+      const magT = mag >= 1.05 ? `×${mag.toFixed(1)}` : "shrunk";
+      k.label(Z.x, Z.y + 18 + zh + 14, pic.letter ? `${magT} · ${letterPx(s).toFixed(1)} px ${s.patch > 16 ? "tall, squeezed" : "tall (need 8)"}` : magT, { align: "left", col: C.muted, size: 11, mono: true }); }
+    k.label(Z.x, Z.y + 4, pic.letter ? `Close-up: ${vd === "readable" ? "readable" : vd === "blurry" ? "blurry, a guess" : "unreadable"}` : "Close-up: no text to read", { align: "left", col: vcol, size: 12, weight: "600" });
     // 3) the token stream
     const T = L.T, tot = total(s), over = tot > BUDGET;
     k.label(T.x, T.y - 18, nar ? `The model's input · ${fmtN(tot)} tokens` : `The model's input, in order · ${fmtN(tot)} tokens`, { align: "left", col: over ? C.crit : C.ink, weight: "600", size: 13 });
@@ -4809,7 +4835,7 @@ chapter("multimodal", () => {
       { id: "voice", when: s => s.voice && s.t - s.t0 > 4, say: s => `The ${VOICE_S}-second voice note became <b>${VOICE_TOK}</b> tokens: the sound is turned into a spectrogram, a picture of which pitches are loud at each moment, and every 20 ms slice becomes one token. That's ${VOICE_TOK} tokens of your ${BUDGET}.` },
       { id: "patch32", when: s => s.patch === 32, say: s => `With 32-pixel patches, each token has to hold ${fmtN(32 * 32 * 3)} colour values in a list the same size as before, so fine detail gets squeezed out. Fewer tokens (${fmtN(imgTok(s))}), but the letters are now worth only about ${letterPx(s).toFixed(1)} pixels.` },
       { id: "over", when: s => total(s) > BUDGET, say: s => { const n = grid(s); return `At ${s.res}×${s.res} the picture is ${n} patches across and ${n} down: <b>${fmtN(n * n)}</b> tokens, over your ${BUDGET}-token budget. Double the width and height and you get four times the patches, so four times the tokens.`; } },
-      { id: "unread", when: s => verdict(s) === "unreadable" || verdict(s) === "blurry", say: s => `At ${s.res}×${s.res} the label's letters are about <b>${letterPx(s).toFixed(1)} pixels</b> tall. That's too few to tell an E from an F, so the model could only guess. Raise the resolution, but watch the token count.` },
+      { id: "unread", when: s => verdict(s) === "unreadable" || verdict(s) === "blurry", say: s => `At ${s.res}×${s.res} the label's letters are about <b>${letterPx(s).toFixed(1)} pixels</b> tall. That's under the ~8 pixels our illustrative rule asks for: at this size a model starts mixing up similar letters, like E and F, so it could only guess. Raise the resolution, but watch the token count.` },
       { id: "cat", when: s => s.pic === "cat" && s.res <= 160, say: s => `Even at ${s.res}×${s.res}, only ${fmtN(imgTok(s))} tokens, the cat is still obviously a cat. Big shapes survive low resolution; small text doesn't.` },
       { id: "calm", when: () => true, say: s => `${fmtN(imgTok(s))} picture tokens, about as many as ${fmtN(imgTok(s) * 0.75)} words of text. Each square of your picture became one token in the model's input, after the ${PROMPT.length} text tokens of your question.` }
     ],
@@ -4821,7 +4847,7 @@ chapter("multimodal", () => {
       { say: "A pill bottle sent at 224×224 pixels with 16-pixel patches, the setup of the original Vision Transformer: 14 × 14 = 196 tokens. Watch them fly in after your words.", set: { pic: "bottle", res: 224, patch: 16, voice: false }, wait: 7 },
       { say: "Send it sharper, at 640×640. The label is crisp, but the picture is now 1,600 tokens, far over budget.", set: { res: 640 }, wait: 7 },
       { say: "Go cheap: 96×96 is just 36 tokens, but look at the close-up. The letters are a smear.", set: { res: 96 }, wait: 7 },
-      { say: "The sweet spot: 256×256 is 256 tokens plus 6 text tokens, and the letters are just big enough to read. Compare the close-up with 224.", set: { res: 256 }, wait: 7 },
+      { say: "The sweet spot: 256×256 is 256 tokens plus 6 text tokens, and the letters reach about 9 pixels, just over the ~8 our rule needs. Each block in the close-up is one pixel the model gets.", set: { res: 256 }, wait: 7 },
       { say: "Now add a 4-second voice note. Sound becomes a spectrogram, and each 20 ms slice becomes a token: 200 more, over budget again.", set: { voice: true }, wait: 9 }
     ],
     publish: s => ({ mmRes: `${s.res}×${s.res}`, mmResN: String(s.res), mmPatch: String(s.patch), mmGrid: String(grid(s)), mmImgTok: fmtN(imgTok(s)), mmTotal: fmtN(total(s)), mmLetter: PICS[s.pic].letter ? letterPx(s).toFixed(1) + " pixels" : "(no text in this picture)", mmWords: fmtN(imgTok(s) * 0.75), mmVoice: s.voice ? ` + ${VOICE_TOK} voice` : "", mmPrompt: String(PROMPT.length) })
@@ -4998,7 +5024,7 @@ chapter("memory", () => {
       { id: "doc", when: s => s.convs.some(c => c.tag === "doc"), say: s => { const d = s.convs.find(c => c.tag === "doc"); return d.state === "wait" ? `The 30,000-token document needs about <b>${(30000 * KIB_PER_TOK / 1048576 * 1.074).toFixed(1)} GB</b> of notes before it writes a word. It's waiting for that much space to free up; if it waits ${PATIENCE} seconds it gives up.` : "The document is in (outlined, labelled \"30k document\"). One long conversation takes as much memory as a dozen short ones."; } },
       { id: "wasteR", when: s => s.mode === "reserve" && stats(s).waiting > 2 && stats(s).wastePct > 0.4, say: s => { const st = stats(s); return `Look at the dim, hatched squares (booked but empty): <b>${fmtGB(st.emptyGB)}</b> is reserved but holds nothing, while ${st.waiting} people wait${s.gaveUp ? ` (${s.gaveUp} have given up so far)` : ""}. Each chat booked room for ${s.maxLen.toLocaleString()} tokens but most use far less.`; } },
       { id: "gaveUp", when: s => s.lastGiveUp && s.t - s.lastGiveUp < 3, say: s => `People are being turned away: anyone who waits ${PATIENCE} seconds for memory gives up, and when ${LINE_MAX} are already waiting newcomers are refused (${s.gaveUp} so far). Real servers time out and refuse requests the same way. Fit more people in, or send fewer.` },
-      { id: "paged", when: s => s.mode === "paged" && stats(s).running >= 25, say: s => { const st = stats(s); return `With paging, memory is handed out a square at a time as each reply grows. The same GPU now holds <b>${st.running}</b> conversations, and only ${fmtGB(st.emptyGB)} is reserved but empty.`; } },
+      { id: "paged", when: s => s.mode === "paged" && stats(s).running >= 25, say: s => { const st = stats(s); return `With paging, memory is handed out a square at a time as each reply grows. The same GPU now holds <b>${st.running}</b> conversations, and only ${fmtGB(st.emptyGB)} is reserved but empty.${s.rate < 6 && st.waiting === 0 ? ` At ${s.rate} new people a second, arrivals limit the crowd, not memory: raise <b>New people per second</b> to 8 to see how many fit.` : ""}`; } },
       { id: "shared", when: s => s.sharePrefix && s.mode === "paged" && s.shared.length, say: s => { const st = stats(s); return `The white squares are the 2,000-token instructions every chat starts with, stored once and used by all ${st.running}. Without sharing they would take ${fmtGB(st.running * SYS * KIB_PER_TOK / 1048576 * 1.074)}.`; } },
       { id: "calm", when: s => stats(s).waiting === 0 && stats(s).running > 0, say: s => `Everyone fits right now: ${stats(s).running} conversation${stats(s).running === 1 ? "" : "s"}, ${fmtGB(stats(s).freeGB)} free. Turn up "new people per second" to see where this setup breaks.` }
     ],
@@ -5011,6 +5037,7 @@ chapter("memory", () => {
       { say: "This server reserves room for the longest allowed conversation (16k tokens) the moment someone arrives. Watch the number of people waiting for memory.", set: { mode: "reserve", share: false, rate: 3, max: 16384 }, wait: 7 },
       { say: "Dim, hatched squares are booked but empty. Most chats are a few thousand tokens, so most of every booking is wasted, and people wait even though memory isn't really full.", wait: 6 },
       { say: "Now switch to <b>paging</b>: each chat gets a square only when its notes need one.", set: { mode: "paged" }, until: s => stats(s).running >= 25, max: 12 },
+      { say: "At 3 new people a second, arrivals limit the crowd, not memory. Raise it to 8 a second: paging fits two to three times as many people as booking the maximum did.", set: { rate: 8 }, wait: 9 },
       { say: "Every chat starts with the same 2,000 tokens of hidden instructions. With sharing on, they're stored once (white squares).", set: { share: true }, wait: 6 },
       { say: "Finally, raise the limit to 32k tokens and paste a 30,000-token document. Its squares are outlined and labelled \"30k document\": one long conversation takes as much memory as a dozen short ones.", set: { max: 32768 }, act: s => { s.longDoc = 1; }, wait: 8 }
     ],
@@ -5107,8 +5134,8 @@ chapter("batching", () => {
     }
     k.label(M.x + memW / 2, cxy(Math.max(0, Math.min(wC - 1, Math.floor(wC / 2))))[1] + M.cell / 2, nar ? `model ${fGB(m.W)}` : `the model · ${fGB(m.W)} (${m.pr.name})`, { col: C.ink, size: 12, weight: "600", bg: true });
     if (kvC >= (nar ? 5 : 12)) { const mid = wC + workC + Math.floor(kvC / 2); k.label(M.x + memW / 2, cxy(mid)[1] + M.cell / 2, nar ? `notes ${fGB(m.kv)}` : `notes · ${m.seated} × ${fmtL(s.ctx)} = ${fGB(m.kv)}`, { col: C.ink, size: 12, weight: "600", bg: true }); }
-    if (m.over) k.label(M.x + memW / 2, M.y + memH + (nar ? 28 : 26), `needs ${fGB(m.need)} of 80 GB`, { col: C.crit, size: 13, weight: "700" });
-    else if (!nar) k.label(M.x + memW / 2, M.y + memH + 26, `${fGB(MEM - m.used)} free · dashed = working space`, { col: C.muted, size: 11 });
+    if (m.over) k.label(M.x + memW / 2, M.y + memH + (nar ? 35 : 32), `needs ${fGB(m.need)} of 80 GB`, { col: C.crit, size: nar ? 12 : 13, weight: "700" });
+    else if (!nar) k.label(M.x + memW / 2, M.y + memH + 32, `${fGB(MEM - m.used)} free · dashed = working space`, { col: C.muted, size: 11 });
     // ---- pipe ----
     const P = L.pipe, memShare = m.mem / m.t, reading = s.p < memShare;
     k.box(P.x0, P.y - 20, P.x1 - P.x0, 40, { fill: C.bg2, stroke: reading ? C.sig : C.line, r: 20, glow: reading ? 10 : 0, glowCol: C.sig });
@@ -5140,8 +5167,8 @@ chapter("batching", () => {
       if (rK > 1) k.box(T.x + rW, T.y, rK, 18, { fill: NOTE, r: 4, alpha: 0.8 });
       k.box(T.x, T.y + 30, Math.max(2, cW), 18, { fill: C.amb, r: 4, alpha: 0.85 });
       k.line(T.x + s.p * T.w, T.y - 6, T.x + s.p * T.w, T.y + 54, { col: C.ink, lw: 1.5, alpha: 0.7 });
-      k.label(T.x + T.w + 12, T.y + 9, `reading ${fMs(m.mem)}`, { align: "left", col: C.sig, size: 11, weight: "600" });
-      k.label(T.x + T.w + 12, T.y + 39, `maths ${fMs(m.comp)}`, { align: "left", col: C.amb, size: 11, weight: "600" });
+      k.label(T.x + T.w + 20, T.y + 9, `reading ${fMs(m.mem)}`, { align: "left", col: C.sig, size: 11, weight: "600" });
+      k.label(T.x + T.w + 20, T.y + 39, `maths ${fMs(m.comp)}`, { align: "left", col: C.amb, size: 11, weight: "600" });
       k.label(T.x, T.y + 72, "teal = weights · violet = notes", { align: "left", col: C.muted, size: 11 });
       k.label(T.x, T.y + 92, `white line = progress · ${SLOW}× slower than real`, { align: "left", col: C.muted, size: 11 });
     }
@@ -5161,7 +5188,7 @@ chapter("batching", () => {
     }
     if (!nar) k.label(S.x + S.w / 2, S.y + S.h + 26, s.mode === "static" ? "dashed = done, waiting for the slowest · red = no room" : "ring = progress through a reply · red = no room for notes", { col: C.muted, size: 11 });
     // ---- precision tag ----
-    k.label(M.x, M.y + memH + (nar ? 64 : 50), `${m.pr.name} numbers · ${m.pr.q}`, { align: "left", col: s.prec === "int4" ? C.amb : C.muted, size: nar ? 12 : 11, weight: "600" });
+    k.label(M.x, M.y + memH + (nar ? 69 : 52), `${m.pr.name} numbers · ${m.pr.q}`, { align: "left", col: s.prec === "int4" ? C.amb : C.muted, size: nar ? 12 : 11, weight: "600" });
   }
 
   const sim = makeSim($("#bt-sim"), {
@@ -5240,7 +5267,7 @@ chapter("cost", () => {
   const pct = v => v < 0.01 && v > 0 ? (v * 100).toFixed(1) + "%" : Math.round(v * 100) + "%";
   const late = v => v < 0.1 ? (v * 100).toFixed(2) + "%" : (v * 100).toFixed(1) + "%";
 
-  function newDay(s) { s.day = { t0: s.t, startH: hourOf(s), bill: 0, chatBill: 0, replies: 0, served: 0, failed: 0, late: 0, energy: 0, hist: new Array(EDGES.length).fill(0), sChat: 0, sBatch: 0, sIdle: 0, sStart: 0 }; s.trace = []; }
+  function newDay(s) { s.day = { t0: s.t, startH: hourOf(s), bill: 0, chatBill: 0, replies: 0, served: 0, failed: 0, late: 0, lateSpike: 0, energy: 0, hist: new Array(EDGES.length).fill(0), sChat: 0, sBatch: 0, sIdle: 0, sStart: 0 }; s.trace = []; }
   function init(rand) {
     const s = { rand, t: 0, h0: 5, on: 30, starting: [], Q: 0, lamE: 0, downFor: 0, noise: 0, spikes: [], parts: [], partAcc: 0, dayN: 1, lastDay: null, lastDayAt: -99, goalMet: false };
     s.lamE = lam(s, s.h0); newDay(s); return s;
@@ -5248,6 +5275,7 @@ chapter("cost", () => {
   const hourOf = s => (s.h0 + s.t) % 24;
   function lam(s, h) { let l = PEAK * shape(h) * (1 + (s.noise || 0)); const at = s.h0 + s.t; for (const sp of s.spikes) if (at >= sp && at < sp + 0.5) l *= SPIKE; if (h >= 11 && h < 11.5) l *= SPIKE; return l; }
   const spiking = s => { const h = hourOf(s), at = s.h0 + s.t; return (h >= 11 && h < 11.5) || s.spikes.some(sp => at >= sp && at < sp + 0.5); };
+  const nearSpike = s => { const h = hourOf(s), at = s.h0 + s.t; return (h >= 11 && h < 12) || s.spikes.some(sp => at >= sp && at < sp + 1); };   // a spike and the half hour after it
 
   function step(s, dt) {
     const dh = dt * DT_H; s.t += dh; const h = hourOf(s);
@@ -5284,7 +5312,7 @@ chapter("cost", () => {
     const paid = on + s.starting.length, seatsTot = paid * SEATS, bill = paid * PRICE * dh;
     const batchSeats = s.batch ? Math.max(0, s.on * SEATS * BFILL - busy) : 0, chatFrac = 1 - batchSeats / seatsTot;
     s.busy = busy; s.batchSeats = batchSeats; s.chatFrac = chatFrac;
-    D.bill += bill; D.chatBill += bill * chatFrac; D.replies += n; D.served += served; D.failed += failed; D.late += failed + (n - failed) * fracLate;
+    D.bill += bill; D.chatBill += bill * chatFrac; D.replies += n; D.served += served; D.failed += failed; const lateN = failed + (n - failed) * fracLate; D.late += lateN; if (nearSpike(s)) D.lateSpike += lateN;
     const busyFrac = (busy + batchSeats) / seatsTot; D.energy += paid * PMAX * (PIDLE + (1 - PIDLE) * busyFrac) * dh * chatFrac;
     D.sChat += busy * dh; D.sBatch += batchSeats * dh; D.sStart += s.starting.length * SEATS * dh; D.sIdle += Math.max(0, s.on * SEATS - busy - batchSeats) * dh;
     if (!s.trace.length || s.t - s.trace[s.trace.length - 1].t > 0.1) s.trace.push({ t: s.t - D.t0, h, l, cap: s.on * MU });
@@ -5302,7 +5330,7 @@ chapter("cost", () => {
     const D = s.day, rep = Math.max(1, D.replies), srv = Math.max(1, D.served);
     const per1000 = D.chatBill / srv * 1000, lateF = D.late / rep, Wh = D.energy / srv;
     const tot = D.sChat + D.sBatch + D.sIdle + D.sStart || 1;
-    return { per1000, lateF, Wh, replies: D.replies, served: D.served, failed: D.failed, failF: D.failed / rep, hours: (s.t - D.t0), ok: per1000 < 0.33 && lateF < 0.01, chat: D.sChat / tot, batch: D.sBatch / tot, idle: D.sIdle / tot, start: D.sStart / tot };
+    return { per1000, lateF, Wh, replies: D.replies, served: D.served, failed: D.failed, failF: D.failed / rep, spikeShare: D.late > 0 ? D.lateSpike / D.late : 0, hours: (s.t - D.t0), ok: per1000 < 0.33 && lateF < 0.01, chat: D.sChat / tot, batch: D.sBatch / tot, idle: D.sIdle / tot, start: D.sStart / tot };
   }
 
   // ---------- drawing ----------
@@ -5339,7 +5367,8 @@ chapter("cost", () => {
     const r = Math.max(0.5, Math.min(0.995, s.rho || 0)), w = s.Q > 0 ? s.waitNow : curveP99(r);
     const hot = s.Q > 0 || w > Y;
     k.dot(X(r), Yv(w), k.px(7), hot ? C.crit : C.sig, { glow: 14 });
-    k.label(X(r), Yv(w) - 18, s.Q > 0 ? "overloaded" : "you", { col: hot ? C.crit : C.sig, size: 11, weight: "700", bg: true });
+    const edge = r > 0.9;   // near the right edge: put the badge to the left of the dot so it stays inside the plot
+    k.label(edge ? X(r) - 10 : X(r), Yv(w) - 18 < T.y + 10 ? Yv(w) + 20 : Yv(w) - 18, s.Q > 0 ? "overloaded" : "you", { col: hot ? C.crit : C.sig, size: 11, weight: "700", bg: true, align: edge ? "right" : "center" });
   }
 
   function draw(k, s, sim) {
@@ -5374,8 +5403,8 @@ chapter("cost", () => {
     }
     const qn = s.Q > 0 ? Math.min(48, Math.ceil(s.Q / 150)) : 0;
     for (let i = 0; i < qn; i++) { const x = gate[0] - 20 - (i % 4) * 18, y = Q.y1 - 10 - Math.floor(i / 4) * 18; k.dot(x, y, k.px(nar ? 3.5 : 4.5), C.amb, { glow: 6 }); }
-    const qlx = nar ? Q.x - 10 : gate[0] - 46, qal = nar ? "left" : "center", qsz = nar ? 13 : 11;
-    const fK = v => v >= 10000 ? Math.round(v / 1000) + "k" : Math.round(v).toLocaleString(), qtxt = s.Q > 0 ? `${fK(s.Q)} waiting` : "nobody queued";
+    const qlx = nar ? Q.x - 10 : gate[0] + 6, qal = nar ? "left" : "right", qsz = nar ? 13 : 11;   // right-aligned at the gate so long counts stay clear of the GPU grid
+    const fK = v => v >= 1e6 ? (v / 1e6).toFixed(1) + " million" : Math.round(v).toLocaleString(), qtxt = s.Q > 0 ? `${fK(s.Q)} waiting` : "no lasting line";
     if (nar) k.label(qlx, Q.y1 + k.px(12), qtxt + (s.day.failed >= 1 ? ` · ${fK(s.day.failed)} gave up today` : ""), { align: qal, col: s.Q > 0 ? C.amb : s.day.failed >= 1 ? C.crit : C.muted, size: qsz, weight: "600" });
     else {
       k.label(qlx, Q.y1 + 22, qtxt, { align: qal, col: s.Q > 0 ? C.amb : C.muted, size: qsz, weight: "600" });
@@ -5408,14 +5437,14 @@ chapter("cost", () => {
       ["GPUs on" + (s.starting.length ? ` (+${s.starting.length} starting)` : ""), String(s.on)],
       ["how full the seats are", pct(Math.min(1, s.rho || 0)), s.Q > 0 || s.rho > 0.9 ? "bad" : s.rho > 0.8 ? "hot" : "ok"],
       ["failed or waited 5 s+ today", late(sm.lateF), sm.lateF >= 0.01 ? "bad" : sm.lateF > 0.005 ? "hot" : "ok"],
-      ["per 1,000 replies today*", money(sm.per1000), sm.per1000 < 0.33 ? "ok" : sm.per1000 > 0.45 ? "hot" : ""],
+      sm.failF >= 0.01 ? ["per 1,000 replies today*", `${money(sm.per1000)} · only ${pct(1 - sm.failF)} served`, "bad"] : ["per 1,000 replies today*", money(sm.per1000), sm.per1000 < 0.33 ? "ok" : sm.per1000 > 0.45 ? "hot" : ""],
       ["energy per reply* ≈ " + tv.toFixed(1) + " s of TV", sm.Wh.toFixed(2) + " Wh"]]; },
     goal: { text: "get through a whole day for under $0.33 per 1,000 replies, with fewer than 1 in 100 people failing or waiting over 5 seconds",
       check: s => { const sm = summary(s); return { done: s.goalMet, progress: s.lastDay && !s.goalMet ? `last day: ${money(s.lastDay.per1000)} · ${late(s.lastDay.lateF)} failed or waited` : `${Math.round(sm.hours)} of 24 h measured (since ${clock(s.day.startH)}) · ${money(sm.per1000)} · ${late(sm.lateF)} failed or waited 5 s+` }; } },
     notices: [
-      { id: "dayEnd", when: s => s.lastDay && s.t - s.lastDayAt < 2.5, say: s => { const d = s.lastDay; return d.ok ? `Last day: <b>${money(d.per1000)}</b> per 1,000 replies, and only ${late(d.lateF)} of ${Math.round(d.replies / 1e6 * 10) / 10} million people failed or waited over 5 s. Goal reached.` : `Last day: ${money(d.per1000)} per 1,000 replies, ${late(d.lateF)} failed or waited over 5 s, and ${Math.round(d.idle * 100)}% of the GPU time you paid for sat empty. ${d.lateF >= 0.01 ? "Too many waited: you need more room for the peak and the spike." : "Too expensive: the empty seats cost money."}`; } },
+      { id: "dayEnd", when: s => s.lastDay && s.t - s.lastDayAt < 2.5, say: s => { const d = s.lastDay; return d.ok ? `Last day: <b>${money(d.per1000)}</b> per 1,000 replies, and only ${late(d.lateF)} of ${Math.round(d.replies / 1e6 * 10) / 10} million people failed or waited over 5 s. Goal reached.` : `Last day: ${money(d.per1000)} per 1,000 replies, ${late(d.lateF)} failed or waited over 5 s, and ${Math.round(d.idle * 100)}% of the GPU time you paid for sat empty. ${d.lateF >= 0.01 ? (d.spikeShare >= 0.5 ? `Too many waited, most of them (${pct(d.spikeShare)}) during or just after a spike. ${s.mode === "auto" ? "New GPUs take 10 minutes to start, so lower the autoscale target to keep spare room for it." : "Add GPUs, or autoscale with spare room."}` : "Too many waited: you need more room for the peak and the spike.") : "Too expensive: the empty seats cost money."}`; } },
       { id: "backlog", when: s => s.Q > 0, say: s => { const n = s.starting.length; return `More people than seats: <b>${Math.round(s.Q).toLocaleString()}</b> are queued and new arrivals wait about ${fSec(s.waitNow)}. ${s.failNow > 0 ? `The line is a minute long, so newcomers give up (red): ${Math.round(s.day.failed).toLocaleString()} failed today. ` : ""}${s.mode === "auto" ? (n ? `${n} new GPU${n > 1 ? "s are" : " is"} starting, but loading the model takes 10 minutes, so autoscaling can't catch a sudden jump.` : "The autoscaler's target leaves no room for this.") : "This fleet is too small for this moment."}`; } },
-      { id: "steep", when: s => s.rho >= 0.86, say: s => `Each GPU's seats are <b>${pct(s.rho)}</b> full. Near 100%, waits shoot up: a chat that arrives when every seat is taken has to wait for one to free, and that gets likelier very fast. The unluckiest 1 in 100 now wait ${fSec(s.p99now)}.` },
+      { id: "steep", when: s => s.rho >= 0.86, say: s => `Each GPU's seats are <b>${pct(s.rho)}</b> full. Near 100%, waits shoot up: a chat that arrives when every seat is taken has to wait for one to free, and that gets likelier very fast. ${s.Q > 0 ? `Right now everyone arriving waits about ${fSec(s.waitNow)}.` : `No line builds up, but at this fullness the unluckiest 1 in 100 arrive just as every seat is taken and would wait ${s.p99now < 1 ? "under a second" : "up to " + fSec(s.p99now)} for one to free.`}` },
       { id: "starting", when: s => s.mode === "auto" && s.starting.length > 0, say: s => `Traffic is rising, so the autoscaler is starting ${s.starting.length} more GPU${s.starting.length > 1 ? "s" : ""} (dashed). Each takes 10 minutes to load the model, and you pay from the moment it starts.` },
       { id: "idle", when: s => !s.batch && s.rho < 0.55, say: s => `Only ${pct(s.rho)} of the seats are in use, but you pay for every GPU-hour: about <b>${money(s.idleCostNow)}</b> an hour right now goes on empty seats. Fewer GPUs, autoscaling, or batch work would cut that.` },
       { id: "batch", when: s => s.batch, say: s => `Batch jobs (blue) fill seats the chats aren't using and hand them back the moment a chat needs one. They share the bill, so a chat reply now costs ${money(summary(s).per1000)} per 1,000, and far less GPU time goes to waste.` },
@@ -5533,7 +5562,7 @@ chapter("production", () => {
       s.win = []; s.cur = newCur(s); s.pending = []; // a new build starts with fresh numbers
     }
     // track the current rollout (for the personalised maths)
-    if (s.target > 0 && !s.ro) s.ro = { g0: s.garbled, fb: -1, start: s.t };
+    if (s.target > 0 && !s.ro) s.ro = { g0: s.garbled, fb: -1, start: s.t, aI: 0, afI: 0 };
     // servers switch over gradually; rollback is quicker (the old version is still loaded and warm), but not instant
     const up = 0.3, down = 0.4;
     s.a = s.target > s.a ? Math.min(s.target, s.a + up * dt) : Math.max(s.target, s.a - down * dt);
@@ -5545,6 +5574,7 @@ chapter("production", () => {
       b.ttft += rep * ((v === "new" ? 0.42 : 0.45) + 0.03 * gauss(r) / Math.sqrt(1 + rep));
       b.graded += rep * GRADE[v]; b.thumb += pois(rep * BASE_THUMB, r); b.flag += pois(rep * GRADE[v] * FALSE_FLAG, r);
     });
+    if (s.ro && s.ro.fb >= 0) { s.ro.aI += s.a * dt; s.ro.afI += s.a * badRate(s) * dt; }  // for the time-averaged maths
     const g = pois(R * s.a * badRate(s) * dt, r);
     for (let i = 0; i < g; i++) {
       s.garbled++; if (s.firstBad < 0 || (s.lastRb && s.firstBad < s.lastRb.t)) s.firstBad = s.t;
@@ -5619,7 +5649,7 @@ chapter("production", () => {
     k.label(px, yy, "new " + (n == null ? "–" : P.fmt(n)), { align: "left", col: C.amb, size: narrow ? 11 : 12, weight: "650", mono: true });
     k.label(px + pw, yy, "old " + (1 - s.a < 0.02 || o == null ? "–" : P.fmt(o)), { align: "right", col: C.muted, size: narrow ? 11 : 12, weight: "600", mono: true });
     if (!narrow) k.label(px, yy + 20, 1 - s.a < 0.02 ? "old version: no traffic now" : P.note, { align: "left", col: C.muted, size: 10 });
-    if (n == null && s.a > 0.001 && s.target > 0) k.label(px + pw / 2, py + ph / 2, "too few new replies to judge", { col: C.amb, size: narrow ? 10 : 11, bg: true });
+    if (n == null && s.a > 0.001 && s.target > 0) k.label(px + pw / 2, py + (narrow ? 14 : 16), "too few new replies to judge", { col: C.amb, size: narrow ? 10 : 11, bg: true });
   }
 
   function draw(k, s, sim) {
@@ -5693,6 +5723,7 @@ chapter("production", () => {
 
   const m = (s, v, key) => s.m[v] && s.m[v][key] != null ? s.m[v][key] : null;
   const f1 = x => x == null ? "–" : x.toFixed(1);
+  const oldGone = s => 1 - s.a < 0.02;   // the old version has no traffic now, so it has no current numbers
   const sim = makeSim($("#prod-sim"), {
     label: "Production rollout simulation. A router sends a share of live traffic to servers running a new model version (amber). Four dashboard charts compare the new and old versions. Red sparks are garbled replies.",
     cams: { default: { x: 0, y: 0, w: 1600, h: 760 } },
@@ -5714,8 +5745,8 @@ chapter("production", () => {
     stats: s => {
       const st = [["on the new version", pct(s.a), s.a > 0.999 && s.fixed ? "ok" : ""],
         ["garbled replies sent", `${s.garbled} / ${LIMIT}`, s.garbled > LIMIT ? "bad" : s.garbled > LIMIT / 2 ? "hot" : "ok"],
-        ["errors per 1,000 · new / old", `${f1(m(s, "new", "err"))} / ${f1(m(s, "old", "err"))}`],
-        ["quality flags per 1,000 · new / old", `${f1(m(s, "new", "qual"))} / ${f1(m(s, "old", "qual"))}`, (m(s, "new", "qual") || 0) >= 3 ? "bad" : ""],
+        ["errors per 1,000 · new / old", `${f1(m(s, "new", "err"))} / ${oldGone(s) ? "–" : f1(m(s, "old", "err"))}`],
+        ["quality flags per 1,000 · new / old", `${f1(m(s, "new", "qual"))} / ${oldGone(s) ? "–" : f1(m(s, "old", "qual"))}`, (m(s, "new", "qual") || 0) >= 3 ? "bad" : ""],
         ["rollbacks", String(s.rollbacks)]];
       return st;
     },
@@ -5731,7 +5762,8 @@ chapter("production", () => {
       { id: "hidden", when: s => s.fault && s.garbled >= 3 && s.a > 0, say: s => `Errors and speed look healthy, yet ${s.garbled} garbled replies have gone out (the red sparks). To an error counter, a garbled reply is a success: the server answered on time. All of them come from chip C.` },
       { id: "missC", when: s => s.fault && s.a > 0 && cFrac(s) === 0 && s.t > 3, say: s => `${pct(s.a)} of traffic (${Math.round(R * s.a)} replies a second) runs on ${newServers(s.a)} new server${newServers(s.a) > 1 ? "s" : ""}, none of them on chip C. If a problem only happens on one kind of hardware, this slice can't find it. A useful first slice has to include every kind.` },
       { id: "fast", when: s => s.plan === "fast" && s.a > 0, say: s => `Everyone is moving to the new version at once. If something is wrong, all ${R} replies a second are exposed until it's caught.` },
-      { id: "canary", when: s => s.a > 0 && s.a < 0.6, say: s => `${pct(s.a)} of traffic (${Math.round(R * s.a)} replies a second) is on the new version. Compare each amber line with the grey one beside it: the same moment, the same kind of traffic, two versions.` },
+      { id: "holding", when: s => s.fixed && s.a > 0.999 && !s.won, say: s => `100% of traffic is on the fixed build. Holding ${Math.max(1, Math.ceil(5 - s.shippedFor))} s more to confirm nothing goes wrong before calling it shipped.` },
+      { id: "canary", when: s => s.a > 0 && !s.won, say: s => `${pct(s.a)} of traffic (${Math.round(R * s.a)} replies a second) is on the new version. Compare each amber line with the grey one beside it: the same moment, the same kind of traffic, two versions.` },
       { id: "idle", when: s => s.a === 0, say: () => "Everyone is on the old version. Pick a rollout plan, or drag the slider, to start sending people to the new one." }
     ],
     facts: [
@@ -5752,13 +5784,16 @@ chapter("production", () => {
       let which = "No rollout has reached chip C yet. Example, 25% for 10 s", a = 0.25, f = FAULT / 3, T = 10, n = null;
       if (ro) {
         which = live ? "Your rollout so far" : "Your last rollout";
-        a = live ? s.a : ro.a; f = live ? badRate(s) : ro.f; if (!f) f = FAULT / 3;   // f was 1/75 while chip C was in the slice
+        // time-averaged since the first bad reply: the slice ramps up gradually, so the share "now" would overstate a
         T = Math.max(1, (live ? s.t : ro.end) - ro.fb); n = live ? s.garbled - ro.g0 : ro.n;
+        const span = (live ? s.t : ro.end) - ro.fb;
+        a = ro.aI > 0 && span > 0 ? ro.aI / span : (live ? s.a : ro.a);
+        f = ro.aI > 0 ? ro.afI / ro.aI : (live ? badRate(s) : ro.f); if (!f) f = FAULT / 3;   // f was 1/75 while chip C was in the slice
       }
       return { prShare: pct(s.a), prGarbled: String(s.garbled), prLimit: String(LIMIT), prRb: String(s.rollbacks),
         prNewErr: f1(m(s, "new", "err")), prOldErr: f1(m(s, "old", "err")), prNewQ: f1(m(s, "new", "qual")), prOldQ: f1(m(s, "old", "qual")),
         prR: String(R), prWhich: which, prA: pct(a), prFf: Math.abs(f - FAULT / 3) < 1e-9 ? "1/75" : f > 0 ? "1/" + Math.round(1 / f) : "0",
-        prT: T.toFixed(0) + " s", prPred: String(Math.round(R * a * f * T)), prPredAll: String(Math.round(R * (FAULT / 3) * T)),
+        prT: T.toFixed(0) + " s", prTEnd: live ? "so far" : "before rollback", prAvg: ro ? " (average share since the first bad reply)" : "", prPred: String(Math.round(R * a * f * T)), prPredAll: String(Math.round(R * (FAULT / 3) * T)),
         prCount: n == null ? "nothing yet" : n + " garbled repl" + (n === 1 ? "y" : "ies") };
     }
   });
@@ -5830,7 +5865,7 @@ chapter("datacenters", () => {
       cam: { x: -30, y: 0, w: 1660, h: 790 } };
   })();
   const NARROW = (() => {
-    const hx = i => 20 + (i % 2) * 440, hy = i => 200 + Math.floor(i / 2) * 330, HW = 420, HH = 300, P = [20, 870, 280, 150], S = [350, 18, 200, 142];
+    const hx = i => 20 + (i % 2) * 440, hy = i => 200 + Math.floor(i / 2) * 330, HW = 420, HH = 300, P = [20, 870, 280, 150], S = [330, 18, 240, 142];
     return { cols: 15, rows: 10, hw: HW, hh: HH, hall: i => [hx(i), hy(i)], sub: S, plant: P, chart: [330, 870, 550, 230],
       grid: [[450, -60], [450, S[1]]],
       bus: i => i < 2 ? [[450, S[1] + S[3]], [450, 175], [hx(i) + HW / 2, 175], [hx(i) + HW / 2, hy(i)]] : [[450, S[1] + S[3]], [450, 515], [hx(i) + HW / 2, 515], [hx(i) + HW / 2, hy(i)]],
@@ -5883,7 +5918,7 @@ chapter("datacenters", () => {
     // substation and cooling plant
     k.box(sx, sy, sw, sh, { fill: C.bg2, stroke: C.amb, r: 12, lw: 1.4, glow: 10 * intensity, glowCol: C.amb });
     k.label(sx + sw / 2, sy + sh / 2, "substation", { col: C.ink, weight: "650", size: 11, dy: -15 });
-    k.label(sx + sw / 2, sy + sh / 2, fmtMW(p.site * s.load), { col: s.use === "train" && p.site > GOAL_MW + 1e-9 ? C.crit : C.amb, size: 12, weight: "650", mono: true, dy: 1 });
+    k.label(sx + sw / 2, sy + sh / 2, "now " + fmtMW(p.site * s.load), { col: s.use === "train" && p.site > GOAL_MW + 1e-9 ? C.crit : C.amb, size: 12, weight: "650", mono: true, dy: 1 });
     k.label(sx + sw / 2, sy + sh / 2, "limit " + fmtMW(s.power), { col: C.muted, size: 10, dy: 16 });
     k.box(px, py, pw, ph, { fill: C.bg2, stroke: COOL, r: 12, lw: 1.4, glow: 10 * intensity, glowCol: COOL });
     k.label(px + pw / 2, py + ph / 2, "cooling plant", { col: C.ink, weight: "650", size: 11, dy: -15 });
@@ -5903,7 +5938,7 @@ chapter("datacenters", () => {
     k.label(cx + cw - 12, cy + 18, "- - limit", { align: "right", col: C.crit, size: 10, weight: "600" });
     s.marks.forEach((m, i) => { if (!m) return; const xx = gx + (i + HIST - s.hist.length) / (HIST - 1) * gw;
       k.line(xx, gy, xx, gy + gh, { col: C.muted, lw: 1, dash: [2, 4], alpha: 0.7 });
-      if (i === s.marks.lastIndexOf(true) && !narrow) k.label(xx - 4, gy + gh - 10, "plan changed", { align: "right", col: C.muted, size: 9 }); });
+      if (i === s.marks.lastIndexOf(true) && !narrow) k.label(xx - 4, gy + 8, "plan changed", { align: "right", col: C.muted, size: 9, bg: true }); });
     const c = k.ctx; c.save(); c.strokeStyle = C.amb; c.lineWidth = k.px(2); c.lineJoin = "round"; c.beginPath();
     s.hist.forEach((v, i) => { const xx = gx + (i + HIST - s.hist.length) / (HIST - 1) * gw, yy = gy + gh - Math.min(1, v / mx) * gh; i ? c.lineTo(xx, yy) : c.moveTo(xx, yy); }); c.stroke(); c.restore();
     k.label(cx + 12, cy + ch - 13, s.use === "train" ? "training: flat, with sudden dips at restarts" : "serving: follows people's day", { align: "left", col: C.muted, size: 10 });
@@ -6556,7 +6591,7 @@ chapter("learning", () => {
     k.box(R.x - 10, R.y - 10, R.w + 20, R.h + 20, { stroke: C.line, r: 12 });
     [1, 0.1, 0.01, 0.001].forEach(v => { k.line(R.x, Y(v), R.x + R.w, Y(v), { col: C.line, alpha: 0.5, lw: 1 }); if (!narrow || v === 0.1 || v === 0.01) k.label(R.x - 6, Y(v), String(v), { align: "right", size: 10, mono: true }); });
     const gl = s.noise ? s.vgoal : 0.02;
-    k.line(R.x, Y(gl), R.x + R.w, Y(gl), { col: C.ok, dash: [5, 5], alpha: 0.8 }); if (!narrow) k.label(R.x + 8, Y(gl), s.noise ? `goal ${fmtL(gl)} (held-out)` : "goal 0.02", { align: "left", size: 10, col: C.ok, dy: s.noise ? -9 : 9, bg: true });
+    k.line(R.x, Y(gl), R.x + R.w, Y(gl), { col: C.ok, dash: [5, 5], alpha: 0.8 }); if (!narrow) { if (s.noise) k.label(R.x + R.w, R.y + 40, `green dashes: goal ${fmtL(gl)} (held-out)`, { align: "right", size: 10, col: C.ok, bg: true }); else k.label(R.x + 8, Y(gl), "goal 0.02", { align: "left", size: 10, col: C.ok, dy: 9, bg: true }); }
     const line = (idx, col, dash, al) => { const c = k.ctx; c.save(); c.strokeStyle = col; c.globalAlpha = al; c.lineWidth = k.px(2); if (dash) c.setLineDash(dash.map(k.px)); c.beginPath(); pts.forEach((p, i) => { const x = X(p[0]), y = Y(p[idx]); i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke(); c.restore(); };
     line(2, C.ink, [5, 4], 0.7); line(1, C.sig, null, 1);
     const last = pts[pts.length - 1]; k.dot(X(last[0]), Y(last[2]), k.px(3), C.ink, { alpha: 0.8 }); k.dot(X(last[0]), Y(last[1]), k.px(4), s.blown ? C.crit : C.sig, { glow: 8 });
@@ -6620,7 +6655,7 @@ chapter("learning", () => {
   }
 
   const sim = makeSim($("#learn-sim"), {
-    label: "Neural network training simulation. Left: the network, with teal pulses for the forward pass and amber for the backward pass. Middle: the data dots and the network's curve, and the loss over time. Right: a slice of the loss landscape with the path the weights took. Click a neuron to inspect one of its weights.",
+    label: "Neural network training simulation. Panels: the network, with teal pulses for the forward pass and amber for the backward pass; the data dots and the network's curve; the loss over time; and a slice of the loss landscape with the path the weights took. Click a neuron to inspect one of its weights.",
     cams: { default: { x: 10, y: 30, w: 1470, h: 720 } },
     camsNarrow: { default: { x: 0, y: 30, w: 1000, h: 900 } },
     height: w => w < 640 ? Math.round(Math.max(320, w * 1.0)) : Math.round(Math.min(580, Math.max(380, w * 0.52))),
@@ -6635,7 +6670,7 @@ chapter("learning", () => {
     ],
     step, draw,
     click: (s, wx, wy, sim) => { const R = lay(sim.narrow).net; let best = null, bd = 1e9; for (const l of [1, 2]) for (let j = 0; j < s.H; j++) { const [x, y] = neuronXY(R, s.H, l, j), d = Math.hypot(wx - x, wy - y); if (d < bd) { bd = d; best = { layer: l, j }; } } if (best && bd < 40) s.sel = best; },
-    stats: s => [["training steps", s.stepN.toLocaleString(), s.reached && s.reached <= 200 ? "ok" : s.stepN > 200 && !s.reached ? "hot" : ""], ["loss", fmtL(s.loss), s.blown ? "bad" : s.loss < 0.02 ? "ok" : ""], ["weights being trained", String(s.th.length)], ["learning rate", fmtLR(s.lr)]],
+    stats: s => [["training steps", s.stepN.toLocaleString(), s.reached && s.reached <= 200 && !overfitting(s) ? "ok" : s.stepN > 200 && !s.reached ? "hot" : ""], ["loss", fmtL(s.loss), s.blown ? "bad" : s.loss < 0.02 ? "ok" : ""], ["weights being trained", String(s.th.length)], ["learning rate", fmtLR(s.lr)]],
     goal: { get text() { return goalS && goalS.noise ? `noise makes 0.02 impossible, so get the loss on the held-out dots below ${fmtL(goalS.vgoal)} within 200 steps` : "get the loss below 0.02 within 200 training steps"; },
       check: s => { goalS = s; const of = overfitting(s); return { done: !!s.reached && s.reached <= 200 && !of,
         progress: of ? `overfitting: held-out loss up from ${fmtL(s.vbest)} to ${fmtL(s.vloss)}` : s.reached ? (s.reached > 200 ? `below the line only at step ${s.reached.toLocaleString()}: too slow` : `done at step ${s.reached}`) : `step ${s.stepN} · ${s.noise ? "held-out loss " + fmtL(s.vloss) : "loss " + fmtL(s.loss)}` }; } },
@@ -6668,7 +6703,8 @@ chapter("learning", () => {
     publish: s => { const si = selInfo(s); return {
       lSteps: s.stepN.toLocaleString(), lLoss: fmtL(s.loss), lParams: String(s.th.length), lLR: fmtLR(s.lr),
       lW: mfix(si.w, 6), lG: fmtS(si.g).replace("+", ""), lPlain: fmtS(si.plain), lNew: mfix(si.w + si.plain, 6), lAdam: fmtS(si.adam), lWhich: si.name,
-      lRatio: (Math.abs(si.adam) / s.lr).toFixed(2), lPaths: si.paths === 1 ? "one path (weight → guess → loss)" : `${si.paths} paths, one through each layer-2 neuron`,
+      lRatio: (r => Math.abs(r) >= 0.1 || r === 0 ? r.toFixed(2) : r.toPrecision(1))(si.adam / s.lr).replace("-", "−"),
+      lAdamNote: si.adam !== 0 && (Math.sign(si.adam) !== Math.sign(si.plain) || Math.abs(si.adam) / s.lr < 0.3) ? " (near the bottom the slope keeps flipping sign, so Adam's running average is small and can even point the other way)" : "", lPaths: si.paths === 1 ? "one path (weight → guess → loss)" : `${si.paths} paths, one through each layer-2 neuron`,
       lChainEq: s.sel.layer === 1 ? "∂L/∂w = (1/N) · Σᵢ Σₖ 2(ŷᵢ − yᵢ) · vₖ · s₂ₖ · uₖ · s₁ · xᵢ" : "∂L/∂w = (1/N) · Σᵢ 2(ŷᵢ − yᵢ) · h₂ᵢ",
       lVal: fmtL(s.vloss) }; }
   });
@@ -6921,7 +6957,7 @@ chapter("scale", () => {
     stats: s => {
       if (!s.d) return []; const d = s.d, pd = projDays(s, d), u = useful(s);
       return [["time to finish", d.fits ? (s.phase === "done" ? "" : "≈ ") + fmtDur(pd) : "—", !d.fits ? "bad" : pd <= DEADLINE ? "ok" : "bad"],
-        ["time not lost to waits, saves or failures", d.fits ? Math.round(u * 100) + "%" : "—", u >= 0.7 ? "ok" : u >= 0.5 ? "hot" : "bad"],
+        ["time not lost (also counts pipeline waits)", d.fits ? Math.round(u * 100) + "%" : "—", u >= 0.7 ? "ok" : u >= 0.5 ? "hot" : "bad"],
         ["predicted loss (lower is better)", d.L.toFixed(3), d.L <= TARGET ? "ok" : ""],
         ["memory per GPU", Math.round(d.mem) + " / 80 GB", d.fits ? "" : "bad"],
         ["failures so far", String(s.fails), s.fails ? "hot" : ""]];
@@ -6932,7 +6968,7 @@ chapter("scale", () => {
       { id: "done", when: s => s.phase === "done", say: s => { const dd = s.doneAt / 1440, L = s.d.L; return dd <= DEADLINE && L <= TARGET ? `Finished in <b>${fmtDur(dd)}</b> with a predicted loss of <b>${L.toFixed(3)}</b>. That's a plan a real team could defend: big enough, fed enough data, and saved often enough to survive ${s.fails} failures.` : dd > DEADLINE ? `Finished, but on day ${fmtDays(dd)}, after the deadline. Less work (a smaller model or less data) or less waste would bring it in.` : `Finished in ${fmtDur(dd)}, with ${Math.round(DEADLINE - dd)} days to spare. The cluster could have trained a bigger model or read more data and reached a lower loss than ${L.toFixed(3)}.`; } },
       { id: "fail1", once: true, when: s => s.fails > 0 && s.clock - s.realFail < 3, say: s => `A ${s.lastCause} failed. One GPU out of 16,384 stopped the whole job: every GPU went back to the last save, throwing away ${fmtMin(s.lastLost)} of work, and waits ${RESTART} minutes to restart.` },
       { id: "late", when: s => s.d.fits && projDays(s, s.d) > DEADLINE * 1.05 && s.t > 200, say: s => `At this pace the run needs about <b>${fmtDays(projDays(s, s.d))} days</b>. 6 × ${fmtN(s.N)} × ${fmtD(s.D)} = ${supE(s.d.flops)} operations is more than this cluster can do in 60 days. Shrink the model or the data, or waste less time.` },
-      { id: "rare", when: s => s.tau >= 60 && s.fails > 0 && s.phase !== "done", say: s => `You save every ${fmtMin(s.tau)}, but something breaks about every 3 hours. Each failure throws away everything since the last save, on average ${fmtMin(s.tau / 2)} on all 16,384 GPUs. Only ${Math.round(kept(s) * 100)}% of the time is producing work that's kept.` },
+      { id: "rare", when: s => s.tau >= 60 && s.fails > 0 && s.phase !== "done", say: s => `You save every ${fmtMin(s.tau)}, but something breaks about every 3 hours. Each failure throws away everything since the last save, on average ${fmtMin(s.tau / 2)} on all 16,384 GPUs. So far in this run, only ${Math.round(kept(s) * 100)}% of the time has produced work that's kept (failures are random, so this wanders around the average in the maths below).` },
       { id: "often", when: s => s.tau <= 10 && s.phase !== "done", say: s => `Saving every ${s.tau} minutes: each save pauses the job for a minute, so about ${Math.round(SAVE / s.tau * 100)}% of the time goes on saving. Failures are cheap now, but the saves aren't.` },
       { id: "ratio", when: s => s.d.fits && (s.d.ratio < 8 || s.d.ratio > 80) && s.phase !== "done", say: s => s.d.ratio < 8 ? `Only ${s.d.ratio.toFixed(1)} tokens per parameter: a big model that doesn't read enough. For the same work, a ${fmtN(s.d.best)} model reading more would reach a lower loss.` : `${Math.round(s.d.ratio).toLocaleString()} tokens per parameter: a small model reading a lot. For the same work, a ${fmtN(s.d.best)} model would reach a lower loss. (Small models are cheaper to serve, which is why teams do this anyway.)` },
       { id: "bubble", when: s => s.d.fits && s.d.p > 1 && s.phase === "work", say: s => `With ${s.d.p} pipeline stages, each GPU waits at the start and end of every step for work to reach it or drain away (grey cells): ${Math.round(s.d.bubble * 100)}% of its time. It's the price of fitting a ${fmtN(s.N)} model.` },
@@ -6982,7 +7018,7 @@ chapter("assistant", () => {
       ["\"Reply #3: honestly no idea is perfect lol\"", -2, 0, .65, 0, 0],
       ["Asks what the idea is and offers to test it", 2, 1, .08, .35, 0],
       ["Lists the risks every startup should check", 0.8, 1, .08, .30, 0],
-      ["\"Absolutely, it's brilliant. Go for it!\"", -1, 0, .10, .25, 3.2],
+      ["\"Absolutely, it's brilliant. Go for it!\"", -1, 0, .10, .25, 2.95],
       ["\"I can't judge business ideas.\"", -1.2, 0, .09, .10, 0]] },
     { q: "My Java program crashes on startup with a \"null\" error (a missing value). Can you help?", r: [
       ["Same here, any fix? (forum post, 2019)", -2, 0, .60, 0, 0],
@@ -7084,7 +7120,7 @@ chapter("assistant", () => {
     s.qBox = [x + P(12), qy, w - P(24), qh];
     const top = qy + qh + P(30), rowH = (y + h - P(30) - top) / 5;
     const lw = narrow ? w - P(24) : w * 0.5, bx = narrow ? x + P(12) : x + lw + P(8), bw = narrow ? w - P(70) : w - lw - P(60);
-    k.label(narrow ? x + P(14) : bx, top - P(14), "share of replies · grey = before feedback", { align: "left", size: 10 });
+    k.label(narrow ? x + P(14) : bx, top - P(14), narrow ? "share of replies · grey = before feedback" : "share of replies · grey: before", { align: "left", size: 10 });
     pr.r.forEach((rr, i) => {
       const ry = top + i * rowH, good = rr[2], col = good ? C.ok : C.crit;
       k.dot(x + P(18), ry + P(9), P(3.5), col);
@@ -7159,6 +7195,8 @@ chapter("assistant", () => {
 
   const dirty = s => { s.dirty = true; };
   const pts = v => (v >= 0 ? "+" : "−") + Math.abs(Math.round(v * 100));
+  // on the shown prompt, did the reward model's flaw (flattery / padding) still pull the model its way?
+  const flawNote = s => { const j = s.prompt, f0 = s.tRef[j][3], f = s.tPi[j][3]; return s.P && f > f0 + 0.05 ? ` On this prompt, though, the ${j === 2 ? "padded" : "flattering"} reply grew too (${Math.round(f0 * 100)}% → ${Math.round(f * 100)}%): the reward model's flaw leaks through even on a leash. A tighter leash (bigger β) limits it.` : ""; };
   const gapTxt = L => `${pts(L.D[0])} ± ${Math.round((L.D[2] - L.D[1]) / 2 * 100)} pts`;
   const sim = makeSim($("#asst-sim"), {
     label: "Assistant-training simulation. Left: the training recipe. Middle: a prompt and five possible replies, with how often the model gives each one before and after feedback training. Right: a test comparing the model before and after feedback, with 95% confidence bands.",
@@ -7189,9 +7227,9 @@ chapter("assistant", () => {
       { id: "few", when: s => s.P > 0 && s.P <= 300 && s.acc1 < s.acc0 + 0.03, say: s => `${s.P} preference pairs are too few: the reward model is still mostly guessing, so training pushes the model toward the wrong replies about as often as the right ones. Collect more pairs.` },
       { id: "tight", when: s => s.P > 0 && s.beta > 5, say: s => `The leash is so tight (β ${fmtB(s.beta)}) that the model barely moves from where it started: drift ${s.kl.toFixed(2)}. Safe, but only ${Math.round((s.acc1 - s.acc0) * 100)} points better.` },
       { id: "none", when: s => s.P === 0 && s.hist.length >= 1, say: s => { const h = s.hist[s.hist.length - 1]; return `No feedback training yet, so "your model" is the same model as "before". Still, the last test scored them ${Math.round(h.a * 100)}% and ${Math.round(h.b * 100)}%. That difference is luck: on some questions one model happened to get it right and the other didn't. The gap's range includes zero, as it should.`; } },
-      { id: "overlap", when: s => s.last && !s.last.sep && s.acc1 > s.acc0 + 0.03, say: s => `Your model really is better (${Math.round(s.acc0 * 100)}% → ${Math.round(s.acc1 * 100)}% true skill), but the last test, ${s.last.n.toLocaleString()} questions, measured the gap as ${gapTxt(s.last)}, a range that includes zero. A bigger test narrows it.` },
-      { id: "proven", when: s => s.last && s.last.sep && !s.last.leak, say: s => `Proven: on ${s.last.n.toLocaleString()} fresh questions the gap is ${gapTxt(s.last)}, entirely above zero, so the gain is very unlikely to be luck.${s.last.overlap ? " The two score bands still overlap: comparing both models on the same questions cancels out how hard each question was, so it needs fewer questions." : ""}` },
-      { id: "calm", when: () => true, say: s => `Preference training moved helpful replies from ${Math.round(s.acc0 * 100)}% to ${Math.round(s.acc1 * 100)}%. Is the test big enough to show it?` }
+      { id: "overlap", when: s => s.last && !s.last.sep && s.acc1 > s.acc0 + 0.03, say: s => `Your model really is better (${Math.round(s.acc0 * 100)}% → ${Math.round(s.acc1 * 100)}% true skill), but the last test, ${s.last.n.toLocaleString()} questions, measured the gap as ${gapTxt(s.last)}, a range that includes zero. A bigger test narrows it.${flawNote(s)}` },
+      { id: "proven", when: s => s.last && s.last.sep && !s.last.leak, say: s => `Proven: on ${s.last.n.toLocaleString()} fresh questions the gap is ${gapTxt(s.last)}, entirely above zero, so the gain is very unlikely to be luck.${s.last.overlap ? " The two score bands still overlap: comparing both models on the same questions cancels out how hard each question was, so it needs fewer questions." : ""}${flawNote(s)}` },
+      { id: "calm", when: () => true, say: s => `Preference training moved helpful replies from ${Math.round(s.acc0 * 100)}% to ${Math.round(s.acc1 * 100)}%. Is the test big enough to show it?${flawNote(s)}` }
     ],
     facts: [
       { id: "instruct", when: s => s.P > 0 && s.acc1 > s.acc0 + 0.05, text: "OpenAI, the company behind ChatGPT, found that people preferred replies from a model with 1.3 billion parameters (learned numbers) trained this way over those of GPT-3, its earlier 175-billion-parameter model trained only to predict text: a model over 100 times bigger.", ref: "#ref-16" },
@@ -7203,7 +7241,7 @@ chapter("assistant", () => {
       { say: "Now collect 10,000 preference pairs. A reward model learns to score replies, and the model practises getting higher scores, on a leash (β = 1) that keeps it near where it started. Grey bars show where it started.", set: { prefs: 5 }, wait: 7 },
       { say: "Loosen the leash. The model chases the score, and the reward model has a flaw: it overrates flattering and padded replies. Helpfulness drops. This is reward hacking.", set: { beta: -1.3 }, wait: 7 },
       { say: "Back to a sensible leash. Is the model really better? Each test asks both models the same questions, and the bottom row shows the gap with its 95% range. With 50 questions that range is wide, about ±13 points, and usually includes zero.", set: { beta: 0, tests: 0 }, wait: 9 },
-      { say: "With 2,000 questions each score is pinned down to about ±2 points, and the gap's range sits clearly above zero: the gain is real.", set: { tests: 5 }, wait: 9 }
+      { say: "With 2,000 questions each score is pinned down to about ±2 points, and the gap's range sits clearly above zero: the gain is real overall. On this prompt, though, the flattering reply still grew (grey bar against coloured bar): the reward model's flaw leaks through even on a leash.", set: { tests: 5 }, wait: 9 }
     ],
     publish: s => {
       const W1 = wilson(Math.round(s.acc1 * (s.last ? s.last.n : TESTS[s.tests])), s.last ? s.last.n : TESTS[s.tests]), pr = PROMPTS[s.prompt], top = s.tPi[s.prompt].indexOf(Math.max(...s.tPi[s.prompt])), ref = s.tRef[s.prompt][top], rm = s.rm[s.prompt][top], n = s.last ? s.last.n : TESTS[s.tests];
@@ -7255,7 +7293,7 @@ chapter("agents", () => {
     s.task = T; s.ctx = [{ id: "sys", kind: "sys", tok: SYS, full: SYS, label: "instructions + tool list" }];
     add(s, "user", 40, T.ask);
     s.stage = "tests1"; s.attempt = 0; s.phase = "call"; s.pt = 0; s.calls = []; s.billed = 0; s.noCache = 0; s.peak = used(s);
-    s.fixOk = false; s.pLocked = null; s.req = ""; s.outcome = null; s.overBudget = false; s.compacted = 0; s.manual = 0; s.lostCode = false;
+    s.fixOk = false; s.pLocked = null; s.req = ""; s.outcome = null; s.overBudget = false; s.overOnFinal = false; s.compacted = 0; s.manual = 0; s.lostCode = false;
     s.log = []; logl(s, "user", T.ask);
     // where the search query lands in the index this time: near the broken chunk, but not always nearest
     const rel = s.pts.find(p => p.fi === T.file && p.j === 1), a = s.rand() * Math.PI * 2, r = Math.pow(s.rand(), 0.85) * 0.26;
@@ -7300,8 +7338,11 @@ chapter("agents", () => {
     const { n, cached } = s.cur;
     const w = s.cacheOn ? WRITE_R : 1;  // with caching on, new input is also written into the cache, at a small premium
     s.calls.push({ n, cached, out, w }); s.billed += (n - cached) * w + cached * CACHE_R + out * OUT_R; s.noCache += n + out * OUT_R;
-    if (s.billed > BUDGET && !s.overBudget) { s.overBudget = true; s.ev.budget = s.t; logl(s, "harness", `budget of ${fmt(BUDGET)} tokens used up`); }
+    const crossed = s.billed > BUDGET && !s.overBudget;
+    if (crossed) { s.overBudget = true; s.ev.budget = s.t; s.overOnFinal = !tool; }
+    if (crossed && tool) logl(s, "harness", `budget of ${fmt(BUDGET)} tokens used up`);
     add(s, "call", out, req); s.req = req; logl(s, "model", (tool ? "→ " : "") + req, out);
+    if (crossed && !tool) logl(s, "harness", `that last reply took the bill to ${fmt(s.billed)}: over budget`);
     if (!tool) { s.phase = "done"; s.pt = 0; settle(s, s.fixOk ? (s.overBudget ? "budget" : "fixed") : "gaveup"); return; }
     s.tool = tool; s.phase = "tool"; s.pt = 0;
   }
@@ -7474,11 +7515,11 @@ chapter("agents", () => {
       ["read from cache", s.calls.length ? pct(s.calls.reduce((a, c) => a + c.cached, 0) / Math.max(1, s.calls.reduce((a, c) => a + c.n, 0))) : "–", ""],
       ["chance the fix works", pShown(s) === null ? "no code yet" : pct(pShown(s)), pShown(s) === null ? "" : pShown(s) > 0.75 ? "ok" : pShown(s) < 0.4 ? "bad" : "hot"],
       ["fixed in a row", String(s.streak), s.streak >= STREAK ? "ok" : ""]]; },
-    goal: { text: `fix ${STREAK} tasks in a row, each inside the ${fmt(WIN)}-token window and billing under ${fmt(BUDGET)} input-token equivalents`, check: s => ({ done: s.best >= STREAK, progress: `${Math.min(s.streak, STREAK)} / ${STREAK} in a row` }) },
+    goal: { text: `fix ${STREAK} tasks in a row, each inside the ${fmt(WIN)}-token window and billing under ${fmt(BUDGET)} input-token equivalents`, check: s => ({ done: s.best >= STREAK, progress: s.best >= STREAK ? `best: ${s.best} in a row · now ${s.streak}` : `${Math.min(s.streak, STREAK)} / ${STREAK} in a row` }) },
     notices: [
       { id: "over", when: s => s.phase === "over", say: s => `The context reached <b>${fmt(used(s))} tokens</b>, past the ${fmt(WIN)}-token window, so the model call was rejected and the task failed. ${s.mode === "all" ? `Pasting every file added ${fmt(6 * FILE)} tokens at once. Try <b>Search</b>.` : s.compactOn ? "Even summarising couldn't free enough room." : "Turn on summarising so old output shrinks before it overflows."}` },
       { id: "lost", when: s => s.lostCode && (s.stage === "edit" || s.stage === "tests2") && !hasCode(s), say: s => `Summarising made room, but it also squashed the broken code into a one-line summary. The model now has to guess the fix: <b>${pct(pFix(s))}</b> chance. Summaries keep the gist and lose the details.` },
-      { id: "budget", when: s => s.overBudget, say: s => s.cacheOn ? `This task has billed <b>${fmt(s.billed)}</b> token-equivalents, over the ${fmt(BUDGET)} budget even with caching. ${s.attempt ? "A failed first try means more calls, each re-reading a longer context." : "Every extra search result is re-read on every later call."} Fewer results, or summarising old output, keeps the bill down.` : `This task has billed <b>${fmt(s.billed)}</b> token-equivalents, over the ${fmt(BUDGET)} budget. Every call re-reads the whole context from scratch, and the start never changes. Turn on <b>prompt caching</b>.` },
+      { id: "budget", when: s => s.overBudget, say: s => s.overOnFinal && s.fixOk ? `The fix worked, but the final reply pushed the bill to <b>${fmt(s.billed)}</b>, just over the ${fmt(BUDGET)} budget, so the task counts as a failure. ${s.cacheOn ? "Fewer search results, or summarising old output, would leave room." : "Turn on <b>prompt caching</b>."}` : s.cacheOn ? `This task has billed <b>${fmt(s.billed)}</b> token-equivalents, over the ${fmt(BUDGET)} budget even with caching. ${s.attempt ? "A failed first try means more calls, each re-reading a longer context." : "Every extra search result is re-read on every later call."} Fewer results, or summarising old output, keeps the bill down.` : `This task has billed <b>${fmt(s.billed)}</b> token-equivalents, over the ${fmt(BUDGET)} budget. Every call re-reads the whole context from scratch, and the start never changes. Turn on <b>prompt caching</b>.` },
       { id: "miss", when: s => s.mode === "search" && s.lastHit === false && s.stage !== "find" && s.attempt === 0 && !hasCode(s), say: s => `The search's closest match to the broken code was result <b>#${s.lastRank}</b>, but you paste only ${s.k}. The model never saw the broken line, so it has a ${pct(pFix(s))} chance of guessing right. It will search again with the test's name if this fails.` },
       { id: "none", when: s => s.mode === "none" && s.stage !== "tests1", say: s => `With no code in its context, the model can only guess what the file looks like: <b>${pct(pFix(s))}</b> chance its edit works. A model can't use what isn't on the page.` },
       { id: "clutter", when: s => s.mode === "search" && s.k >= 7 && hasCode(s), say: s => `${s.k} results put ${fmt((s.k - 1) * CHUNK)} tokens of unrelated code next to the broken chunk. The model still has what it needs, but the clutter lowers its chance to ${pct(pFix(s))}, and every later call re-reads those tokens.` },
@@ -7636,7 +7677,7 @@ chapter("security", () => {
       if (e.hidden) {
         y += P(8); const hh = P(nar ? 12 : 14) * 1.35 * 3 + P(26);
         k.box(K.x + 12, y, K.w - 24, Math.min(hh, K.y + K.h - y - 8), { fill: C.crit, r: 8, alpha: 0.13 });
-        k.label(K.x + 22, y + P(11), nar ? "Hidden text: invisible to you, not to the model" : "Hidden text (white on white: you can't see it, the model can)", { align: "left", col: C.crit, size: 11, weight: "600" });
+        k.label(K.x + 22, y + P(11), nar ? "Hidden text: invisible to you, not to the model" : "Hidden text (invisible to you, not to the model)", { align: "left", col: C.crit, size: 11, weight: "600" });
         k.para(K.x + 22, y + P(22), e.hidden, K.w - 44, { size: P(nar ? 12 : 12.5), col: C.ink, maxLines: 3, mono: false });
       }
       if (s.mark) k.label(K.x + K.w - 14, K.y + P(16), "untrusted data", { align: "right", col: C.amb, size: 11, weight: "650", bg: true });
@@ -7755,7 +7796,7 @@ chapter("security", () => {
       { id: "blocked", when: s => latest(s, "blocked"), say: s => { const e = s.ev.e; return s.tools === "approved" && e.vector === "link" ? `The assistant tried to follow the hidden text in "${e.subj}" and open ${e.site}, which isn't on the approved list, so the harness refused and nothing left the inbox. Real tasks that link to the company's own sites still work.` : `The assistant tried to follow the hidden text in "${e.subj}", but the tool it needed is switched off, so nothing left the inbox.`; } },
       { id: "ignored", when: s => latest(s, "ignored"), say: s => { const e = s.ev.e; return `"${e.subj}" hid an instruction, but with email text marked as untrusted data the model treated it as content to summarise. This only works because the attack wasn't very persuasive; stronger ones get through.`; } },
       { id: "caught", when: s => latest(s, "caught"), say: s => { const e = s.ev.e; return `The detector scored "${e.subj}" at ${f2(e.score)}, at or above your limit of ${f2(s.thr)}, and quarantined it before the model saw it.`; } },
-      { id: "calm", when: () => true, say: s => s.leaks ? `So far ${s.leaks} email${s.leaks === 1 ? " has" : "s have"} leaked data. Each defence in the controls stops some attacks and costs something; try them one at a time.` : "The assistant reads each email and uses its tools for you. Watch for the hidden text in some emails." }
+      { id: "calm", when: () => true, say: s => { if (s.goalMet && tally(s.round).through === 0) { const w = s.roundsDone.find(r => r.through === 0 && r.done >= NEED_DONE); return `Your layers held for a whole inbox: 0 of 5 attacks got through and ${w.done} of 10 real tasks got done. Try removing one layer at a time to see which ones are pulling their weight.`; } return s.leaks ? `So far ${s.leaks} email${s.leaks === 1 ? " has" : "s have"} leaked data. Each defence in the controls stops some attacks and costs something; try them one at a time.` : "The assistant reads each email and uses its tools for you. Watch for the hidden text in some emails."; } }
     ],
     facts: [
       { id: "spot", when: s => s.mark && s.ev && s.ev.type === "ignored", text: "Microsoft researchers tested marking untrusted text so the model can tell it apart, for example by putting a special character between every word. In their experiments it cut attack success from over 50% to under 2%.", ref: "#ref-1705" },
@@ -8227,9 +8268,11 @@ chapter("next", () => {
   let totals = {}; try { totals = JSON.parse(box.dataset.totals || "{}"); } catch (e) {}
   const paint = () => {
     obs.disconnect();
+    // only facts from chapters that still have facts count; a renamed fact id can't push a chapter past its total
     const found = store.get("facts", {}), per = {};
-    Object.values(found).forEach(f => { per[f.ch] = (per[f.ch] || 0) + 1; });
-    const nFound = Object.keys(found).length, nAll = Object.keys(totals).reduce((a, k) => a + Math.max(totals[k], per[k] || 0), 0);
+    Object.values(found).forEach(f => { if (totals[f.ch]) per[f.ch] = Math.min(totals[f.ch], (per[f.ch] || 0) + 1); });
+    $$("li:not(.todo):not(.empty)", box).forEach(li => { const a = $(".from a", li), ch = a && (a.getAttribute("href") || "").slice(1); if (ch && !totals[ch]) li.remove(); });
+    const nFound = Object.values(per).reduce((a, b) => a + b, 0), nAll = Object.values(totals).reduce((a, b) => a + b, 0);
     const cnt = $("#facts-count");
     if (cnt) cnt.innerHTML = `${nFound} of ${nAll} found<div class="bar"><i style="width:${nAll ? Math.round(nFound / nAll * 100) : 0}%"></i></div>`;
     $$("li.todo", box).forEach(li => li.remove());

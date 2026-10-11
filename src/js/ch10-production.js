@@ -88,7 +88,7 @@ chapter("production", () => {
       s.win = []; s.cur = newCur(s); s.pending = []; // a new build starts with fresh numbers
     }
     // track the current rollout (for the personalised maths)
-    if (s.target > 0 && !s.ro) s.ro = { g0: s.garbled, fb: -1, start: s.t };
+    if (s.target > 0 && !s.ro) s.ro = { g0: s.garbled, fb: -1, start: s.t, aI: 0, afI: 0 };
     // servers switch over gradually; rollback is quicker (the old version is still loaded and warm), but not instant
     const up = 0.3, down = 0.4;
     s.a = s.target > s.a ? Math.min(s.target, s.a + up * dt) : Math.max(s.target, s.a - down * dt);
@@ -100,6 +100,7 @@ chapter("production", () => {
       b.ttft += rep * ((v === "new" ? 0.42 : 0.45) + 0.03 * gauss(r) / Math.sqrt(1 + rep));
       b.graded += rep * GRADE[v]; b.thumb += pois(rep * BASE_THUMB, r); b.flag += pois(rep * GRADE[v] * FALSE_FLAG, r);
     });
+    if (s.ro && s.ro.fb >= 0) { s.ro.aI += s.a * dt; s.ro.afI += s.a * badRate(s) * dt; }  // for the time-averaged maths
     const g = pois(R * s.a * badRate(s) * dt, r);
     for (let i = 0; i < g; i++) {
       s.garbled++; if (s.firstBad < 0 || (s.lastRb && s.firstBad < s.lastRb.t)) s.firstBad = s.t;
@@ -174,7 +175,7 @@ chapter("production", () => {
     k.label(px, yy, "new " + (n == null ? "–" : P.fmt(n)), { align: "left", col: C.amb, size: narrow ? 11 : 12, weight: "650", mono: true });
     k.label(px + pw, yy, "old " + (1 - s.a < 0.02 || o == null ? "–" : P.fmt(o)), { align: "right", col: C.muted, size: narrow ? 11 : 12, weight: "600", mono: true });
     if (!narrow) k.label(px, yy + 20, 1 - s.a < 0.02 ? "old version: no traffic now" : P.note, { align: "left", col: C.muted, size: 10 });
-    if (n == null && s.a > 0.001 && s.target > 0) k.label(px + pw / 2, py + ph / 2, "too few new replies to judge", { col: C.amb, size: narrow ? 10 : 11, bg: true });
+    if (n == null && s.a > 0.001 && s.target > 0) k.label(px + pw / 2, py + (narrow ? 14 : 16), "too few new replies to judge", { col: C.amb, size: narrow ? 10 : 11, bg: true });
   }
 
   function draw(k, s, sim) {
@@ -248,6 +249,7 @@ chapter("production", () => {
 
   const m = (s, v, key) => s.m[v] && s.m[v][key] != null ? s.m[v][key] : null;
   const f1 = x => x == null ? "–" : x.toFixed(1);
+  const oldGone = s => 1 - s.a < 0.02;   // the old version has no traffic now, so it has no current numbers
   const sim = makeSim($("#prod-sim"), {
     label: "Production rollout simulation. A router sends a share of live traffic to servers running a new model version (amber). Four dashboard charts compare the new and old versions. Red sparks are garbled replies.",
     cams: { default: { x: 0, y: 0, w: 1600, h: 760 } },
@@ -269,8 +271,8 @@ chapter("production", () => {
     stats: s => {
       const st = [["on the new version", pct(s.a), s.a > 0.999 && s.fixed ? "ok" : ""],
         ["garbled replies sent", `${s.garbled} / ${LIMIT}`, s.garbled > LIMIT ? "bad" : s.garbled > LIMIT / 2 ? "hot" : "ok"],
-        ["errors per 1,000 · new / old", `${f1(m(s, "new", "err"))} / ${f1(m(s, "old", "err"))}`],
-        ["quality flags per 1,000 · new / old", `${f1(m(s, "new", "qual"))} / ${f1(m(s, "old", "qual"))}`, (m(s, "new", "qual") || 0) >= 3 ? "bad" : ""],
+        ["errors per 1,000 · new / old", `${f1(m(s, "new", "err"))} / ${oldGone(s) ? "–" : f1(m(s, "old", "err"))}`],
+        ["quality flags per 1,000 · new / old", `${f1(m(s, "new", "qual"))} / ${oldGone(s) ? "–" : f1(m(s, "old", "qual"))}`, (m(s, "new", "qual") || 0) >= 3 ? "bad" : ""],
         ["rollbacks", String(s.rollbacks)]];
       return st;
     },
@@ -286,7 +288,8 @@ chapter("production", () => {
       { id: "hidden", when: s => s.fault && s.garbled >= 3 && s.a > 0, say: s => `Errors and speed look healthy, yet ${s.garbled} garbled replies have gone out (the red sparks). To an error counter, a garbled reply is a success: the server answered on time. All of them come from chip C.` },
       { id: "missC", when: s => s.fault && s.a > 0 && cFrac(s) === 0 && s.t > 3, say: s => `${pct(s.a)} of traffic (${Math.round(R * s.a)} replies a second) runs on ${newServers(s.a)} new server${newServers(s.a) > 1 ? "s" : ""}, none of them on chip C. If a problem only happens on one kind of hardware, this slice can't find it. A useful first slice has to include every kind.` },
       { id: "fast", when: s => s.plan === "fast" && s.a > 0, say: s => `Everyone is moving to the new version at once. If something is wrong, all ${R} replies a second are exposed until it's caught.` },
-      { id: "canary", when: s => s.a > 0 && s.a < 0.6, say: s => `${pct(s.a)} of traffic (${Math.round(R * s.a)} replies a second) is on the new version. Compare each amber line with the grey one beside it: the same moment, the same kind of traffic, two versions.` },
+      { id: "holding", when: s => s.fixed && s.a > 0.999 && !s.won, say: s => `100% of traffic is on the fixed build. Holding ${Math.max(1, Math.ceil(5 - s.shippedFor))} s more to confirm nothing goes wrong before calling it shipped.` },
+      { id: "canary", when: s => s.a > 0 && !s.won, say: s => `${pct(s.a)} of traffic (${Math.round(R * s.a)} replies a second) is on the new version. Compare each amber line with the grey one beside it: the same moment, the same kind of traffic, two versions.` },
       { id: "idle", when: s => s.a === 0, say: () => "Everyone is on the old version. Pick a rollout plan, or drag the slider, to start sending people to the new one." }
     ],
     facts: [
@@ -307,13 +310,16 @@ chapter("production", () => {
       let which = "No rollout has reached chip C yet. Example, 25% for 10 s", a = 0.25, f = FAULT / 3, T = 10, n = null;
       if (ro) {
         which = live ? "Your rollout so far" : "Your last rollout";
-        a = live ? s.a : ro.a; f = live ? badRate(s) : ro.f; if (!f) f = FAULT / 3;   // f was 1/75 while chip C was in the slice
+        // time-averaged since the first bad reply: the slice ramps up gradually, so the share "now" would overstate a
         T = Math.max(1, (live ? s.t : ro.end) - ro.fb); n = live ? s.garbled - ro.g0 : ro.n;
+        const span = (live ? s.t : ro.end) - ro.fb;
+        a = ro.aI > 0 && span > 0 ? ro.aI / span : (live ? s.a : ro.a);
+        f = ro.aI > 0 ? ro.afI / ro.aI : (live ? badRate(s) : ro.f); if (!f) f = FAULT / 3;   // f was 1/75 while chip C was in the slice
       }
       return { prShare: pct(s.a), prGarbled: String(s.garbled), prLimit: String(LIMIT), prRb: String(s.rollbacks),
         prNewErr: f1(m(s, "new", "err")), prOldErr: f1(m(s, "old", "err")), prNewQ: f1(m(s, "new", "qual")), prOldQ: f1(m(s, "old", "qual")),
         prR: String(R), prWhich: which, prA: pct(a), prFf: Math.abs(f - FAULT / 3) < 1e-9 ? "1/75" : f > 0 ? "1/" + Math.round(1 / f) : "0",
-        prT: T.toFixed(0) + " s", prPred: String(Math.round(R * a * f * T)), prPredAll: String(Math.round(R * (FAULT / 3) * T)),
+        prT: T.toFixed(0) + " s", prTEnd: live ? "so far" : "before rollback", prAvg: ro ? " (average share since the first bad reply)" : "", prPred: String(Math.round(R * a * f * T)), prPredAll: String(Math.round(R * (FAULT / 3) * T)),
         prCount: n == null ? "nothing yet" : n + " garbled repl" + (n === 1 ? "y" : "ies") };
     }
   });

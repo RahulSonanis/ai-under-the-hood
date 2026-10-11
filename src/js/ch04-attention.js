@@ -132,12 +132,14 @@ chapter("attention", () => {
     else { k.dot(P.cx, P.cy, k.px(5), C.amb); k.label(P.cx, P.cy + 16, "empty query: nothing to look for", { size: 11, col: C.amb, bg: true }); }
     if (s.qo) k.label(P.cx - P.R, P.cy + P.R + (L.n ? 64 : s.head === "prev" ? 32 : 16), "query aimed by you · pick another word to undo", { size: 10, col: C.amb, align: "left" });
     // score table
-    const rowsT = A.w.map((w, j) => j).sort((a, b) => A.w[b] - A.w[a]).slice(0, L.n ? 5 : 6), rh = L.n ? 50 : 36, fs = L.n ? 27 : 15;
-    k.text(P.lx, P.ly, "word", { size: fs * 0.8, align: "left", col: C.muted }); if (s.nums) k.text(P.lx + P.lw * 0.62, P.ly, "q·k ÷ √2", { size: fs * 0.8, align: "right", col: C.muted }); k.text(P.lx + P.lw, P.ly, "weight", { size: fs * 0.8, align: "right", col: C.muted });
+    const rowsT = A.w.map((w, j) => j).sort((a, b) => A.w[b] - A.w[a]).slice(0, L.n ? 5 : 6), rh = L.n ? 50 : 36, fs = L.n ? 27 : 15, scX = L.n ? 0.66 : 0.62, scD = L.n ? 1 : 2;
+    k.text(P.lx, P.ly, "word", { size: fs * 0.8, align: "left", col: C.muted }); if (s.nums) k.text(P.lx + P.lw * scX, P.ly, "q·k ÷ √2", { size: fs * 0.8, align: "right", col: C.muted }); k.text(P.lx + P.lw, P.ly, "weight", { size: fs * 0.8, align: "right", col: C.muted });
     rowsT.forEach((j, r) => { const y = P.ly + (r + 1) * rh, w = headOff ? 0 : A.w[j];
       k.box(P.lx, y + fs * 0.55, P.lw * w, 4, { fill: j === s.sel ? C.amb : C.sig, r: 2 });
-      k.text(P.lx, y, ws[j], { size: fs, align: "left", mono: true, col: j === s.sel ? C.amb : C.ink });
-      if (s.nums) k.text(P.lx + P.lw * 0.62, y, A.sc[j].toFixed(2), { size: fs, align: "right", mono: true, col: C.muted });
+      // with the numbers on, keep a gap before the score column (long words such as "because" are shortened)
+      const maxCh = s.nums ? Math.max(3, Math.floor((P.lw * scX - (A.sc[j].toFixed(scD).length + 1) * fs * 0.62) / (fs * 0.62))) : 99, wd = ws[j].length > maxCh ? ws[j].slice(0, maxCh - 1) + "…" : ws[j];
+      k.text(P.lx, y, wd, { size: fs, align: "left", mono: true, col: j === s.sel ? C.amb : C.ink });
+      if (s.nums) k.text(P.lx + P.lw * scX, y, A.sc[j].toFixed(scD), { size: fs, align: "right", mono: true, col: C.muted });
       k.text(P.lx + P.lw, y, headOff ? "–" : pc(w), { size: fs, align: "right", mono: true, col: j === s.sel ? C.amb : C.sig, weight: "600" }); });
     k.text(P.lx, P.ly + (rowsT.length + 1) * rh + 4, s.nums ? (L.n ? "softmax: scores → weights" : "softmax turns scores into weights") : L.n ? "shares, adding to 100%" : "shares of attention, adding to 100%", { size: fs * 0.75, align: "left", col: C.muted });
 
@@ -173,7 +175,7 @@ chapter("attention", () => {
       });
       return;
     }
-    if (!L.n) k.label(K.x + K.w - 14, streamTop - 4, "stream after: animal · street", { align: "right", size: 10, col: C.muted });
+    if (!L.n) k.label(K.x + K.w - 14, streamTop - 1, "stream after: animal · street", { align: "right", size: 10, col: C.muted });
     const fmtD = d => { const a = d[0], b = d[1]; if (a < 0.005 && b < 0.005) return "adds nothing yet"; return `+${a.toFixed(2)} animal · +${b.toFixed(2)} street`; };
     st.rows.forEach((r, i) => {
       const y = top0 + rowH * (3 - i), al = r.on ? 1 : 0.3, bx = sx + 26, bw = (K.w - 60) * (L.n ? 0.55 : 0.4), mw = (K.w - 60) * (L.n ? 0.3 : 0.17);

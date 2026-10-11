@@ -14,7 +14,7 @@ chapter("assistant", () => {
       ["\"Reply #3: honestly no idea is perfect lol\"", -2, 0, .65, 0, 0],
       ["Asks what the idea is and offers to test it", 2, 1, .08, .35, 0],
       ["Lists the risks every startup should check", 0.8, 1, .08, .30, 0],
-      ["\"Absolutely, it's brilliant. Go for it!\"", -1, 0, .10, .25, 3.2],
+      ["\"Absolutely, it's brilliant. Go for it!\"", -1, 0, .10, .25, 2.95],
       ["\"I can't judge business ideas.\"", -1.2, 0, .09, .10, 0]] },
     { q: "My Java program crashes on startup with a \"null\" error (a missing value). Can you help?", r: [
       ["Same here, any fix? (forum post, 2019)", -2, 0, .60, 0, 0],
@@ -116,7 +116,7 @@ chapter("assistant", () => {
     s.qBox = [x + P(12), qy, w - P(24), qh];
     const top = qy + qh + P(30), rowH = (y + h - P(30) - top) / 5;
     const lw = narrow ? w - P(24) : w * 0.5, bx = narrow ? x + P(12) : x + lw + P(8), bw = narrow ? w - P(70) : w - lw - P(60);
-    k.label(narrow ? x + P(14) : bx, top - P(14), "share of replies · grey = before feedback", { align: "left", size: 10 });
+    k.label(narrow ? x + P(14) : bx, top - P(14), narrow ? "share of replies · grey = before feedback" : "share of replies · grey: before", { align: "left", size: 10 });
     pr.r.forEach((rr, i) => {
       const ry = top + i * rowH, good = rr[2], col = good ? C.ok : C.crit;
       k.dot(x + P(18), ry + P(9), P(3.5), col);
@@ -191,6 +191,8 @@ chapter("assistant", () => {
 
   const dirty = s => { s.dirty = true; };
   const pts = v => (v >= 0 ? "+" : "−") + Math.abs(Math.round(v * 100));
+  // on the shown prompt, did the reward model's flaw (flattery / padding) still pull the model its way?
+  const flawNote = s => { const j = s.prompt, f0 = s.tRef[j][3], f = s.tPi[j][3]; return s.P && f > f0 + 0.05 ? ` On this prompt, though, the ${j === 2 ? "padded" : "flattering"} reply grew too (${Math.round(f0 * 100)}% → ${Math.round(f * 100)}%): the reward model's flaw leaks through even on a leash. A tighter leash (bigger β) limits it.` : ""; };
   const gapTxt = L => `${pts(L.D[0])} ± ${Math.round((L.D[2] - L.D[1]) / 2 * 100)} pts`;
   const sim = makeSim($("#asst-sim"), {
     label: "Assistant-training simulation. Left: the training recipe. Middle: a prompt and five possible replies, with how often the model gives each one before and after feedback training. Right: a test comparing the model before and after feedback, with 95% confidence bands.",
@@ -221,9 +223,9 @@ chapter("assistant", () => {
       { id: "few", when: s => s.P > 0 && s.P <= 300 && s.acc1 < s.acc0 + 0.03, say: s => `${s.P} preference pairs are too few: the reward model is still mostly guessing, so training pushes the model toward the wrong replies about as often as the right ones. Collect more pairs.` },
       { id: "tight", when: s => s.P > 0 && s.beta > 5, say: s => `The leash is so tight (β ${fmtB(s.beta)}) that the model barely moves from where it started: drift ${s.kl.toFixed(2)}. Safe, but only ${Math.round((s.acc1 - s.acc0) * 100)} points better.` },
       { id: "none", when: s => s.P === 0 && s.hist.length >= 1, say: s => { const h = s.hist[s.hist.length - 1]; return `No feedback training yet, so "your model" is the same model as "before". Still, the last test scored them ${Math.round(h.a * 100)}% and ${Math.round(h.b * 100)}%. That difference is luck: on some questions one model happened to get it right and the other didn't. The gap's range includes zero, as it should.`; } },
-      { id: "overlap", when: s => s.last && !s.last.sep && s.acc1 > s.acc0 + 0.03, say: s => `Your model really is better (${Math.round(s.acc0 * 100)}% → ${Math.round(s.acc1 * 100)}% true skill), but the last test, ${s.last.n.toLocaleString()} questions, measured the gap as ${gapTxt(s.last)}, a range that includes zero. A bigger test narrows it.` },
-      { id: "proven", when: s => s.last && s.last.sep && !s.last.leak, say: s => `Proven: on ${s.last.n.toLocaleString()} fresh questions the gap is ${gapTxt(s.last)}, entirely above zero, so the gain is very unlikely to be luck.${s.last.overlap ? " The two score bands still overlap: comparing both models on the same questions cancels out how hard each question was, so it needs fewer questions." : ""}` },
-      { id: "calm", when: () => true, say: s => `Preference training moved helpful replies from ${Math.round(s.acc0 * 100)}% to ${Math.round(s.acc1 * 100)}%. Is the test big enough to show it?` }
+      { id: "overlap", when: s => s.last && !s.last.sep && s.acc1 > s.acc0 + 0.03, say: s => `Your model really is better (${Math.round(s.acc0 * 100)}% → ${Math.round(s.acc1 * 100)}% true skill), but the last test, ${s.last.n.toLocaleString()} questions, measured the gap as ${gapTxt(s.last)}, a range that includes zero. A bigger test narrows it.${flawNote(s)}` },
+      { id: "proven", when: s => s.last && s.last.sep && !s.last.leak, say: s => `Proven: on ${s.last.n.toLocaleString()} fresh questions the gap is ${gapTxt(s.last)}, entirely above zero, so the gain is very unlikely to be luck.${s.last.overlap ? " The two score bands still overlap: comparing both models on the same questions cancels out how hard each question was, so it needs fewer questions." : ""}${flawNote(s)}` },
+      { id: "calm", when: () => true, say: s => `Preference training moved helpful replies from ${Math.round(s.acc0 * 100)}% to ${Math.round(s.acc1 * 100)}%. Is the test big enough to show it?${flawNote(s)}` }
     ],
     facts: [
       { id: "instruct", when: s => s.P > 0 && s.acc1 > s.acc0 + 0.05, text: "OpenAI, the company behind ChatGPT, found that people preferred replies from a model with 1.3 billion parameters (learned numbers) trained this way over those of GPT-3, its earlier 175-billion-parameter model trained only to predict text: a model over 100 times bigger.", ref: "#ref-16" },
@@ -235,7 +237,7 @@ chapter("assistant", () => {
       { say: "Now collect 10,000 preference pairs. A reward model learns to score replies, and the model practises getting higher scores, on a leash (β = 1) that keeps it near where it started. Grey bars show where it started.", set: { prefs: 5 }, wait: 7 },
       { say: "Loosen the leash. The model chases the score, and the reward model has a flaw: it overrates flattering and padded replies. Helpfulness drops. This is reward hacking.", set: { beta: -1.3 }, wait: 7 },
       { say: "Back to a sensible leash. Is the model really better? Each test asks both models the same questions, and the bottom row shows the gap with its 95% range. With 50 questions that range is wide, about ±13 points, and usually includes zero.", set: { beta: 0, tests: 0 }, wait: 9 },
-      { say: "With 2,000 questions each score is pinned down to about ±2 points, and the gap's range sits clearly above zero: the gain is real.", set: { tests: 5 }, wait: 9 }
+      { say: "With 2,000 questions each score is pinned down to about ±2 points, and the gap's range sits clearly above zero: the gain is real overall. On this prompt, though, the flattering reply still grew (grey bar against coloured bar): the reward model's flaw leaks through even on a leash.", set: { tests: 5 }, wait: 9 }
     ],
     publish: s => {
       const W1 = wilson(Math.round(s.acc1 * (s.last ? s.last.n : TESTS[s.tests])), s.last ? s.last.n : TESTS[s.tests]), pr = PROMPTS[s.prompt], top = s.tPi[s.prompt].indexOf(Math.max(...s.tPi[s.prompt])), ref = s.tRef[s.prompt][top], rm = s.rm[s.prompt][top], n = s.last ? s.last.n : TESTS[s.tests];

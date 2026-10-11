@@ -128,7 +128,7 @@ chapter("security", () => {
       if (e.hidden) {
         y += P(8); const hh = P(nar ? 12 : 14) * 1.35 * 3 + P(26);
         k.box(K.x + 12, y, K.w - 24, Math.min(hh, K.y + K.h - y - 8), { fill: C.crit, r: 8, alpha: 0.13 });
-        k.label(K.x + 22, y + P(11), nar ? "Hidden text: invisible to you, not to the model" : "Hidden text (white on white: you can't see it, the model can)", { align: "left", col: C.crit, size: 11, weight: "600" });
+        k.label(K.x + 22, y + P(11), nar ? "Hidden text: invisible to you, not to the model" : "Hidden text (invisible to you, not to the model)", { align: "left", col: C.crit, size: 11, weight: "600" });
         k.para(K.x + 22, y + P(22), e.hidden, K.w - 44, { size: P(nar ? 12 : 12.5), col: C.ink, maxLines: 3, mono: false });
       }
       if (s.mark) k.label(K.x + K.w - 14, K.y + P(16), "untrusted data", { align: "right", col: C.amb, size: 11, weight: "650", bg: true });
@@ -247,7 +247,7 @@ chapter("security", () => {
       { id: "blocked", when: s => latest(s, "blocked"), say: s => { const e = s.ev.e; return s.tools === "approved" && e.vector === "link" ? `The assistant tried to follow the hidden text in "${e.subj}" and open ${e.site}, which isn't on the approved list, so the harness refused and nothing left the inbox. Real tasks that link to the company's own sites still work.` : `The assistant tried to follow the hidden text in "${e.subj}", but the tool it needed is switched off, so nothing left the inbox.`; } },
       { id: "ignored", when: s => latest(s, "ignored"), say: s => { const e = s.ev.e; return `"${e.subj}" hid an instruction, but with email text marked as untrusted data the model treated it as content to summarise. This only works because the attack wasn't very persuasive; stronger ones get through.`; } },
       { id: "caught", when: s => latest(s, "caught"), say: s => { const e = s.ev.e; return `The detector scored "${e.subj}" at ${f2(e.score)}, at or above your limit of ${f2(s.thr)}, and quarantined it before the model saw it.`; } },
-      { id: "calm", when: () => true, say: s => s.leaks ? `So far ${s.leaks} email${s.leaks === 1 ? " has" : "s have"} leaked data. Each defence in the controls stops some attacks and costs something; try them one at a time.` : "The assistant reads each email and uses its tools for you. Watch for the hidden text in some emails." }
+      { id: "calm", when: () => true, say: s => { if (s.goalMet && tally(s.round).through === 0) { const w = s.roundsDone.find(r => r.through === 0 && r.done >= NEED_DONE); return `Your layers held for a whole inbox: 0 of 5 attacks got through and ${w.done} of 10 real tasks got done. Try removing one layer at a time to see which ones are pulling their weight.`; } return s.leaks ? `So far ${s.leaks} email${s.leaks === 1 ? " has" : "s have"} leaked data. Each defence in the controls stops some attacks and costs something; try them one at a time.` : "The assistant reads each email and uses its tools for you. Watch for the hidden text in some emails."; } }
     ],
     facts: [
       { id: "spot", when: s => s.mark && s.ev && s.ev.type === "ignored", text: "Microsoft researchers tested marking untrusted text so the model can tell it apart, for example by putting a special character between every word. In their experiments it cut attack success from over 50% to under 2%.", ref: "#ref-1705" },

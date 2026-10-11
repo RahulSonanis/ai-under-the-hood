@@ -12,6 +12,12 @@ chapter("send", () => {
   const PRE0 = 0.03, PRE_PER = 0.00008, SVC = 0.06, THINK = 300, DOC_TOK = 12000, FOLLOW = 200, CACHE_TTL = 300;
   const SYS = { app: 2000, agent: 15000, api: 0 };
   const SYS_NAME = { app: "the chat app", agent: "the coding agent", api: "your own code" };
+  const FOLLOWS = {
+    sky: ["And why are sunsets red?", "At sunset the light crosses much more air, so most of the blue is scattered away before it reaches you, and the reds and oranges are left."],
+    haiku: ["Now one about the cooling fans.", "Cold air in, warm air out / the fans never stop to rest / the chips stay calm"],
+    doc: ["And what was the main cause?", "The main cause was the configuration change. Retries then piled onto the database and turned a small fault into a 38-minute outage."],
+    own: ["Tell me more.", "Here's a bit more detail on the same idea, building on my last answer."]
+  };
   const PROMPTS = {
     sky: ["Why is the sky blue?", "Sunlight contains every colour. Air molecules scatter short, blue wavelengths much more strongly than long, red ones, so blue light reaches your eyes from every part of the sky."],
     haiku: ["Write a haiku about servers.", "Fans hum through the night / a thousand racks hold their breath / your answer, then dawn"],
@@ -73,8 +79,8 @@ chapter("send", () => {
     const [prompt, reply] = s.promptKey === "own" ? [s.own || "Hello", OWN_REPLY] : PROMPTS[s.promptKey];
     const userTok = s.promptKey === "doc" ? DOC_TOK : Math.max(1, Math.ceil(prompt.length / 4));
     const key = s.from + ":" + s.promptKey + ":" + (s.promptKey === "own" ? prompt : ""), follow = s.lastKey === key && !!s.me && s.me.admit != null; s.lastKey = key; // a follow-up only if the last one reached the model
-    const me = newReq(s, true);
-    Object.assign(me, { prompt, reply, out: pieces(reply), userTok, sys: SYS[s.from], from: s.from, think: s.think ? THINK : 0, rho: s.rho, promptKey: s.promptKey, px: QX0, key, follow, extra: follow ? FOLLOW : 0 });
+    const me = newReq(s, true), fq = follow ? FOLLOWS[s.promptKey] : null;
+    Object.assign(me, { prompt: fq ? fq[0] : prompt, reply: fq ? fq[1] : reply, base: prompt, out: pieces(fq ? fq[1] : reply), userTok, sys: SYS[s.from], from: s.from, think: s.think ? THINK : 0, rho: s.rho, promptKey: s.promptKey, px: QX0, key, follow, extra: follow ? FOLLOW : 0 });
     me.inTok = me.sys + me.userTok + me.extra; s.me = me; s.sends++;
   }
   const exp = (s, mean) => -Math.log(1 - s.rand() * 0.999) * mean;
@@ -244,7 +250,7 @@ chapter("send", () => {
     lab(LY.x0 + (LY.n * LY.dx) / 2 - 8, LY.y + LY.h + 16, "Layers", "layers");
     lab(SAMP.x + SAMP.w / 2, LY.y + LY.h + 16, "Next-token odds", "samp");
     const others = s.reqs.filter(r => r.rep === 2 && !r.mine && phaseOf(r, s.t) === "gpu").length;
-    lab(GPU.x + 18, GPU.y + 444, others ? `Also writing for ${others} other ${others === 1 ? "person" : "people"} at the same time` : "No one else on this copy right now", "", { align: "left", size: 11 });
+    lab(GPU.x + 18, GPU.y + 444, others ? (sim.narrow ? `Also writing for ${others} other${others === 1 ? "" : "s"} at once` : `Also writing for ${others} other ${others === 1 ? "person" : "people"} at the same time`) : "No one else on this copy right now", "", { align: "left", size: 11 });
     drawClock(k, s);
     // picked part outline
     if (hot(s, s.picked && s.picked.key)) { const P = partOf(s.picked.key); if (P) k.box(P[1].x - 6, P[1].y - 6, P[1].w + 12, P[1].h + 12, { stroke: C.sig, r: 12, dash: [6, 5], lw: 1.5 }); }
@@ -262,15 +268,23 @@ chapter("send", () => {
     const C = k.C, t = s.t;
     // token chips: hidden instructions, your prompt, the rest
     const chips = []; let x = CH.x0, row = 0; const c = k.ctx; font(c, 11, "--f-mono");
-    const add = (txt, kind) => { const w = (c.measureText(txt).width + 10) / k.scale; if (x + w > CH.x1) { row++; x = CH.x0; } if (row > 1) return false; chips.push({ txt, kind, x, w, y: CH.rows[row] }); x += w + 4; return true; };
-    if (me.sys) add(`hidden instructions · ${me.sys.toLocaleString()}${me.cachedSys ? " · cached" : ""}`, "sys");
-    const ps = me.promptKey === "doc" ? pieces("Summarise this 20-page report") : pieces(me.prompt); let shown = 0;
-    const restTxt = n => `+${n.toLocaleString()} more${me.cachedUser ? " · cached" : ""}`, reserve = (c.measureText(restTxt(me.userTok)).width + 14) / k.scale;
-    for (const p of ps) { const w = (c.measureText(p).width + 14) / k.scale; if (shown < ps.length - 1 || me.userTok > ps.length) { if ((row === 1 || x + w > CH.x1) && (row === 1 ? x : CH.x0) + w + reserve > CH.x1) break; } if (!add(p.replace(/\s/g, "·"), "user")) break; shown++; }
+    const nar = k.W < 640;
+    const rowsY = nar ? [224, 247, 270] : CH.rows, chH = nar ? 20 : 22;
+    const add = (txt, kind) => { const w = (c.measureText(txt).width + 10) / k.scale; if (x + w > CH.x1 && x > CH.x0) { row++; x = CH.x0; } if (row >= rowsY.length) return false; chips.push({ txt, kind, x, w, y: rowsY[row] }); x += w + 4; return true; };
+    if (me.sys) add(`${nar ? "hidden" : "hidden instructions"} · ${me.sys.toLocaleString()}${me.cachedSys ? " · cached" : ""}`, "sys");
+    const ps = me.promptKey === "doc" ? pieces("Summarise this 20-page report") : pieces(me.base || me.prompt); let shown = 0;
+    const newTxt = me.extra ? `+${me.extra} new` : "";
+    const restTxt = n => me.cachedUser ? `+${n.toLocaleString()} cached` : `+${n.toLocaleString()} more`, reserve = (c.measureText(restTxt(me.userTok)).width + 14 + (newTxt ? c.measureText(newTxt).width + 14 : 0)) / k.scale;
+    const lastRow = rowsY.length - 1;
+    for (const p of ps) { const w = (c.measureText(p).width + 14) / k.scale, wraps = x + w > CH.x1 && x > CH.x0, landRow = wraps ? row + 1 : row, landX = wraps ? CH.x0 : x;
+      // keep room on the last row for the "+N more" (and "+200 new") chips; always show at least one piece of your text
+      if (shown > 0 && (shown < ps.length - 1 || me.userTok > ps.length || newTxt) && landRow >= lastRow && landX + w + reserve > CH.x1) break;
+      if (!add(p.replace(/\s/g, "·"), "user")) break; shown++; }
     const rest = me.userTok - shown; if (rest > 0) add(restTxt(rest), "more");
+    if (newTxt) add(newTxt, "user");
     const tokK = clamp01((t - me.routeEnd) / TOK), preK = clamp01((t - me.tokEnd) / me.pre);
     chips.forEach((ch, j) => { const a = clamp01(tokK * 1.2 - j * 0.02); if (a <= 0) return; const read = preK > (ch.x - CH.x0) / (CH.x1 - CH.x0) * 0.6;
-      k.box(ch.x, ch.y - 11, ch.w, 22, { fill: ch.kind === "user" ? C.sig : C.line, r: 6, alpha: a * (ch.kind === "user" ? (read ? 0.95 : 0.5) : 0.9) });
+      k.box(ch.x, ch.y - chH / 2, ch.w, chH, { fill: ch.kind === "user" ? C.sig : C.line, r: 6, alpha: a * (ch.kind === "user" ? (read ? 0.95 : 0.5) : 0.9) });
       k.label(ch.x + 5 / k.scale, ch.y, ch.txt, { mono: true, size: 11, align: "left", col: ch.kind === "user" ? C.bg : C.ink, alpha: a }); });
     const glow = (j, a) => k.box(LY.x0 + j * LY.dx, LY.y, LY.w, LY.h, { fill: C.amb, r: 5, alpha: a, glow: 18 });
     if (mph === "prefill") { const w = preK * (LY.n + 2) - 1; for (let j = 0; j < LY.n; j++) { const d = Math.abs(w - j); if (d < 1.6) glow(j, (1 - d / 1.6) * 0.95); }
@@ -284,7 +298,7 @@ chapter("send", () => {
       if (u > 0.75) k.label(SAMP.x + SAMP.w / 2, SAMP.y - 14, JSON.stringify(me.out[j].trim() || " "), { col: C.sig, mono: true, size: 12, weight: "650", bg: true }); }
     if (mph === "think") k.label(SAMP.x + SAMP.w / 2, SAMP.y + SAMP.h / 2, `${Math.round((t - me.preEnd) / me.tpot)} hidden`, { col: C.muted, mono: true, size: 11 });
     // what is happening, in words
-    const say = { tok: "Chopping your text into tokens", prefill: `Reading all ${me.uncached.toLocaleString()} new tokens at once${me.cached && k.W >= 640 ? ` (${me.cached.toLocaleString()} cached)` : ""}`, think: "Thinking: writing hidden tokens first", decode: "Writing the reply, one token at a time", stream: "Last tokens on their way", done: "Reply finished" }[mph];
+    const say = { tok: "Chopping your text into tokens", prefill: `Reading ${nar ? "" : "all "}${me.uncached.toLocaleString()} new tokens${nar ? "" : " at once"}${me.cached && !nar ? ` (${me.cached.toLocaleString()} cached)` : ""}`, think: "Thinking: writing hidden tokens first", decode: "Writing the reply, one token at a time", stream: "Last tokens on their way", done: "Reply finished" }[mph];
     if (say) k.label(GPU.x + 18, GPU.y + 512, say, { align: "left", col: mph === "prefill" || mph === "think" ? C.amb : C.sig, size: 13, weight: "650" });
   }
   function drawClock(k, s) {
@@ -311,7 +325,7 @@ chapter("send", () => {
   const sim = makeSim($("#send-sim"), {
     label: "A live view of an AI service. Your request (the bright teal dot) travels from your screen over the internet into a datacenter, through a gateway, a safety check, a line and a router to a GPU that reads your prompt and writes the reply token by token. Grey dots are other people's requests. Click any part to learn what it does.",
     cams: { default: { x: 0, y: 28, w: 1490, h: 728 } },
-    camsNarrow: { default: { x: 0, y: 180, w: 540, h: 570 }, you: { x: 0, y: 180, w: 540, h: 570 }, door: { x: 500, y: 170, w: 470, h: 450 }, gpu: { x: 978, y: 170, w: 494, h: 680 } },
+    camsNarrow: { default: { x: 0, y: 180, w: 540, h: 570 }, you: { x: 0, y: 180, w: 540, h: 570 }, door: { x: 500, y: 170, w: 470, h: 450 }, gpu: { x: 978, y: 148, w: 494, h: 702 } },
     camera: (s) => { const me = s.me; if (!me) return "you"; const ph = phaseOf(me, s.t); if (["net"].includes(ph)) return "you"; if (["gw", "safe", "queue", "route"].includes(ph)) return "door"; if (["tok", "prefill", "think", "decode"].includes(ph)) return "gpu"; return "you"; },
     height: w => w < 640 ? Math.round(Math.max(340, w * 1.05)) : Math.round(Math.min(600, Math.max(400, w * 0.5))),
     init, warmup: 12,
