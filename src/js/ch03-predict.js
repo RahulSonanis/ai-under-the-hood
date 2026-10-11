@@ -250,7 +250,7 @@ chapter("predict", () => {
     intro: "The model is writing with temperature 0: it always takes its most likely next word. Watch what happens, then try the controls.",
     controls: [
       { id: "mode", label: "What the model does", type: "choice", value: "write", options: [["write", "Write"], ["studied", "Read old"], ["new", "Read new"]], help: "Or make it read sentences it learned from (old) or never saw (new), and measure its surprise.", apply: (s, v) => setMode(s, v) },
-      { id: "temp", label: "Temperature", type: "range", min: 0, max: 2, step: 0.05, value: 0, fmt: v => v === 0 ? "0 · always the top word" : v.toFixed(2), help: "Low: safe and repetitive. High: surprising, then nonsense.", apply: (s, v) => { s.T = v; } },
+      { id: "temp", label: "Temperature", type: "range", min: 0, max: 2, step: 0.05, value: 0, fmt: v => v === 0 ? "0 · top word" : v.toFixed(2), help: "Low: safe and repetitive. High: surprising, then nonsense.", apply: (s, v) => { s.T = v; } },
       { id: "topk", label: "Top-k", type: "range", min: 1, max: KMAX, step: 1, value: KMAX, fmt: v => v === KMAX ? `off · all ${NV} words` : "keep " + v, help: "Keep only the k most likely words.", apply: (s, v) => { s.k = v === KMAX ? Infinity : v; } },
       { id: "topp", label: "Top-p", type: "range", min: 0.05, max: 1, step: 0.05, value: 1, fmt: v => v >= 1 ? "1 · off" : v.toFixed(2), help: "Keep the fewest top words whose chances add up to p.", apply: (s, v) => { s.p = v; } }
     ],

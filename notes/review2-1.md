@@ -6,7 +6,7 @@
 (A1–A5, A40 verified: text travels as text, tokenizing in datacenter, 1 + 23 = 24 passes, map links/titles match h2s, no console errors.)
 
 ## send
-- [ ] [major] send · busy slider at 95% (A10 regression) · load shedding drops (ρ−0.85)×4 = 40% of arrivals at 95% (20% at 90%), so the effective load falls to ~57%: at 95% the line is EMPTY (screenshot: "Line · empty", 0 waiting) while at 85% it has 2–3 waiting. This contradicts the text ("at 95% it is over a second"), the "busy" notice (which prints 60 ms·ρ/(1−ρ) = 1.14 s) and check question 2 ("about twenty times"). · Shed only when the line is already long (e.g. reject an arrival if s.q.length ≥ 12), which is also how real gateways shed, so the line still grows visibly at 90–95% but is capped; or shed a small fraction (≤5%).
+- [x] [major] send · busy slider at 95% (A10 regression) — FIXED by lead: shed only when ≥12 waiting, 50% of those arrivals · load shedding drops (ρ−0.85)×4 = 40% of arrivals at 95% (20% at 90%), so the effective load falls to ~57%: at 95% the line is EMPTY (screenshot: "Line · empty", 0 waiting) while at 85% it has 2–3 waiting. This contradicts the text ("at 95% it is over a second"), the "busy" notice (which prints 60 ms·ρ/(1−ρ) = 1.14 s) and check question 2 ("about twenty times"). · Shed only when the line is already long (e.g. reject an arrival if s.q.length ≥ 12), which is also how real gateways shed, so the line still grows visibly at 90–95% but is capped; or shed a small fraction (≤5%).
 - [ ] [minor] send · 390, GPU camera · user-prompt token chips never appear: the "hidden instructions · 2,000 · cached" chip is measured in screen px / small scale, fills row 1 and overflows the GPU box's right edge; the "Summa / rise / +12,000 more" chips are dropped. Also "Reading all 12,000 new tokens at once" and "Also writing for 3 other people at the same time" run over the GPU box border; "Other copies of the model" clipped at top. · On narrow, shorten the chip ("hidden · 2,000") and allow 3 rows, or reduce chip font; wrap/shorten the status lines ("Reading 12,000 new tokens").
 - [ ] [minor] send · follow-up (Press send) · the screen shows the same message bubble "Summarise this 20-page report." and the same reply, and the GPU chips show no chip for the ~200 new tokens, so a beginner can't see what the "follow-up" was · show a follow-up bubble (e.g. "And the main cause?") and a "+200 new" chip next to the cached ones.
 (A6, A7, A8, A9, A11, A12 verified working: cache notice correct, goal reachable via follow-up (2.36 s → 272 ms), mini clock pinned on phone.)
@@ -19,19 +19,19 @@
 
 ## predict
 - [ ] [minor] predict · 1280, Read old / Read new · the text panel's legend still reads "red underline: a word pair it never saw · amber: repeating itself · blue: your pick" while the words are now tinted amber/teal by surprise (amber = high surprise), so the legend contradicts what is shown · in read modes switch the legend to "amber: surprising word · teal: expected word".
-- [ ] [minor] predict · How it works › "Your tiny model" · "The last two give every word a small chance" reads as "the last two words" right after "what followed the last two words" · "The last-word odds and the overall word counts give every word a small chance…".
-- [ ] [minor] predict · 1280 controls · temperature value "0 · always the top word" wraps onto two lines under the label · shorten to "0 · greedy" or "0 · top word".
+- [x] [minor] predict · How it works › "Your tiny model" · "The last two give every word a small chance" reads as "the last two words" right after "what followed the last two words" · "The last-word odds and the overall word counts give every word a small chance…".
+- [x] [minor] predict · 1280 controls · temperature value "0 · always the top word" wraps onto two lines under the label · shorten to "0 · greedy" or "0 · top word".
 (A29–A38 verified: top-k off samples all 155 words ("142 rare words" slice), goal reachable at T 1.5 with top-p 0.6 or top-k 4 (40/40), "0% at T=0" labels, surprise scale "0 / 4.6 / 5.0", Read new clears the page, write-mode maths no longer calls shaped p "surprise".)
 
 ## attention
 - [ ] [minor] attention · 390, "Show the numbers" on, Previous head · the word "because" collides with its score ("because12.00") in the word / q·k column · narrow the word column or right-align scores with a min gap; truncate long words ("becau…").
 - [ ] [minor] attention · 1280, numbers on · the column header "stream after: animal · street" sits directly under the 94% street bar and touches it · move it down to the first layer row or add 6–8 px gap.
-- [ ] [minor] attention · How it works › "Your toy model" · "That first Transformer read in both directions" — the 2017 Transformer was an encoder–decoder; only its encoder (where the tired/wide picture comes from) read both ways · "The picture came from the part of that first Transformer that reads in both directions (the encoder); a model that writes left to right…".
+- [x] [minor] attention · How it works › "Your toy model" · "That first Transformer read in both directions" — the 2017 Transformer was an encoder–decoder; only its encoder (where the tired/wide picture comes from) read both ways · "The picture came from the part of that first Transformer that reads in both directions (the encoder); a model that writes left to right…".
 (B1–B7 verified: numbers hidden by default, goal shows "decision at last word: street 94% · selected word", softmax/MLP/parameter defined, "Query strength (pickiness)" + √d text and Q2 reworded, previous-token/coref heads cited.)
 
 ## thinking
 - [ ] [minor] thinking · 390, question panel · the hard question is cut off mid-sentence ("…leaves remainder 1 when divided by 2, 3, 4,") and the budget bar's label "8,900 hidden tokens" runs past the panel's right edge · allow 3 lines for the question on narrow (or shrink font); put the token count under the bar on narrow.
-- [ ] [minor] thinking · stat "cost per 1,000 questions" · large values print without a thousands separator ("$1295.79") while every other number in the course uses commas · format with toLocaleString ("$1,295.79"); consider rounding to whole dollars above $100.
+- [x] [minor] thinking · stat "cost per 1,000 questions" · large values print without a thousands separator ("$1295.79") while every other number in the course uses commas · format with toLocaleString ("$1,295.79"); consider rounding to whole dollars above $100.
 (B9, B10, B11, B12, B13 verified: 4 × (8,000 + 120) = 32,500 tokens; wait 54 s = longest attempt; visible working-out of wrong attempts is plausible ("60 … back up … n = 61"); vote notice prefixed "Last question (digit sums)"; budget_tokens wording matches current Anthropic docs (target, min 1,024, adaptive thinking + effort). Goal reachable (8/10 at 8k × 16, 54 s).)
 
 ## multimodal
@@ -39,12 +39,12 @@
 (B19–B23 verified: no clipped captions at 1280, "token 300: budget ends" anchored to the 300th cell (incl. with voice note after the animation), "4,096 picture tokens, first 400 drawn", budget explained, 28×28 / 1,296-token and 100–600 images facts match Anthropic's current vision docs, Whisper front-end wording.)
 
 ## memory
-- [ ] [minor] memory · notice "wasteR", tour step 2, sim label, How it works › "Booking the maximum" · all say "pale striped squares", but in dark mode the reserved-empty squares are dark hatched and on 390 (C5 fix) they are solid dark tints, never pale · say "the dim, hollow squares (booked but empty)" or whatever single description fits both themes and widths.
+- [x] [minor] memory · notice "wasteR", tour step 2, sim label, How it works › "Booking the maximum" · all say "pale striped squares", but in dark mode the reserved-empty squares are dark hatched and on 390 (C5 fix) they are solid dark tints, never pale · say "the dim, hollow squares (booked but empty)" or whatever single description fits both themes and widths.
 - [ ] [minor] memory · Predict answer "two to three times as many here" vs the sim at default 3 people/s: reserve shows 30 chatting + 7 waiting, paging 34–36 chatting; arrivals, not memory, limit paging, so the learner never sees 2–3× · add to the paging notice/tour: "raise New people per second to 8 to see how many fit" (or make the tour set rate 8 when switching to paging).
 (C1–C8 verified: vLLM introduced, speed-not-modelled note, too-long document bounced with a "context length exceeded" notice and a turned-away counter, byte comparisons, 128 KiB (≈131 KB) once, prefill shown as instant; 600 squares × 128 MiB ≈ 80 GB consistent.)
 
 ## batching
-- [ ] [minor] batching · notice when notes dominate (64 people × 8k, 4-bit) · "Smaller weights barely help here" appears at the very moment the goal is reached only BECAUSE 4-bit weights freed the last seats (8-bit: 81/80 GB, 1 person unseated; 4-bit: 77/80 GB, goal reached) · "Smaller weights barely speed this step up now, but they free memory for more seats."
+- [x] [minor] batching · notice when notes dominate (64 people × 8k, 4-bit) · "Smaller weights barely help here" appears at the very moment the goal is reached only BECAUSE 4-bit weights freed the last seats (8-bit: 81/80 GB, 1 person unseated; 4-bit: 77/80 GB, goal reached) · "Smaller weights barely speed this step up now, but they free memory for more seats."
 - [ ] [minor] batching · 1280 stage · "needs 89 GB of 80 GB" sits on the memory box's bottom border; "maths 2.3 ms" label is crossed by the white step-progress tick at the end of the reading bar · move the overflow label below the box (where "16-bit numbers" is) and offset the bar labels to the right of the tick.
 (C9–C16 verified: "Refill" label, Predict "roughly 40 times", prefill-not-included footnote, attention sums in t_sums, "≈1,000 replies" scale, single overflow figure, chunked-prefill paragraph, "dense" 989 T and W8A8 wording. Goal reachable (64 seated · 32 tok/s · $0.40 with 4-bit).)
 
@@ -69,5 +69,5 @@
 - cost: ready (formatting, green cost during overload, goal hint for the spike).
 
 ## Cross-chapter
-- [ ] [minor] all · goal pill at 1280 when the goal text wraps to two lines (predict, batching, cost) · the status dot detaches and sits on the pill's top-left border, and the pill becomes a huge rounded blob · align the dot with the first text line (flex-start + top margin) and use a smaller border-radius once the pill wraps.
+- [x] [minor] all · goal pill at 1280 (lead: engine CSS, grid layout) when the goal text wraps to two lines (predict, batching, cost) · the status dot detaches and sits on the pill's top-left border, and the pill becomes a huge rounded blob · align the dot with the first text line (flex-start + top margin) and use a smaller border-radius once the pill wraps.
 (No console errors in any of the 10 chapters at 1280 dark or 390 light with all controls exercised; no horizontal overflow at 390 with all details open.)

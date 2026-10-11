@@ -143,7 +143,7 @@ chapter("memory", () => {
   }
 
   const sim = makeSim($("#mem-sim"), {
-    label: "GPU memory simulation. Squares are memory; grey is the model, colours are conversations' notes, pale striped squares are reserved but empty. Requests too long for the server, or that wait too long, are turned away. Click a coloured square to inspect that conversation.",
+    label: "GPU memory simulation. Squares are memory; grey is the model, colours are conversations' notes, dim, hatched squares are reserved but empty. Requests too long for the server, or that wait too long, are turned away. Click a coloured square to inspect that conversation.",
     cams: { default: { x: 60, y: 50, w: 1500, h: 720 } },
     camsNarrow: { default: { x: 280, y: 60, w: 990, h: 740 } },
     init, warmup: 14,
@@ -164,7 +164,7 @@ chapter("memory", () => {
       { id: "reject", when: s => s.lastReject && s.t - s.lastReject.t < 5, say: s => `Just now: a ${s.lastReject.toks.toLocaleString()}-token request (the document plus 2,000 tokens of hidden instructions) was <b>turned away</b>. It's longer than this server's ${(s.maxLen / 1024)}k-token limit, so it could never fit. Real servers reply with an error such as "context length exceeded". Raise the longest-conversation limit to 32k and paste it again.` },
       { id: "preempt", when: s => s.lastPreempt && s.t - s.lastPreempt < 2, say: s => `Just now, memory ran out in the middle of a reply, so the server paused the newest conversation and sent it back to the line (${s.preempted} so far). Real paged servers do exactly this.` },
       { id: "doc", when: s => s.convs.some(c => c.tag === "doc"), say: s => { const d = s.convs.find(c => c.tag === "doc"); return d.state === "wait" ? `The 30,000-token document needs about <b>${(30000 * KIB_PER_TOK / 1048576 * 1.074).toFixed(1)} GB</b> of notes before it writes a word. It's waiting for that much space to free up; if it waits ${PATIENCE} seconds it gives up.` : "The document is in (outlined, labelled \"30k document\"). One long conversation takes as much memory as a dozen short ones."; } },
-      { id: "wasteR", when: s => s.mode === "reserve" && stats(s).waiting > 2 && stats(s).wastePct > 0.4, say: s => { const st = stats(s); return `Look at the pale striped squares: <b>${fmtGB(st.emptyGB)}</b> is reserved but holds nothing, while ${st.waiting} people wait${s.gaveUp ? ` (${s.gaveUp} have given up so far)` : ""}. Each chat booked room for ${s.maxLen.toLocaleString()} tokens but most use far less.`; } },
+      { id: "wasteR", when: s => s.mode === "reserve" && stats(s).waiting > 2 && stats(s).wastePct > 0.4, say: s => { const st = stats(s); return `Look at the dim, hatched squares (booked but empty): <b>${fmtGB(st.emptyGB)}</b> is reserved but holds nothing, while ${st.waiting} people wait${s.gaveUp ? ` (${s.gaveUp} have given up so far)` : ""}. Each chat booked room for ${s.maxLen.toLocaleString()} tokens but most use far less.`; } },
       { id: "gaveUp", when: s => s.lastGiveUp && s.t - s.lastGiveUp < 3, say: s => `People are being turned away: anyone who waits ${PATIENCE} seconds for memory gives up, and when ${LINE_MAX} are already waiting newcomers are refused (${s.gaveUp} so far). Real servers time out and refuse requests the same way. Fit more people in, or send fewer.` },
       { id: "paged", when: s => s.mode === "paged" && stats(s).running >= 25, say: s => { const st = stats(s); return `With paging, memory is handed out a square at a time as each reply grows. The same GPU now holds <b>${st.running}</b> conversations, and only ${fmtGB(st.emptyGB)} is reserved but empty.`; } },
       { id: "shared", when: s => s.sharePrefix && s.mode === "paged" && s.shared.length, say: s => { const st = stats(s); return `The white squares are the 2,000-token instructions every chat starts with, stored once and used by all ${st.running}. Without sharing they would take ${fmtGB(st.running * SYS * KIB_PER_TOK / 1048576 * 1.074)}.`; } },
@@ -177,7 +177,7 @@ chapter("memory", () => {
     ],
     tour: [
       { say: "This server reserves room for the longest allowed conversation (16k tokens) the moment someone arrives. Watch the number of people waiting for memory.", set: { mode: "reserve", share: false, rate: 3, max: 16384 }, wait: 7 },
-      { say: "Pale striped squares are booked but empty. Most chats are a few thousand tokens, so most of every booking is wasted, and people wait even though memory isn't really full.", wait: 6 },
+      { say: "Dim, hatched squares are booked but empty. Most chats are a few thousand tokens, so most of every booking is wasted, and people wait even though memory isn't really full.", wait: 6 },
       { say: "Now switch to <b>paging</b>: each chat gets a square only when its notes need one.", set: { mode: "paged" }, until: s => stats(s).running >= 25, max: 12 },
       { say: "Every chat starts with the same 2,000 tokens of hidden instructions. With sharing on, they're stored once (white squares).", set: { share: true }, wait: 6 },
       { say: "Finally, raise the limit to 32k tokens and paste a 30,000-token document. Its squares are outlined and labelled \"30k document\": one long conversation takes as much memory as a dozen short ones.", set: { max: 32768 }, act: s => { s.longDoc = 1; }, wait: 8 }

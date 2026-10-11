@@ -18,7 +18,7 @@ chapter("thinking", () => {
   const NEEDK = [0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5];
   const expected = (d, B) => NEEDK.reduce((a, k) => a + pRight(d, Math.min(B, DIFF[d].need * k)), 0) / NEEDK.length;
   const fmtTok = n => (n >= 1000 ? Math.round(n / 100) * 100 : Math.round(n)).toLocaleString("en-US");
-  const fmtMoney = x => x < 0.01 ? "$" + x.toFixed(4) : x < 1 ? "$" + x.toFixed(2) : "$" + x.toFixed(2);
+  const fmtMoney = x => x < 0.01 ? "$" + x.toFixed(4) : x < 1 ? "$" + x.toFixed(2) : x < 100 ? "$" + x.toFixed(2) : "$" + Math.round(x).toLocaleString();
   const fmtS = x => x < 10 ? x.toFixed(1) + " s" : Math.round(x) + " s";
 
   const BANK = {

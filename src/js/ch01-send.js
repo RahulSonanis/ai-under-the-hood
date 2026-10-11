@@ -5,7 +5,7 @@
    safety 25 ms, router 4 ms, tokenizing 2 ms, reading 30 ms + 0.08 ms per uncached token, writing 18–26 ms per
    token (slower when busier), 300 hidden thinking tokens. The reading pass also produces the first token.
    A re-send is a follow-up: the earlier conversation may be cached (5 min) and ~200 new tokens are added.
-   Above 90% busy the gateway turns some other people's requests away (load shedding). The line is a real M/M/1 queue: mean wait 60 ms·ρ/(1−ρ).
+   Above 90% busy, once 12+ are waiting, the gateway turns some other people's requests away (load shedding). The line is a real M/M/1 queue: mean wait 60 ms·ρ/(1−ρ).
    Shown in slow motion: 1 second on screen = 0.2 s of real time (thinking is fast-forwarded a further 4×). */
 chapter("send", () => {
   const SLOW = 0.2, NET = 0.04, GW = 0.012, SAFE = 0.025, ROUTE = 0.004, TOK = 0.002, BACK = 0.04;
@@ -121,7 +121,8 @@ chapter("send", () => {
     const lam = s.rho / SVC;
     if (lam > 0) { if (!isFinite(s.nextArr)) s.nextArr = s.t + exp(s, 1 / lam); while (s.t >= s.nextArr) { const r = newReq(s, false); r.t0 = s.nextArr; r.door = r.t0 + NET * r.jit; r.gwEnd = r.door + GW; r.qArr = r.gwEnd + SAFE; s.nextArr += exp(s, 1 / lam);
       // load shedding: near full, the gateway answers some requests at once with "too busy, try again later"
-      if (s.rho >= 0.9 && s.rand() < (s.rho - 0.85) * 4) { r.rejected = true; s.nRej++; s.rejAt = s.st; } } }
+      // only when the line is already long, so the queue still shows the steep rise near 100% (the chapter's lesson)
+      if (s.rho >= 0.9 && s.q.length >= 12 && s.rand() < 0.5) { r.rejected = true; s.nRej++; s.rejAt = s.st; } } }
     else s.nextArr = Infinity;
     // requests reaching the line join it in arrival order
     for (const r of s.reqs) if (!r.rejected && !r.inQ && r.admit == null && s.t >= r.qArr) { r.inQ = true; if (r.mine) r.ahead0 = s.q.length; s.q.push(r); }
