@@ -15,7 +15,7 @@ number without a comparison; every claim sourced; illustrative numbers labelled.
 - [x] Engine (src/js/sim.js, kit.js), chapter template, collapsible sidebar, reference chapter (memory)
 - [x] All chapters 1–17, finale (18), landing, next (19), facts (98), refs (99) built
 - [x] Review round 1: beginner ×2, engineer ×2, maths ×1, fact-check ×2 (findings in notes/fix-*.md)
-- [ ] Fix round 1 (engine: notes/fix-engine.md; chapters: notes/fix-A … fix-F.md) — tick items as done
+- [x] Fix round 1 (engine: notes/fix-engine.md; chapters: notes/fix-A … fix-F.md) — done 2026-10-11, commit 2bd01a7
 - [ ] Review round 2 (quick re-check of blockers/majors, phone layouts)
 - [ ] README rewrite, meta description, merge to main, confirm Pages rebuild, republish preview artifact
 
@@ -27,6 +27,8 @@ number without a comparison; every claim sourced; illustrative numbers labelled.
 
 ## Log
 - 2026-10-11: fix round 1 interrupted by usage limit; partial fixes in A (6), C (3), F (2) committed; relaunching fixers A–F.
+
+- 2026-10-11: fix round 1 complete. Review round 2 launched: findings go to notes/review2-1.md (start–ch9) and notes/review2-2.md (ch10–facts) as checklists.
 
 ## Checkpoint rule
 Commit and push `v4` after every batch of fixes. Tick items in the fix files as they are done.
