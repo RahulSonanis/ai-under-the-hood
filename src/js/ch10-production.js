@@ -3,28 +3,33 @@
    - 400 replies a second arrive and are split by a router between the old and the new version.
    - 24 servers on three chip types (A, B, C). Servers switch to the new version in the order A0 B0 C0 A1 B1 C1 ...,
      so a tiny canary (1 or 2 servers) never touches chip C.
-   - Hidden fault: on chip C, the new version garbles 4% of replies (rare wrong tokens). Errors and speed are unaffected:
-     a garbled reply is still a "successful" reply. Only the quality check (an automatic grader reading a sample of
-     replies, 4 s later) and thumbs-down (slow, noisy) can see it.
+   - The router weights servers, so a 1% slice can be one server. 1% and 5% land on one chip A server; 10% on A0+B0;
+     25% (6 servers) is the first slice that reaches chip C.
+   - Hidden fault: on chip C, the new version garbles 4% of replies (1 in 25; about 1 in 75 overall once a third of the
+     new servers are chip C). Errors and speed are unaffected: a garbled reply is still a "successful" reply. Only the
+     quality check (an automatic grader reading a sample of replies, 4 s later) and thumbs-down (slow, noisy) can see it.
+   - Flags and thumbs-down are counted against the time bucket in which the reply was SERVED, and each chart only reads
+     buckets old enough for their verdicts to have arrived, so rates never divide late flags by an empty slice.
    - After a rollback that has evidence (flags or reports), engineers find the cause and ship a fixed build 12 s later. */
 chapter("production", () => {
   const R = 400, SERVERS = 24, PER_ROW = 8, FAULT = 0.04, LIMIT = 20;
   const GRADE = { new: 1 / 2, old: 1 / 50 }, DETECT = 0.9, FLAG_DELAY = 4, THUMB_DELAY = 6;
-  const WARM = 12, MIN_REP = 100;               // warm-up seconds; replies needed before a rate is shown
-  const BASE_ERR = 0.003, BASE_THUMB = 0.02, FALSE_FLAG = 0.00002;
+  const WARM = 12, MIN_REP = 100, MIN_RATE = 1000; // warm-up seconds; replies needed before speed / a rate is shown
+  const BASE_ERR = 0.003, BASE_THUMB = 0.01, THUMB_BAD = 0.5, FALSE_FLAG = 0.00002;
   const STEPS = [0, 0.01, 0.05, 0.10, 0.25, 0.50, 1];          // slider stops
   const PLAN = [0.01, 0.05, 0.25, 0.50, 1], STAGE_S = 12;         // the careful plan
   const ORDER = []; for (let j = 0; j < PER_ROW; j++) for (let r = 0; r < 3; r++) ORDER.push(r * PER_ROW + j); // A0 B0 C0 A1 ...
-  const WIN = 20, BUCKET = 0.5, HIST = 80;                        // 10 s window of 0.5 s buckets; 40 s of history
+  const SPAN = 10, BUCKET = 0.5, HIST = 80, KEEP = 34;            // each chart reads 10 s of 0.5 s buckets; 40 s of history
   const chipName = ["A", "B", "C"];
   const pct = a => a <= 0 ? "0%" : a < 0.995 && a * 100 < 10 ? (a * 100).toFixed(a * 100 < 2 ? 1 : 0).replace(/\.0$/, "") + "%" : Math.round(a * 100) + "%";
 
   function pois(l, r) { if (l <= 0) return 0; if (l > 25) return Math.max(0, Math.round(l + Math.sqrt(l) * gauss(r))); const L = Math.exp(-l); let k = 0, p = 1; do { k++; p *= r(); } while (p > L); return k - 1; }
-  const emptyB = () => ({ rep: 0, err: 0, graded: 0, flag: 0, thumb: 0, ttft: 0 });
+  const emptyB = t => ({ t: t || 0, rep: 0, err: 0, graded: 0, flag: 0, thumb: 0, ttft: 0 });
+  const newCur = s => ({ new: emptyB(s.t), old: emptyB(s.t) });
   function init(rand) {
     const s = { t: 0, rand, a: 0, target: 0, fault: true, fixed: false, garbled: 0, flagsSeen: 0, thumbsGarbled: 0,
       halted: false, fixAt: 0, rollbacks: 0, lastRb: null, stage: 0, stageT: 0, shippedFor: 0, won: false,
-      pending: [], sparks: [], cur: { new: emptyB(), old: emptyB() }, win: [], bt: 0, firstBad: -1, lastT: 0,
+      pending: [], sparks: [], cur: { new: emptyB(), old: emptyB() }, win: [], bt: 0, firstBad: -1, lastT: 0, ro: null, lastRo: null,
       hist: { err: { new: [], old: [] }, ttft: { new: [], old: [] }, qual: { new: [], old: [] }, thumb: { new: [], old: [] } },
       m: { err: {}, ttft: {}, qual: {}, thumb: {} }, phase: 0, ready: false, plan: "hand", watch: "es" };
     return s;
@@ -35,21 +40,26 @@ chapter("production", () => {
   const badRate = s => s.fault ? cFrac(s) * FAULT : 0;     // share of the new version's replies that are garbled
   const watching = (s, key) => (s.watch === "esq" && key === "qual") || ((s.watch === "es" || s.watch === "esq") && (key === "err" || key === "ttft"));
 
-  function windowSum(s, v, f) { let x = 0; for (const b of s.win) x += b[v][f]; return x + s.cur[v][f]; }
+  // sum field f over buckets served between `lag` and `lag + SPAN` seconds ago
+  function sum(s, v, f, lag) { let x = 0; for (const b of s.win.concat([s.cur])) { const age = s.t - b.t; if (age >= lag && age < lag + SPAN) x += b[v][f]; } return x; }
   function metrics(s) {
     const m = {};
     ["new", "old"].forEach(v => {
-      const rep = windowSum(s, v, "rep"), gr = windowSum(s, v, "graded");
-      m[v] = { rep, err: rep >= MIN_REP ? windowSum(s, v, "err") / rep * 1000 : null, errN: windowSum(s, v, "err"),
-        qual: gr > 3 ? windowSum(s, v, "flag") / gr * 1000 : null, flagN: windowSum(s, v, "flag"),
-        thumb: rep >= MIN_REP ? windowSum(s, v, "thumb") / rep * 1000 : null, ttft: rep > 1 ? windowSum(s, v, "ttft") / rep : null };
+      const rep = sum(s, v, "rep", 0), errN = sum(s, v, "err", 0), gr = sum(s, v, "graded", FLAG_DELAY), flagN = sum(s, v, "flag", FLAG_DELAY);
+      const repT = sum(s, v, "rep", THUMB_DELAY);
+      m[v] = { rep, err: rep >= MIN_RATE ? errN / rep * 1000 : null, errN,
+        qual: gr >= 20 ? flagN / gr * 1000 : null, flagN,
+        thumb: repT >= MIN_RATE ? sum(s, v, "thumb", THUMB_DELAY) / repT * 1000 : null, ttft: rep >= MIN_REP ? sum(s, v, "ttft", 0) / rep : null };
     });
     return m;
   }
+  const errLimit = s => 2 * (s.m.old && s.m.old.err != null ? s.m.old.err : BASE_ERR * 1000) + 5;   // the real rollback rule
+  const ttftLimit = s => 1.5 * (s.m.old && s.m.old.ttft != null ? s.m.old.ttft : 0.45);
 
   function rollback(s, sim, auto, reason) {
     if (s.target === 0 && s.a < 0.001) return;
     s.target = 0; s.rollbacks++; s.stage = 0; s.stageT = 0;
+    if (s.ro) { s.lastRo = Object.assign({}, s.ro, { end: s.t, a: s.a, f: badRate(s), n: s.garbled - s.ro.g0, done: true }); s.ro = null; }
     const lead = s.fault && (s.flagsSeen >= 1 || s.thumbsGarbled >= 3 || s.garbled >= 8);
     s.lastRb = { t: s.t, auto, reason, lead, garbled: s.garbled, T: s.firstBad >= 0 ? s.t - s.firstBad : 0 };
     if (lead) { s.halted = true; s.fixAt = s.t + 12; }
@@ -75,10 +85,12 @@ chapter("production", () => {
     // the fix arrives
     if (s.halted && s.fixAt && s.t >= s.fixAt && s.a < 0.001) {
       s.fault = false; s.fixed = true; s.halted = false; s.fixAt = 0; s.stage = 0; s.stageT = 0; s.fixedAtT = s.t;
-      s.win = []; s.cur = { new: emptyB(), old: emptyB() }; s.pending = s.pending.filter(p => p.v !== "new"); // a new build starts with fresh numbers
+      s.win = []; s.cur = newCur(s); s.pending = []; // a new build starts with fresh numbers
     }
-    // servers switch over gradually; rollback is quicker than rollout
-    const up = 0.3, down = 0.8;
+    // track the current rollout (for the personalised maths)
+    if (s.target > 0 && !s.ro) s.ro = { g0: s.garbled, fb: -1, start: s.t };
+    // servers switch over gradually; rollback is quicker (the old version is still loaded and warm), but not instant
+    const up = 0.3, down = 0.4;
     s.a = s.target > s.a ? Math.min(s.target, s.a + up * dt) : Math.max(s.target, s.a - down * dt);
     // traffic
     const r = s.rand;
@@ -86,34 +98,36 @@ chapter("production", () => {
       const share = v === "new" ? s.a : 1 - s.a, rep = R * share * dt; if (rep <= 0) return;
       const b = s.cur[v]; b.rep += rep; b.err += pois(rep * BASE_ERR, r);
       b.ttft += rep * ((v === "new" ? 0.42 : 0.45) + 0.03 * gauss(r) / Math.sqrt(1 + rep));
-      b.graded += rep * GRADE[v]; b.thumb += pois(rep * BASE_THUMB, r);
-      const ff = pois(rep * GRADE[v] * FALSE_FLAG, r); if (ff) s.pending.push({ due: s.t + FLAG_DELAY, v, kind: "flag", n: ff, real: false });
+      b.graded += rep * GRADE[v]; b.thumb += pois(rep * BASE_THUMB, r); b.flag += pois(rep * GRADE[v] * FALSE_FLAG, r);
     });
     const g = pois(R * s.a * badRate(s) * dt, r);
     for (let i = 0; i < g; i++) {
       s.garbled++; if (s.firstBad < 0 || (s.lastRb && s.firstBad < s.lastRb.t)) s.firstBad = s.t;
+      if (s.ro && s.ro.fb < 0) s.ro.fb = s.t;
       const cs = []; for (let j = 0; j < newServers(s.a); j++) if (ORDER[j] >= 16) cs.push(ORDER[j]);
       s.sparks.push({ t: s.t, srv: cs[Math.floor(r() * cs.length)] });
-      if (r() < GRADE.new && r() < DETECT) s.pending.push({ due: s.t + FLAG_DELAY, v: "new", kind: "flag", n: 1, real: true });
-      if (r() < 0.3) s.pending.push({ due: s.t + THUMB_DELAY, v: "new", kind: "thumb", n: 1, real: true });
+      // the verdict belongs to the bucket where the reply was served; engineers only learn of it after the delay
+      if (r() < GRADE.new && r() < DETECT) { s.cur.new.flag++; s.pending.push({ due: s.t + FLAG_DELAY, kind: "flag" }); }
+      if (r() < THUMB_BAD) { s.cur.new.thumb++; s.pending.push({ due: s.t + THUMB_DELAY, kind: "thumb" }); }
     }
     s.pending = s.pending.filter(p => {
       if (p.due > s.t) return true;
-      if (p.kind === "flag") { s.cur[p.v].flag += p.n; if (p.real) s.flagsSeen++; } else { s.cur[p.v].thumb += p.n; if (p.real) s.thumbsGarbled++; }
+      if (p.kind === "flag") s.flagsSeen++; else s.thumbsGarbled++;
       return false;
     });
     s.sparks = s.sparks.filter(sp => s.t - sp.t < 1.4);
     // buckets, metrics, history, automatic rollback
     s.bt += dt;
     if (s.bt >= BUCKET) {
-      s.bt = 0; s.win.push(s.cur); if (s.win.length > WIN) s.win.shift(); s.cur = { new: emptyB(), old: emptyB() };
+      s.bt = 0; s.win.push(s.cur); if (s.win.length > KEEP) s.win.shift(); s.cur = newCur(s);
       const m = metrics(s); s.m = m;
-      ["err", "ttft", "qual", "thumb"].forEach(key => ["new", "old"].forEach(v => { const h = s.hist[key][v]; h.push(m[v][key]); if (h.length > HIST) h.shift(); }));
+      const oldGone = 1 - s.a < 0.02;   // (almost) nobody is on the old version: its line stops, it has no traffic
+      ["err", "ttft", "qual", "thumb"].forEach(key => ["new", "old"].forEach(v => { const h = s.hist[key][v]; h.push(v === "old" && oldGone ? null : m[v][key]); if (h.length > HIST) h.shift(); }));
       if (s.a > 0.001 && s.target > 0) {
         const n = m.new, o = m.old;
         if (watching(s, "qual") && n.qual != null && n.flagN >= 2 && n.qual >= 3) rollback(s, sim, true, "quality");
-        else if (watching(s, "err") && n.err != null && n.errN >= 8 && n.err > 2 * (o.err != null ? o.err : BASE_ERR * 1000) + 5) rollback(s, sim, true, "errors");
-        else if (watching(s, "ttft") && n.ttft != null && o.ttft != null && n.ttft > 1.5 * o.ttft) rollback(s, sim, true, "speed");
+        else if (watching(s, "err") && n.err != null && n.errN >= 8 && n.err > errLimit(s)) rollback(s, sim, true, "errors");
+        else if (watching(s, "ttft") && n.ttft != null && o.ttft != null && n.ttft > ttftLimit(s)) rollback(s, sim, true, "speed");
       }
     }
     s.shippedFor = s.fixed && s.a > 0.999 ? s.shippedFor + dt : 0;
@@ -128,10 +142,10 @@ chapter("production", () => {
     dash: [[20, 570], [462, 570], [20, 940], [462, 940]], pw: 420, ph: 350 };
   const srvXY = (L, i) => [L.sx0 + (i % PER_ROW) * (L.sw + L.sgap), L.rowsY[Math.floor(i / PER_ROW)] - L.sw / 2];
   const PANELS = [
-    { key: "err", title: "Errors", sub: "failed, per 1,000 replies", note: "blind to bad content", max: 20, thr: 10, fmt: v => v.toFixed(1) },
-    { key: "ttft", title: "Speed", sub: "seconds to the first word", note: "new version starts faster", max: 1, thr: 0.65, fmt: v => v.toFixed(2) + " s" },
-    { key: "qual", title: "Quality check", sub: "garbled, per 1,000 read", note: "reads 1 in 2 new replies", max: 30, thr: 3, fmt: v => v.toFixed(1) },
-    { key: "thumb", title: "Thumbs-down", sub: "per 1,000 replies", note: "from people: slow, noisy", max: 50, thr: null, fmt: v => v.toFixed(0) }
+    { key: "err", title: "Errors", sub: "failed, per 1,000 replies", note: "blind to bad content", max: 20, thr: errLimit, fmt: v => v.toFixed(1) },
+    { key: "ttft", title: "Speed", sub: "seconds to the first word", note: "new version starts faster", max: 1, thr: ttftLimit, fmt: v => v.toFixed(2) + " s" },
+    { key: "qual", title: "Quality check", sub: "garbled, per 1,000 read", note: "reads 1 in 2 new replies, 4 s later", max: 30, thr: () => 3, fmt: v => v.toFixed(1) },
+    { key: "thumb", title: "Thumbs-down", sub: "per 1,000 replies", note: "from people: slow, noisy", max: 30, thr: null, fmt: v => v.toFixed(0) }
   ];
 
   function series(k, pts, x, y, w, h, max, col, lw) {
@@ -148,13 +162,17 @@ chapter("production", () => {
     const px = x + 16, py = y + (narrow ? 50 : 66), pw = w - 32, ph = h - (narrow ? 110 : 130);
     k.line(px, py + ph, px + pw, py + ph, { col: C.line, lw: 1 });
     k.line(px, py, px + pw, py, { col: C.line, lw: 1, dash: [2, 5], alpha: 0.6 });
-    if (P.thr != null) { k.line(px, py + ph - P.thr / P.max * ph, px + pw, py + ph - P.thr / P.max * ph, { col: C.crit, lw: 1.3, dash: [6, 5], alpha: watched ? 0.85 : 0.3 }); }
+    if (P.thr != null) {   // the rollback limit for the NEW version (errors and speed: relative to the old version now)
+      const ty = py + ph - Math.min(1, P.thr(s) / P.max) * ph;
+      k.line(px, ty, px + pw, ty, { col: C.crit, lw: 1.3, dash: [6, 5], alpha: watched ? 0.85 : 0.3 });
+      if (!narrow) k.label(px + pw, ty - 9, "limit for new", { align: "right", col: C.crit, size: 9, alpha: watched ? 0.9 : 0.45 });
+    }
     series(k, ex.old, px, py, pw, ph, P.max, C.muted, 2);
     series(k, ex.new, px, py, pw, ph, P.max, C.amb, 2.6);
     const n = s.m.new ? s.m.new[P.key] : null, o = s.m.old ? s.m.old[P.key] : null;
     const yy = y + h - (narrow ? 34 : 40);
     k.label(px, yy, "new " + (n == null ? "–" : P.fmt(n)), { align: "left", col: C.amb, size: narrow ? 11 : 12, weight: "650", mono: true });
-    k.label(px + pw, yy, "old " + (o == null ? "–" : P.fmt(o)), { align: "right", col: C.muted, size: narrow ? 11 : 12, weight: "600", mono: true });
+    k.label(px + pw, yy, 1 - s.a < 0.02 ? "old: no traffic" : "old " + (o == null ? "–" : P.fmt(o)), { align: "right", col: C.muted, size: narrow ? 11 : 12, weight: "600", mono: true });
     if (!narrow) k.label(px, yy + 20, P.note, { align: "left", col: C.muted, size: 10 });
     if (n == null && s.a > 0.001 && s.target > 0) k.label(px + pw / 2, py + ph / 2, "too few new replies to judge", { col: C.amb, size: narrow ? 10 : 11, bg: true });
   }
@@ -180,9 +198,10 @@ chapter("production", () => {
     }
     // router
     k.box(rx - 60, ry - 34, 120, 68, { fill: C.bg2, stroke: C.sig, r: 12, lw: 1.4 });
-    k.label(rx, ry - 10, "router", { col: C.ink, weight: "650", size: 12 });
+    k.label(rx, ry - 10, s.fixed && narrow ? "router · v2" : "router", { col: C.ink, weight: "650", size: 12 });
     k.label(rx, ry + 10, pct(s.a) + " to new", { col: s.a > 0 ? C.amb : C.muted, size: 11, weight: "600", mono: true });
     if (!narrow) {
+      if (s.fixed) k.label(rx, ry - 48, "fixed build v2", { col: C.ok, size: 11, weight: "650" });
       const planTxt = s.halted ? (s.fixAt ? `rolled back · fix in ${Math.max(0, Math.ceil(s.fixAt - s.t))} s` : "rolled back")
         : s.plan === "careful" ? `in steps · step ${s.stage + 1} of ${PLAN.length}` : s.plan === "fast" ? "all at once" : "by hand";
       k.label(rx, ry + 56, planTxt, { col: s.halted ? C.crit : C.muted, size: 11 });
@@ -200,7 +219,7 @@ chapter("production", () => {
     for (let i = 0; i < SERVERS; i++) {
       const [x, y] = srvXY(L, i), nw = isNew(s, i), hot = sparkOn.has(i);
       k.box(x, y, L.sw, L.sw, { fill: nw ? C.amb : C.bg2, stroke: hot ? C.crit : nw ? C.amb : C.line, r: 9, lw: hot ? 2.4 : 1.2, alpha: nw ? 0.9 : 1, glow: hot ? 18 : nw ? 6 : 0, glowCol: hot ? C.crit : C.amb });
-      if (!narrow) k.label(x + L.sw / 2, y + L.sw / 2, nw ? "new" : "old", { col: nw ? C.bg : C.muted, size: 10, weight: "650" });
+      if (!narrow) k.label(x + L.sw / 2, y + L.sw / 2, nw ? (s.fixed ? "v2" : "new") : "old", { col: nw ? C.bg : C.muted, size: 10, weight: "650" });
     }
     if (!narrow) k.label(L.outX + 10, 120, "replies to people", { col: C.muted, align: "right" });
     // garbled replies: red sparks flying out of chip C servers
@@ -256,7 +275,7 @@ chapter("production", () => {
     notices: [
       { id: "over", when: s => s.garbled > LIMIT && !s.won, say: s => `${s.garbled} garbled replies have reached people, more than the ${LIMIT} allowed. The fault only shows on chip C, so it hid from the error and speed charts. Press <b>Reset</b> and try rolling out <b>in steps</b>, with rollback also watching <b>quality</b>.` },
       { id: "won", when: s => s.won, say: s => `Shipped. The fixed version serves 100% of traffic, and only ${s.garbled} garbled replies ever reached people. A small first slice, the right signal and a fast rollback kept the damage small.` },
-      { id: "fixing", when: s => s.halted && s.fixAt > 0, say: s => `${s.lastRb.auto ? "Automatic rollback" : "You rolled back"}: ${s.lastRb.reason === "quality" ? "the quality check flagged garbled replies on the new version and almost none on the old one." : "everyone is back on the old version."} Engineers split the flags by chip type: every one came from chip C. A fixed build arrives in ${Math.max(0, Math.ceil(s.fixAt - s.t))} s.` },
+      { id: "fixing", when: s => s.halted && s.fixAt > 0, say: s => `${s.lastRb.auto ? "Automatic rollback" : "You rolled back"}: ${s.lastRb.reason === "quality" ? "the quality check flagged garbled replies on the new version and almost none on the old one." : "everyone is going back to the old version, which was kept loaded and warm so the switch takes seconds."} Engineers split the flags by chip type: every one came from chip C. A fixed build arrives in ${Math.max(0, Math.ceil(s.fixAt - s.t))} s.` },
       { id: "fixed", when: s => s.fixed && s.fixedAtT && s.t - s.fixedAtT < 6 && s.a < 0.999, say: s => s.plan === "hand" ? "The fixed build is ready. Roll it out again: drag the slider up, a step at a time." : "The fixed build is ready, and the plan starts again from 1%. Same caution, new code." },
       { id: "noLead", when: s => s.lastRb && !s.lastRb.lead && s.t - s.lastRb.t < 5, say: s => s.fault && s.garbled > 0 ? `Rolled back, but nothing on the dashboard pointed at a cause, so there is nothing for engineers to fix yet. ${s.garbled} garbled replies went out unnoticed. Try watching the quality check.` : "Rolled back. Nothing had gone wrong, so engineers have nothing to fix. Start the rollout again when you're ready." },
       { id: "flagsUnwatched", when: s => s.fault && s.a > 0 && s.watch !== "esq" && (m(s, "new", "qual") || 0) >= 3, say: s => `The quality check shows ${f1(m(s, "new", "qual"))} garbled replies per 1,000 on the new version against ${f1(m(s, "old", "qual"))} on the old, but automatic rollback isn't watching it. Roll back now, or let rollback watch quality checks too.` },
@@ -267,7 +286,7 @@ chapter("production", () => {
       { id: "idle", when: s => s.a === 0, say: () => "Everyone is on the old version. Pick a rollout plan, or drag the slider, to start sending people to the new one." }
     ],
     facts: [
-      { id: "pm", when: s => s.garbled >= 2, text: "This really happened. In August 2025, a misconfiguration on some of Anthropic's TPU servers made its Claude models occasionally favour tokens that should rarely appear, such as Thai or Chinese characters in English replies. It was fixed by rolling the change back.", ref: "#ref-30" },
+      { id: "pm", when: s => s.garbled >= 2, text: "This really happened. In August 2025, a misconfiguration on some of Anthropic's servers that use TPUs (Google-made AI chips) made its Claude models occasionally favour tokens that should rarely appear, such as Thai or Chinese characters in English replies. It was fixed by rolling the change back.", ref: "#ref-30" },
       { id: "sre", when: s => s.rollbacks >= 1, text: "In Google's experience, a majority of incidents are triggered by pushing new code or new settings. Its engineers define canarying as a partial, time-limited deployment of a change and its evaluation.", ref: "#ref-1001" }
     ],
     tour: [
@@ -279,11 +298,19 @@ chapter("production", () => {
       { say: "The fixed build goes out step by step. Watch the budget bar: only a handful of garbled replies ever reached people.", until: s => s.won, max: 70 }
     ],
     publish: s => {
-      const T = s.lastRb && s.lastRb.lead ? s.lastRb.T : null, f = FAULT / 3;
+      // personalised maths: the current rollout if it has sent garbled replies, else the last one that ended
+      const live = s.ro && s.ro.fb >= 0 ? s.ro : null, ro = live || (s.lastRo && s.lastRo.fb >= 0 ? s.lastRo : null);
+      let which = "No rollout has reached chip C yet. Example, 25% for 10 s", a = 0.25, f = FAULT / 3, T = 10, n = null;
+      if (ro) {
+        which = live ? "Your rollout so far" : "Your last rollout";
+        a = live ? s.a : ro.a; f = live ? badRate(s) : ro.f; if (!f) f = FAULT / 3;   // f was 1/75 while chip C was in the slice
+        T = Math.max(1, (live ? s.t : ro.end) - ro.fb); n = live ? s.garbled - ro.g0 : ro.n;
+      }
       return { prShare: pct(s.a), prGarbled: String(s.garbled), prLimit: String(LIMIT), prRb: String(s.rollbacks),
         prNewErr: f1(m(s, "new", "err")), prOldErr: f1(m(s, "old", "err")), prNewQ: f1(m(s, "new", "qual")), prOldQ: f1(m(s, "old", "qual")),
-        prR: String(R), prSlice: pct(Math.max(0.25, s.a)), prSliceN: String(Math.round(R * Math.max(0.25, s.a))), prT: T != null ? T.toFixed(0) + " s" : "10 s",
-        prBad: String(Math.round(R * Math.max(0.25, s.a) * f * (T != null ? T : 10))), prBadAll: String(Math.round(R * f * (T != null ? T : 10))), prF: "1 in 75" };
+        prR: String(R), prWhich: which, prA: pct(a), prFf: Math.abs(f - FAULT / 3) < 1e-9 ? "1/75" : f > 0 ? "1/" + Math.round(1 / f) : "0",
+        prT: T.toFixed(0) + " s", prPred: String(Math.round(R * a * f * T)), prPredAll: String(Math.round(R * (FAULT / 3) * T)),
+        prCount: n == null ? "nothing yet" : n + " garbled repl" + (n === 1 ? "y" : "ies") };
     }
   });
 });

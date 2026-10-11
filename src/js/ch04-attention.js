@@ -58,7 +58,7 @@ chapter("attention", () => {
     return { rows: out, living, place, pA: ea / (ea + es), pS: es / (ea + es) };
   }
 
-  function init() { return { t: 0, adj: "tired", sel: IT, head: "coref", layers: 4, len: 1, qo: null, changedAt: -9, lenAt: -9, qoAt: -9, metAt: -9, met: false, L: null, prevAtt: null }; }
+  function init() { return { t: 0, adj: "tired", sel: IT, head: "coref", layers: 4, len: 1, nums: false, qo: null, changedAt: -9, lenAt: -9, qoAt: -9, metAt: -9, met: false, L: null, prevAtt: null }; }
   function step(s, dt) {
     s.t += dt; const st = stack(s);
     const met = st.pS >= 0.75 && !s.qo && s.sel === LAST; if (met && !s.met) s.metAt = s.t; s.met = s.met || met;
@@ -106,37 +106,46 @@ chapter("attention", () => {
 
     // ---- query/key plot ----
     const P = L.plot, mags = [Math.hypot(...A.q), ...A.ks.map(v => Math.hypot(...v))], M = Math.max(...mags, 0.001) * 1.05, sc = P.R / M;
-    k.label(P.cx - P.R, P.cy - P.R - 26, L.n ? "Query and keys" : "Query (amber) meets keys (teal) · click to aim the query", { align: "left", size: 12, col: C.ink, weight: "600" });
+    k.label(P.cx - P.R, P.cy - P.R - (L.n ? 44 : 26), L.n ? "Query and keys" : "Query (amber) meets keys (teal) · click to aim the query", { align: "left", size: 12, col: C.ink, weight: "600" });
     k.dot(P.cx, P.cy, P.R, C.bg2, { alpha: 0.8 }); k.box(P.cx - P.R, P.cy - P.R, P.R * 2, P.R * 2, { stroke: C.line, r: P.R });
     k.line(P.cx - P.R, P.cy, P.cx + P.R, P.cy, { col: C.line }); k.line(P.cx, P.cy - P.R, P.cx, P.cy + P.R, { col: C.line });
-    if (s.head === "coref") { k.label(P.cx + P.R - 4, P.cy + 14, "living thing →", { align: "right", size: 10, col: C.muted }); k.label(P.cx - 6, P.cy - P.R * 0.5, "place ↑", { align: "right", size: 10, col: C.muted }); }
-    if (s.head === "sink") k.label(P.cx + P.R - 4, P.cy + 14, "first word →", { align: "right", size: 10, col: C.muted });
-    if (s.head === "prev") k.label(P.cx, P.cy + P.R + 14, "keys turn with position, like a clock hand", { size: 10, col: C.muted });
+    const axisTxt = s.head === "coref" ? "→ living thing · ↑ place" : s.head === "sink" ? "→ first word" : L.n ? "keys turn with position" : "keys turn with position, like a clock hand";
+    if (L.n || s.head === "prev") k.label(P.cx, P.cy + P.R + (L.n ? 40 : 14), axisTxt, { size: 10, col: C.muted });
+    else if (s.head === "coref") { k.label(P.cx + P.R - 4, P.cy + 14, "living thing →", { align: "right", size: 10, col: C.muted }); k.label(P.cx - 6, P.cy - P.R * 0.5, "place ↑", { align: "right", size: 10, col: C.muted }); }
+    else k.label(P.cx + P.R - 4, P.cy + 14, "first word →", { align: "right", size: 10, col: C.muted });
+    const qx = P.cx + A.q[0] * sc, qy = P.cy - A.q[1] * sc, near = k.px(16);
     const order = A.ks.map((v, j) => j).sort((a, b) => A.w[a] - A.w[b]);
     order.forEach(j => { const v = A.ks[j], x = P.cx + v[0] * sc, y = P.cy - v[1] * sc, w = A.w[j];
       arrow(k, P.cx, P.cy, x, y, C.sig, 1.2 + w * 4, headOff ? 0.25 : 0.3 + 0.7 * Math.min(1, w * 2.5));
       const lab = w >= 0.06 || j === 0 || (s.head === "coref" && (ws[j] === "animal" || ws[j] === "street" || ws[j] === "it")) || s.head === "prev";
-      if (lab) k.label(x + (v[0] >= 0 ? 6 : -6), y + (v[1] >= 0 ? -10 : 10), ws[j], { align: v[0] >= 0 ? "left" : "right", size: 11, col: w >= 0.2 ? C.ink : C.muted, mono: true }); });
-    const qx = P.cx + A.q[0] * sc, qy = P.cy - A.q[1] * sc;
-    if (Math.hypot(A.q[0], A.q[1]) > 1e-6) { arrow(k, P.cx, P.cy, qx, qy, C.amb, 3.5, 1); k.dot(qx, qy, k.px(5), C.amb, { glow: 12 }); if (L.n) k.label(P.cx, P.cy + P.R + 16, `amber arrow: query of "${ws[s.sel]}"`, { size: 11, col: C.amb, weight: "600" }); else k.label(qx + (A.q[0] >= 0 ? 8 : -8), qy + (A.q[1] >= 0 ? -14 : 14), `query of "${ws[s.sel]}"`, { align: A.q[0] >= 0 ? "left" : "right", size: 11, col: C.amb, weight: "600", bg: true }); }
+      // keep key labels off the query's tip and inside the stage
+      const ax = x + k.px(v[0] >= 0 ? 6 : -6), ay = y + k.px(v[1] >= 0 ? -10 : 10), qq = (qx - P.cx) ** 2 + (qy - P.cy) ** 2 || 1;
+      const tq = Math.max(0, Math.min(1, ((ax - P.cx) * (qx - P.cx) + (ay - P.cy) * (qy - P.cy)) / qq));
+      const nearQ = Math.hypot(ax - P.cx - tq * (qx - P.cx), ay - P.cy - tq * (qy - P.cy)) < near, edgeL = v[0] < 0 && x < P.cx - P.R * 0.6, edgeR = L.n && v[0] > 0 && x > P.cx + P.R * 0.6;
+      let lx = x + k.px(v[0] >= 0 ? 6 : -6), ly = y + k.px(v[1] >= 0 ? -10 : 10), al = v[0] >= 0 ? "left" : "right";
+      if (nearQ) { const qd = Math.hypot(qx - P.cx, qy - P.cy) || 1, sg = (qx - P.cx) >= 0 ? 1 : -1, nx = -sg * (qy - P.cy) / qd, ny = sg * (qx - P.cx) / qd;   // the normal that points down lx = x + nx * k.px(20); ly = y + ny * k.px(20); al = nx >= 0 ? "left" : "right"; }
+      else if (edgeL) { lx = x + 6; ly = y + k.px(14); al = "left"; }
+      else if (edgeR) { lx = x - 6; ly = y + k.px(14); al = "right"; }
+      if (lab) k.label(lx, ly, ws[j], { align: al, size: 11, col: w >= 0.2 ? C.ink : C.muted, mono: true }); });
+    if (Math.hypot(A.q[0], A.q[1]) > 1e-6) { arrow(k, P.cx, P.cy, qx, qy, C.amb, 3.5, 1); k.dot(qx, qy, k.px(5), C.amb, { glow: 12 }); if (L.n) k.label(P.cx, P.cy + P.R + 16, `amber arrow: query of "${ws[s.sel]}"`, { size: 11, col: C.amb, weight: "600" }); else { const right = A.q[0] >= 0 || qx - P.cx + P.R < P.R * 0.9; k.label(qx + (right ? 8 : -8), qy + (A.q[1] >= 0 ? -14 : 14), `query of "${ws[s.sel]}"`, { align: right ? "left" : "right", size: 11, col: C.amb, weight: "600", bg: true }); } }
     else { k.dot(P.cx, P.cy, k.px(5), C.amb); k.label(P.cx, P.cy + 16, "empty query: nothing to look for", { size: 11, col: C.amb, bg: true }); }
-    if (s.qo) k.label(P.cx - P.R, P.cy + P.R + (s.head === "prev" || L.n ? 32 : 16), "query aimed by you · pick another word to undo", { size: 10, col: C.amb, align: "left" });
+    if (s.qo) k.label(P.cx - P.R, P.cy + P.R + (L.n ? 64 : s.head === "prev" ? 32 : 16), "query aimed by you · pick another word to undo", { size: 10, col: C.amb, align: "left" });
     // score table
     const rowsT = A.w.map((w, j) => j).sort((a, b) => A.w[b] - A.w[a]).slice(0, L.n ? 5 : 6), rh = L.n ? 50 : 36, fs = L.n ? 27 : 15;
-    k.text(P.lx, P.ly, "word", { size: fs * 0.8, align: "left", col: C.muted }); k.text(P.lx + P.lw * 0.62, P.ly, "q·k ÷ √2", { size: fs * 0.8, align: "right", col: C.muted }); k.text(P.lx + P.lw, P.ly, "weight", { size: fs * 0.8, align: "right", col: C.muted });
+    k.text(P.lx, P.ly, "word", { size: fs * 0.8, align: "left", col: C.muted }); if (s.nums) k.text(P.lx + P.lw * 0.62, P.ly, "q·k ÷ √2", { size: fs * 0.8, align: "right", col: C.muted }); k.text(P.lx + P.lw, P.ly, "weight", { size: fs * 0.8, align: "right", col: C.muted });
     rowsT.forEach((j, r) => { const y = P.ly + (r + 1) * rh, w = headOff ? 0 : A.w[j];
       k.box(P.lx, y + fs * 0.55, P.lw * w, 4, { fill: j === s.sel ? C.amb : C.sig, r: 2 });
       k.text(P.lx, y, ws[j], { size: fs, align: "left", mono: true, col: j === s.sel ? C.amb : C.ink });
-      k.text(P.lx + P.lw * 0.62, y, A.sc[j].toFixed(2), { size: fs, align: "right", mono: true, col: C.muted });
+      if (s.nums) k.text(P.lx + P.lw * 0.62, y, A.sc[j].toFixed(2), { size: fs, align: "right", mono: true, col: C.muted });
       k.text(P.lx + P.lw, y, headOff ? "–" : pc(w), { size: fs, align: "right", mono: true, col: j === s.sel ? C.amb : C.sig, weight: "600" }); });
-    k.text(P.lx, P.ly + (rowsT.length + 1) * rh + 4, "softmax turns scores into weights", { size: fs * 0.75, align: "left", col: C.muted });
+    k.text(P.lx, P.ly + (rowsT.length + 1) * rh + 4, s.nums ? (L.n ? "softmax: scores → weights" : "softmax turns scores into weights") : L.n ? "shares, adding to 100%" : "shares of attention, adding to 100%", { size: fs * 0.75, align: "left", col: C.muted });
 
     // ---- layer stack for the last word ----
     const K = L.stk, st = stack(s), sx = K.x + (L.n ? 64 : 30), top0 = K.y + (L.n ? 200 : 112), rowH = (K.h - (top0 - K.y) - (L.n ? 56 : 40)) / 4, fsK = L.n ? 28 : 14;
     k.box(K.x, K.y, K.w, K.h, { stroke: C.line, r: 14 });
-    k.label(K.x + 14, K.y + 16, `Inside the stack, for the last word "${s.adj}"`, { align: "left", size: 12, col: C.ink, weight: "600" });
+    k.label(K.x + 14, K.y + 16, `The decision, made at the last word "${s.adj}"`, { align: "left", size: 12, col: C.ink, weight: "600" });
     // odds
-    const oy = K.y + (L.n ? 50 : 40), ow = K.w - 260 - (L.n ? 0 : 0);
+    const oy = K.y + (L.n ? 50 : 40);
     k.text(K.x + 16, oy + (L.n ? 6 : 4), L.n ? `"…What was too ${s.adj}? The"` : `Odds if it then read "What was too ${s.adj}? The …"`, { size: fsK * 0.9, align: "left", col: C.muted });
     [["animal", st.pA], ["street", st.pS]].forEach(([w, p], i) => { const y = oy + (L.n ? 44 : 26) + i * (L.n ? 38 : 22), x0 = K.x + (L.n ? 120 : 90), bw = K.w - (L.n ? 220 : 170);
       k.text(x0 - 10, y, w, { size: fsK, align: "right", mono: true, col: C.ink });
@@ -147,6 +156,22 @@ chapter("attention", () => {
     k.line(sx, streamBot, sx, streamTop, { col: C.sig, lw: 3, alpha: 0.6 });
     k.flow(u => [sx, streamBot - u * (streamBot - streamTop)], 5, (s.t * 0.25) % 1, C.sig, { size: 3 });
     k.label(sx, streamBot + 14, `"${s.adj}" enters`, { size: 11, col: C.muted });
+    if (!s.nums) {
+      // simple view: one box per layer, in words
+      const lean = st.living > st.place + 0.005 ? "animal" : st.place > st.living + 0.005 ? "street" : "";
+      st.rows.forEach((r, i) => {
+        const y = top0 + rowH * (3 - i), al = r.on ? 1 : 0.35, bx = sx + 26, bw = K.x + K.w - 16 - bx;
+        k.box(bx, y + 4, bw, rowH * 0.62, { fill: C.bg2, stroke: r.on ? (r.attHead === s.head ? C.amb : C.line) : C.line, r: 8, alpha: al, dash: r.on ? null : [4, 4] });
+        let t; if (!r.on) t = "not in this model";
+        else if (r.l === 1) t = `looks one word back ("${ws[LAST - 1]}")`;
+        else if (r.l === 2) t = r.dA[0] + r.dA[1] < 0.01 ? "\"who is it\" head: finds no noun" : `"who is it" head: pulls in "${r.dA[0] > r.dA[1] ? "animal" : "street"}"`;
+        else t = r.dM[0] + r.dM[1] < 0.005 || !lean ? "little to add" : `sharpens the lean to "${lean}"`;
+        k.text(bx + 12, y + 4 + rowH * 0.31, (L.n ? "" : `layer ${r.l} · `) + t, { size: fsK * 0.9, align: "left", col: r.on ? C.ink : C.muted, alpha: al });
+        if (L.n) k.text(K.x + 10, y + rowH * 0.35, "L" + r.l, { size: fsK * 0.8, align: "left", col: C.muted, alpha: al });
+        if (r.on) { const yy = y + 4 + rowH * 0.31; k.line(bx, yy, sx + 3, yy, { col: C.amb, lw: 1.5, alpha: 0.7 }); k.dot(sx, yy, k.px(4), C.amb, { glow: 8 }); }
+      });
+      return;
+    }
     if (!L.n) k.label(K.x + K.w - 14, streamTop - 4, "stream after: animal · street", { align: "right", size: 10, col: C.muted });
     const fmtD = d => { const a = d[0], b = d[1]; if (a < 0.005 && b < 0.005) return "adds nothing yet"; return `+${a.toFixed(2)} animal · +${b.toFixed(2)} street`; };
     st.rows.forEach((r, i) => {
@@ -179,7 +204,8 @@ chapter("attention", () => {
       { id: "word", label: "Last word", type: "choice", value: "tired", options: [["tired", "tired"], ["scared", "scared"], ["wide", "wide"]], help: "Was the animal too …, or the street?", apply: (s, v) => { if (s.adj !== v) { s.prevAtt = s.sel < LAST ? attend(s, s.head, s.sel).w.slice() : null; s.prevSel = s.sel; s.prevHead = s.head; s.changedAt = s.t; s.adj = v; if (s.qo && s.qo.i === LAST) s.qo = null; } } },
       { id: "head", label: "Attention head", type: "choice", value: "coref", options: [["coref", "Who is it"], ["prev", "Previous"], ["sink", "Start"]], help: "Each head looks for something different.", apply: (s, v) => { if (s.head !== v) s.qo = null; s.head = v; } },
       { id: "layers", label: "Layers in the model", type: "range", min: 1, max: 4, step: 1, value: 4, fmt: v => v + (v === 1 ? " layer" : " layers"), help: "Each layer: attention, then MLP, each adding to the stream.", apply: (s, v) => { s.layers = v; } },
-      { id: "len", label: "Vector length", type: "range", min: 0.3, max: 2, step: 0.1, value: 1, fmt: v => "× " + v.toFixed(1), help: "Longer queries make the softmax pickier.", apply: (s, v) => { if (s.len !== v) s.lenAt = s.t; s.len = v; } }
+      { id: "len", label: "Query strength (pickiness)", type: "range", min: 0.3, max: 2, step: 0.1, value: 1, fmt: v => "× " + v.toFixed(1), help: "Scales every query. Stronger queries make softmax pickier.", apply: (s, v) => { if (s.len !== v) s.lenAt = s.t; s.len = v; } },
+      { id: "nums", label: "Show the numbers", type: "toggle", value: false, help: "Match scores, and what each layer adds.", apply: (s, v) => { s.nums = v; } }
     ],
     click: (s, wx, wy) => {
       const L = s.L; if (!L) return;
@@ -193,11 +219,11 @@ chapter("attention", () => {
         [`"${s.adj}" looks at animal · street`, pc(b.w[1]) + " · " + pc(b.w[5]), b.w[5] > b.w[1] ? "hot" : ""],
         ["the model reads \"it\" as", st.pS > 0.6 ? "street " + pc(st.pS) : st.pA > 0.6 ? "animal " + pc(st.pA) : "undecided", st.pS >= 0.8 ? "ok" : ""],
         ["layers", String(s.layers)]]; },
-    goal: { text: "select the word where the model decides who \"it\" is, and change one word so it decides on the street (75% or more)", check: s => { const st = stack(s); return { done: s.met, progress: `selected "${words(s)[s.sel]}" · street ${pc(st.pS)}${s.qo ? " · hand-aimed query" : ""}` }; } },
+    goal: { text: "select the word where the model decides who \"it\" is, and change one word so it decides on the street (75% or more)", check: s => { const st = stack(s); return { done: s.met, progress: `decision at last word: ${st.pS >= st.pA ? "street " + pc(st.pS) : "animal " + pc(st.pA)} · selected word: "${words(s)[s.sel]}"${s.qo ? " · hand-aimed query" : ""}` }; } },
     notices: [
       { id: "causal", when: s => s.t - s.changedAt < 4.5 && s.prevAtt && s.sel === s.prevSel && s.head === s.prevHead, say: s => { const a = attend(s, s.head, s.sel).w, same = a.every((x, j) => Math.abs(x - s.prevAtt[j]) < 1e-9), t = a.map((x, j) => [x, j]).filter(([, j]) => j !== s.sel).sort((x, y) => y[0] - x[0])[0]; return `You changed the last word, and "<b>${esc(words(s)[s.sel])}</b>" attends ${same ? "exactly as before" : "differently"} (${esc(words(s)[t[1]])} ${pc(t[0])}). A word never sees anything after it, so only the last word's attention can change. Click the last word.`; } },
       { id: "qo", when: s => s.qo && s.t - s.qoAt < 6, say: s => { const A = attend(s, s.head, s.sel), j = A.w.indexOf(Math.max(...A.w)); return `You aimed the query by hand. Its dot product with the key of "<b>${esc(words(s)[j])}</b>" is now the biggest (score ${A.sc[j].toFixed(2)}), so softmax gives it <b>${pc(A.w[j])}</b>. Keys that point the same way as the query win.`; } },
-      { id: "len", when: s => s.t - s.lenAt < 4, say: s => { const A = attend(s, s.head, s.sel), m = Math.max(...A.w); return s.len > 1 ? `Longer vectors mean bigger dot products, and softmax of bigger numbers is pickier: the top word now gets <b>${pc(m)}</b>. Real models divide by √d to stop this getting out of hand.` : `Shorter vectors mean smaller scores, so softmax spreads attention more evenly: the top word gets only <b>${pc(m)}</b>.`; } },
+      { id: "len", when: s => s.t - s.lenAt < 4, say: s => { const A = attend(s, s.head, s.sel), m = Math.max(...A.w); return s.len > 1 ? `A stronger query gives bigger match scores, and softmax of bigger scores is pickier: the top word now gets <b>${pc(m)}</b>. Real models divide scores by √d so they stay steady as vectors get more numbers.` : `A weaker query gives smaller match scores, so softmax spreads attention more evenly: the top word gets only <b>${pc(m)}</b>.`; } },
       { id: "layers1", when: s => s.layers < 2, say: () => "With one layer, the \"who is it\" head (which sits in layer 2) doesn't exist. Nothing links \"it\" to a noun, so the odds are 50/50. Add a layer." },
       { id: "met", when: s => s.met && s.t - s.metAt < 7, say: s => { const b = attend(s, "coref", LAST); return `"<b>${esc(s.adj)}</b>" describes a place, so its query points along "place" and lines up with the key of "street" (${pc(b.w[5])}). Nothing before it changed: the meaning of "it" is settled here, at the deciding word.`; } },
       { id: "it", when: s => s.head === "coref" && s.sel === IT, say: s => { const a = attend(s, "coref", IT); return `At "it", the deciding word hasn't arrived yet. Its query points halfway between "living thing" and "place", so attention splits: animal <b>${pc(a.w[1])}</b>, street <b>${pc(a.w[5])}</b>. Now click the last word.`; } },
@@ -209,8 +235,8 @@ chapter("attention", () => {
       { id: "google", when: s => ADJ[s.adj] === "place", text: "This pair of sentences, \"too tired\" and \"too wide\", is the example Google used in 2017 to announce the Transformer, the design today's chatbots are built on.", ref: "#ref-57" }
     ],
     tour: [
-      { say: "Start at \"it\". The model hasn't seen the last word yet, so its attention splits between \"animal\" and \"street\".", set: { head: "coref", word: "tired", layers: 4, len: 1 }, act: s => { s.sel = IT; s.qo = null; }, wait: 7 },
-      { say: "Now the last word, \"tired\". Its query (amber) points along \"living thing\", the same way as the key of \"animal\". On the right, the stack reads \"it\" as the animal.", act: s => { s.sel = LAST; }, wait: 8 },
+      { say: "Start at \"it\". The model hasn't seen the last word yet, so its attention splits between \"animal\" and \"street\".", set: { head: "coref", word: "tired", layers: 4, len: 1, nums: false }, act: s => { s.sel = IT; s.qo = null; }, wait: 7 },
+      { say: "Now the last word, \"tired\". Its query (amber) points along \"living thing\", the same way as the key of \"animal\". In the decision panel, the stack reads \"it\" as the animal.", act: s => { s.sel = LAST; }, wait: 8 },
       { say: "Change it to \"wide\". The query swings to \"place\", \"street\" wins, and the stack now reads \"it\" as the street.", set: { word: "wide" }, wait: 8 },
       { say: "Back at \"it\": nothing changed. A word never sees what comes after it.", act: s => { s.sel = IT; }, wait: 6 },
       { say: "With one layer, the \"who is it\" head isn't there and the odds fall to 50/50. Understanding builds up layer by layer.", set: { layers: 1 }, act: s => { s.sel = LAST; }, wait: 7 },

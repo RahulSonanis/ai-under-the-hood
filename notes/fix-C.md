@@ -2,14 +2,14 @@
 Files: src/chapters/07-memory.html 08-batching.html 09-cost.html, src/js/ch07-memory.js ch08-batching.js ch09-cost.js, src/refs/ch08.html ch09.html
 
 ## ch7 memory
-- [ ] C1 [major] Introduce vLLM ("an open-source serving program from UC Berkeley"); define GPU in the main text.
-- [ ] C2 [major] Constant 150 tok/s per conversation regardless of how many share the GPU contradicts ch8 → label "speed not modelled here; chapter 8 shows how sharing slows each person", or derive from ch8 step-time.
+- [x] C1 [major] Introduce vLLM ("an open-source serving program from UC Berkeley"); define GPU in the main text.
+- [x] C2 [major] Constant 150 tok/s per conversation regardless of how many share the GPU contradicts ch8 → label "speed not modelled here; chapter 8 shows how sharing slows each person", or derive from ch8 step-time.
 - [ ] C3 [major] "Book the maximum" line grows without limit; a document longer than the max is skipped silently → bounce it visibly with an error ("too long for this server", like real "context length exceeded"); cap/time out the waiting line.
 - [ ] C4 [minor] Mark the 30k document's squares ("30k document") so tour step 5 is followable; tour "line on the left" → name it.
 - [ ] C5 [minor] Phone: striped "reserved but empty" squares indistinguishable → solid tint; "9 waiting" overlays grid.
 - [ ] C6 [minor] Byte comparisons: "128 KB ≈ a short email; 80 GB ≈ 20 HD films"; "parameter" defined.
 - [ ] C7 [minor] Carry-forward "128 KB" → "for Llama 3 8B (other models differ)"; "In words": 8 key-value heads (32 query heads share them in groups of 4); "128 KiB (about 131 KB)" once.
-- [ ] C8 [minor] Say prefill is shown as instant.
+- [x] C8 [minor] Say prefill is shown as instant.
 
 ## ch8 batching
 - [ ] C9 [major] "Refill the seat" truncated to "Refill the s" → shorter label "Refill".

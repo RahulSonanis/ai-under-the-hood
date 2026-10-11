@@ -66,11 +66,11 @@
   <div class="st-hero">
     <div class="st-kicker">AI Under the Hood · a course you play</div>
     <h1>What really happens when you talk to an AI?</h1>
-    <p class="lede">Seventeen short chapters and a finale, each built around one live simulation you control: from the moment you press send, through the chips and datacenters that serve the reply, to how the model was trained and how it uses tools. <span class="muted">Written for a curious beginner, deep enough for an engineer. About 3 to 4 hours, and every claim is referenced.</span></p>
+    <p class="lede">Seventeen short chapters and a finale, each built around one live simulation you control: from the moment you press send, through the GPUs (chips built for the maths AI needs) and datacenters that serve the reply, to how the model was trained and how it uses tools. <span class="muted">Written for a curious beginner, deep enough for an engineer. About 4 to 5 hours, and every claim is referenced.</span></p>
   </div>
 
   <figure class="sim" id="start-sim"></figure>
-  <p class="st-sim-cap">A simplified picture, in slow motion, with made-up token numbers. Chapter 1 shows the full machine with realistic timings.</p>
+  <p class="st-sim-cap">A simplified picture, in slow motion, with made-up <dfn data-g="token">token</dfn> numbers. A pass is one trip through the model&#39;s layers, the stack of calculation stages inside it. A dot (·) marks a space, which belongs to the token after it. Chapter 1 shows the full machine with realistic timings.</p>
 
   <div class="st-cta">
     <a class="btn big" id="st-continue" href="#send">Start with chapter 1</a>
@@ -79,7 +79,7 @@
 
   <div class="st-sec">
     <h3>How every chapter works</h3>
-    <p>Each chapter answers one question a person would actually ask, in five short beats. It takes 12 to 18 minutes.</p>
+    <p>Each chapter answers one question a person would actually ask, in five short beats. It takes 12 to 20 minutes.</p>
     <ol class="st-steps">
       <li><b>Predict</b><span>Make a quick guess first. Being wrong is the point: it makes the answer stick.</span></li>
       <li><b>Play</b><span>Drive the simulation. Change one thing, watch what happens. "Show me" gives a guided tour.</span></li>
@@ -101,7 +101,7 @@
           <li><a data-n="3" href="#predict"><span class="n">3</span><span class="q-text">How does it pick the next word?</span><span class="t-text">Next word</span></a></li>
           <li><a data-n="4" href="#attention"><span class="n">4</span><span class="q-text">How does it understand what "it" refers to?</span><span class="t-text">Attention</span></a></li>
           <li><a data-n="5" href="#thinking"><span class="n">5</span><span class="q-text">What do "thinking" models do differently?</span><span class="t-text">Thinking models</span></a></li>
-          <li><a data-n="6" href="#multimodal"><span class="n">6</span><span class="q-text">How can it read pictures and hear speech?</span><span class="t-text">Beyond text</span></a></li>
+          <li><a data-n="6" href="#multimodal"><span class="n">6</span><span class="q-text">How can a chatbot see a photo?</span><span class="t-text">Beyond text</span></a></li>
         </ol>
       </section>
       <section class="st-part" aria-labelledby="st-p2">
@@ -109,9 +109,9 @@
         <ol>
           <li><a data-n="7" href="#memory"><span class="n">7</span><span class="q-text">Why do long chats get slower and pricier?</span><span class="t-text">Memory</span></a></li>
           <li><a data-n="8" href="#batching"><span class="n">8</span><span class="q-text">How does one GPU serve many people at once?</span><span class="t-text">Batching</span></a></li>
-          <li><a data-n="9" href="#cost"><span class="n">9</span><span class="q-text">What does one reply really cost?</span><span class="t-text">Cost</span></a></li>
+          <li><a data-n="9" href="#cost"><span class="n">9</span><span class="q-text">What does one AI reply actually cost?</span><span class="t-text">What a reply costs</span></a></li>
           <li><a data-n="10" href="#production"><span class="n">10</span><span class="q-text">What happens when something goes wrong in production?</span><span class="t-text">Running it in production</span></a></li>
-          <li><a data-n="11" href="#datacenters"><span class="n">11</span><span class="q-text">What is inside an AI datacenter?</span><span class="t-text">Datacenters</span></a></li>
+          <li><a data-n="11" href="#datacenters"><span class="n">11</span><span class="q-text">Why are AI companies building power plants?</span><span class="t-text">Datacenters and power</span></a></li>
         </ol>
       </section>
       <section class="st-part" aria-labelledby="st-p3">
@@ -127,13 +127,13 @@
         <header><div class="pn">Part 4</div><h4 id="st-p4">Around the model</h4><p>Tools, agents, and the ways text can be turned against them.</p></header>
         <ol>
           <li><a data-n="16" href="#agents"><span class="n">16</span><span class="q-text">How does a chatbot become an agent that does things?</span><span class="t-text">Agents and tools</span></a></li>
-          <li><a data-n="17" href="#security"><span class="n">17</span><span class="q-text">Can an AI be tricked into doing the wrong thing?</span><span class="t-text">Tricks and the black box</span></a></li>
+          <li><a data-n="17" href="#security"><span class="n">17</span><span class="q-text">Can you trust what an AI reads, and what it says?</span><span class="t-text">Tricks and the black box</span></a></li>
         </ol>
       </section>
       <section class="st-part st-finale" aria-labelledby="st-p5">
         <header><div class="pn">Finale</div><h4 id="st-p5">Put it all together</h4><p>Everything you've played with, working as one system.</p></header>
         <ol>
-          <li><a data-n="18" href="#finale"><span class="n">18</span><span class="q-text">Can you follow one message through the whole system?</span><span class="t-text">Finale</span></a></li>
+          <li><a data-n="18" href="#company"><span class="n">18</span><span class="q-text">Could you run an AI company for a day?</span><span class="t-text">Run an AI company</span></a></li>
         </ol>
       </section>
     </div>

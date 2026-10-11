@@ -21,9 +21,9 @@ Files: src/chapters/16-agents.html 17-security.html 18-company.html 19-next.html
 - [ ] F15 [minor] Readouts scope: label cumulative ones "all inboxes"; dots in arrival order; "quar." → "quarantined"; lamps caption "made-up illustration of what researchers can see inside"; approval fatigue named once; faster default round (3×).
 
 ## ch18 company (finale)
-- [ ] F16 [blocker] Jailbreak "missed" notice always says "Light testing saved money…" even on Standard → use actual plan (≈ line 364).
+- [x] F16 [blocker] Jailbreak "missed" notice always says "Light testing saved money…" even on Standard → use actual plan (≈ line 364).
 - [ ] F17 [blocker] Displayed profit doesn't follow the lines above (fixed costs prorated by h/18) → show "fixed costs so far = (training + testing) × h/18" and put h/18 in symbols; T is a DAILY testing cost (not yearly/365).
-- [ ] F18 [error] Predict answer "1 to about 9 seconds" → "about 1 to about 10". Fact "llama": "While Meta trained its largest Llama 3 model on 16,384 GPUs, during a 54-day stretch it logged 419…". Header comment 45 → 30 replies/s.
+- [x] F18 [error] Predict answer "1 to about 9 seconds" → "about 1 to about 10". Fact "llama": "While Meta trained its largest Llama 3 model on 16,384 GPUs, during a 54-day stretch it logged 419…". Header comment 45 → 30 replies/s.
 - [ ] F19 [major] Capacity realism: new pods warm up (20–30 sim-minutes); say most GPU capacity is reserved (paid whether used or not) and idle time is filled with batch work; adjust "switch them off after the peaks" lesson.
 - [ ] F20 [major] Load shedding: add "turn away when overloaded" lever (429s) or cap queue, show "turned away" metric; reconcile 618 s waits with "people give up after ~2 minutes".
 - [ ] F21 [major] Doing nothing barely punished ($64K vs $72.9K) → abandoned/turned-away users and missed incidents cost more.

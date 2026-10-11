@@ -2,11 +2,11 @@
 Files: src/chapters/00-start.html 01-send.html 02-tokens.html 03-predict.html, src/js/ch00-start.js ch01-send.js ch02-tokens.js ch03-predict.js
 
 ## start (landing hero sim)
-- [ ] A1 [major] Hero shows tokens cut on "Your screen" and token IDs flying over the internet ("this is what really travels"). Wrong: text travels; tokenizing happens in the datacenter. Send text; split into tokens inside the datacenter; toggle help "what the model receives".
-- [ ] A2 [minor] "24 written in 24 passes": the reading pass also writes the first token → say so (1 + 23).
-- [ ] A3 [minor] Define "pass" ("one trip through the model"), "layers", and the "·" = space marker in the hero; add "(plus hidden instructions, see chapter 1)" to "6 tokens read".
-- [ ] A4 [minor] "about 128,000 tokens" needs a comparison (≈ a 300-page novel… compute: 128k tokens ≈ 96k words ≈ a long novel).
-- [ ] A5 [minor] 390: "slow motion…" label overlaps "the internet" label.
+- [x] A1 [major] Hero shows tokens cut on "Your screen" and token IDs flying over the internet ("this is what really travels"). Wrong: text travels; tokenizing happens in the datacenter. Send text; split into tokens inside the datacenter; toggle help "what the model receives".
+- [x] A2 [minor] "24 written in 24 passes": the reading pass also writes the first token → say so (1 + 23).
+- [x] A3 [minor] Define "pass" ("one trip through the model"), "layers", and the "·" = space marker in the hero; add "(plus hidden instructions, see chapter 1)" to "6 tokens read".
+- [x] A4 [minor] "about 128,000 tokens" needs a comparison (≈ a 300-page novel… compute: 128k tokens ≈ 96k words ≈ a long novel).
+- [x] A5 [minor] 390: "slow motion…" label overlaps "the internet" label.
 
 ## ch1 send
 - [ ] A6 [major] Cache-hit notice says "Reading your 14,000/27,000 tokens took 30 ms, all in one pass" → "12,000 of your 14,000 tokens were already cached; only N new tokens were read (30 ms)."
@@ -47,4 +47,4 @@ Files: src/chapters/00-start.html 01-send.html 02-tokens.html 03-predict.html, s
 - [ ] A37 [minor] Define neural network, long tail, miscompiled; "rolls a die".
 - [ ] A38 [minor] "Read new" should clear the text or show a divider.
 - [ ] A39 [nitpick] Fallback sentence: it mixes in last-word-only and overall frequencies on every step (interpolation), not only for unseen pairs. T=0: "tiny numeric differences can still make replies differ".
-- [ ] A40 [error] Landing map: broken `#finale` link → `#company`; sync map questions with chapter h2s (6, 9, 11, 17, 18); "About 4 to 5 hours"; "12 to 20 minutes"; define GPU in the hero paragraph.
+- [x] A40 [error] Landing map: broken `#finale` link → `#company`; sync map questions with chapter h2s (6, 9, 11, 17, 18); "About 4 to 5 hours"; "12 to 20 minutes"; define GPU in the hero paragraph.

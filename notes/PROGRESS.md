@@ -19,5 +19,14 @@ number without a comparison; every claim sourced; illustrative numbers labelled.
 - [ ] Review round 2 (quick re-check of blockers/majors, phone layouts)
 - [ ] README rewrite, meta description, merge to main, confirm Pages rebuild, republish preview artifact
 
+## Resume procedure (after any interruption)
+1. `git status` / `git log -3` on branch v4; build; run notes/tools/allcheck.py.
+2. Count open items: `grep -c '^- \[ \]' notes/fix-*.md`.
+3. Relaunch one fixer agent per fix list that still has open items, with notes/FIXER_SPEC.md (they resume from unticked items).
+4. Commit + push v4 after each fixer finishes (and at least every hour).
+
+## Log
+- 2026-10-11: fix round 1 interrupted by usage limit; partial fixes in A (6), C (3), F (2) committed; relaunching fixers A–F.
+
 ## Checkpoint rule
 Commit and push `v4` after every batch of fixes. Tick items in the fix files as they are done.
