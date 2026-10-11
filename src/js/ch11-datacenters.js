@@ -151,7 +151,7 @@ chapter("datacenters", () => {
       { id: "power", label: "Power available from the grid", type: "range", min: 5, max: 150, step: 5, value: 20, fmt: v => v + " MW · " + big(v * 1000 / HOME_KW) + " homes", apply: (s, v) => { if (s.power !== v) s.changed = true; s.power = v; } },
       { id: "cool", label: "Cooling", type: "choice", value: "air", options: [["air", "Air"], ["liquid", "Liquid"]], help: "Air: fans, two 8-chip servers per rack (illustrative). Liquid: coolant piped onto the chips, 72 chips per rack.", apply: (s, v) => { if (s.cool !== v) s.changed = true; s.cool = v; } },
       { id: "pue", label: "Building overhead (PUE)", type: "range", min: 1.1, max: 1.8, step: 0.05, value: 1.5, fmt: v => v.toFixed(2), help: "Site power ÷ power that reaches the computers. 1.0 would mean no overhead at all.", apply: (s, v) => { if (s.pue !== v) s.changed = true; s.pue = v; } },
-      { id: "use", label: "What the cluster is for", type: "choice", value: "train", options: [["train", "Train one model"], ["serve", "Serve people"]], apply: (s, v) => { if (s.use !== v) s.changed = true; s.use = v; if (v === "train") s.nextDip = s.t + 3; } }
+      { id: "use", label: "What the cluster is for", type: "choice", value: "train", options: [["train", "Train one model"], ["serve", "Serve people"]], help: "Serving counts about 10 conversations per chip (illustrative): fewer than chapter 9's 64 seats, because a frontier model is far bigger than the 8B model there and is split across many chips.", apply: (s, v) => { if (s.use !== v) s.changed = true; s.use = v; if (v === "train") s.nextDip = s.t + 3; } }
     ],
     step, draw,
     stats: s => { const p = plan(s); return [
